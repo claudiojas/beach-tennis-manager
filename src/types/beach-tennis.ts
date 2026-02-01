@@ -1,8 +1,15 @@
 export type CourtStatus = 'livre' | 'em_jogo' | 'pausada' | 'manutencao';
 
+
+export type Category = 'A' | 'B' | 'C' | 'Iniciante' | 'Pro' | 'Mista';
+
 export interface Player {
   id: string;
   name: string;
+  phone?: string;
+  category: Category;
+  email?: string; // Optional for now
+  photoUrl?: string;
 }
 
 export interface Team {
