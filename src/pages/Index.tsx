@@ -76,10 +76,13 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-secondary py-6 mt-12 border-t border-border">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center space-y-4">
           <p className="text-sm text-muted-foreground">
             © 2026 Beach Tennis Manager. Developed for better sports.
           </p>
+          <Button variant="link" size="sm" asChild className="text-muted-foreground/50 hover:text-primary">
+            <Link to="/admin">Acesso Organizador</Link>
+          </Button>
         </div>
       </footer>
     </div>

@@ -42,3 +42,12 @@ export interface MatchResult {
   scoreB: number;
   endTime: Date;
 }
+
+export interface Tournament {
+  id: string;
+  name: string;
+  date: string;
+  status: 'planning' | 'active' | 'finished';
+  location?: string;
+  createdAt: number;
+}
