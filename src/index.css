@@ -1,0 +1,234 @@
+/* Beach Tennis Manager Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    /* Beach Tennis Brand Colors */
+    --background: 210 20% 98%;
+    --foreground: 213 27% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 27% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 27% 20%;
+
+    /* Primary Blue - Vibrant #0088cc */
+    --primary: 200 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Light Blue */
+    --secondary: 200 60% 94%;
+    --secondary-foreground: 200 100% 30%;
+
+    /* Muted */
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent - Gold/Yellow for logo */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 200 100% 40%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar - Light theme */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 200 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 60% 94%;
+    --sidebar-accent-foreground: 200 100% 30%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 200 100% 40%;
+
+    /* Custom tokens */
+    --header-gradient: linear-gradient(135deg, hsl(200, 100%, 45%) 0%, hsl(200, 100%, 35%) 100%);
+    --card-shadow: 0 4px 20px -4px hsl(200 50% 30% / 0.1);
+    --card-shadow-hover: 0 8px 30px -4px hsl(200 50% 30% / 0.15);
+    --glass-bg: hsl(0 0% 100% / 0.8);
+    --glass-border: hsl(0 0% 100% / 0.5);
+  }
+
+  /* Arena Dark Theme */
+  .arena-theme {
+    --background: 213 35% 10%;
+    --foreground: 0 0% 100%;
+
+    --card: 213 30% 14%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 213 30% 14%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 200 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 25% 20%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 213 25% 18%;
+    --muted-foreground: 213 20% 60%;
+
+    --accent: 48 100% 50%;
+    --accent-foreground: 0 0% 0%;
+
+    --success: 142 76% 45%;
+    --warning: 48 100% 50%;
+
+    --border: 213 25% 22%;
+    --input: 213 25% 22%;
+    --ring: 200 100% 50%;
+
+    --header-gradient: linear-gradient(135deg, hsl(200, 100%, 40%) 0%, hsl(200, 100%, 30%) 100%);
+    --card-shadow: 0 4px 30px -4px hsl(200 100% 50% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Typography */
+  .font-display {
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+
+  /* Header Gradient */
+  .header-gradient {
+    background: var(--header-gradient);
+  }
+
+  /* Card with glassmorphism */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
+  }
+
+  .glass-card:hover {
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  /* Scoreboard typography */
+  .score-display {
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+
+  /* Status badges */
+  .status-live {
+    @apply bg-success text-success-foreground;
+    animation: pulse-live 2s infinite;
+  }
+
+  .status-waiting {
+    @apply bg-warning text-warning-foreground;
+  }
+
+  .status-paused {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .status-maintenance {
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  /* Score buttons */
+  .score-button {
+    @apply h-16 w-16 rounded-full text-3xl font-bold transition-all duration-200;
+    @apply active:scale-95 touch-manipulation;
+    box-shadow: 0 4px 14px -4px hsl(200 100% 40% / 0.4);
+  }
+
+  .score-button:active {
+    box-shadow: 0 2px 8px -2px hsl(200 100% 40% / 0.4);
+  }
+
+  /* Arena ticker */
+  .ticker-animation {
+    animation: ticker 30s linear infinite;
+  }
+
+  @keyframes ticker {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes pulse-live {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Touch-friendly tabs */
+  .touch-tab {
+    @apply min-h-[48px] px-6 touch-manipulation;
+  }
+}
+
+@layer utilities {
+
+  /* Arena fullscreen */
+  .arena-fullscreen {
+    @apply h-screen w-screen overflow-hidden;
+  }
+
+  /* Large score for TV */
+  .score-tv {
+    font-size: clamp(4rem, 15vw, 12rem);
+    line-height: 1;
+  }
+
+  /* Court grid for arena */
+  .court-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1280px) {
+    .court-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
