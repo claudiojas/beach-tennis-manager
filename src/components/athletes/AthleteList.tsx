@@ -23,6 +23,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AthleteForm } from "./AthleteForm";
+import { Pencil } from "lucide-react";
 
 export function AthleteList() {
     const [athletes, setAthletes] = useState<Player[]>([]);
@@ -69,7 +72,21 @@ export function AthleteList() {
                                 <TableCell className="font-medium">{athlete.name}</TableCell>
                                 <TableCell>{athlete.category}</TableCell>
                                 <TableCell className="hidden md:table-cell">{athlete.phone || "-"}</TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right flex justify-end gap-2">
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Editar Atleta</DialogTitle>
+                                            </DialogHeader>
+                                            <AthleteForm initialData={athlete} onSuccess={() => document.getElementById('close-dialog')?.click()} />
+                                        </DialogContent>
+                                    </Dialog>
+
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon">

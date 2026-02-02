@@ -31,6 +31,8 @@ export interface Court {
   name: string;
   status: CourtStatus;
   currentMatch?: Match;
+  pin: string; // 4-digit code for referee access
+  tournamentId: string;
 }
 
 export interface MatchResult {

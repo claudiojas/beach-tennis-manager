@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import RefereePanel from "./pages/RefereePanel";
 import ArenaPanel from "./pages/ArenaPanel";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import TournamentDetails from "./pages/admin/TournamentDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           {/* Rotas Protegidas do Admin */}
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/tournament/:id" element={<TournamentDetails />} />
             {/* Futuras rotas de admin aqui: /admin/atletas, /admin/quadras */}
           </Route>
 

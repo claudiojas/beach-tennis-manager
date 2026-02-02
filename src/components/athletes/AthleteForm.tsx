@@ -33,18 +33,19 @@ const formSchema = z.object({
 
 interface AthleteFormProps {
     onSuccess?: () => void;
+    initialData?: Player;
 }
 
-export function AthleteForm({ onSuccess }: AthleteFormProps) {
+export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 1. Define your form.
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
-            phone: "",
-            category: "C",
+            name: initialData?.name || "",
+            phone: initialData?.phone || "",
+            category: (initialData?.category as "A" | "B" | "C" | "Iniciante" | "Pro" | "Mista") || "C",
         },
     });
 
@@ -52,19 +53,29 @@ export function AthleteForm({ onSuccess }: AthleteFormProps) {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
-            await athleteService.create({
-                name: values.name,
-                phone: values.phone,
-                category: values.category as Category,
-            });
-            toast.success("Atleta cadastrado com sucesso!");
+            if (initialData) {
+                await athleteService.update(initialData.id, {
+                    name: values.name,
+                    phone: values.phone,
+                    category: values.category as Category,
+                });
+                toast.success("Atleta atualizado com sucesso!");
+            } else {
+                await athleteService.create({
+                    name: values.name,
+                    phone: values.phone,
+                    category: values.category as Category,
+                });
+                toast.success("Atleta cadastrado com sucesso!");
+            }
+
             form.reset();
             if (onSuccess) {
                 onSuccess();
             }
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao cadastrar atleta.");
+            toast.error(initialData ? "Erro ao atualizar atleta." : "Erro ao cadastrar atleta.");
         } finally {
             setIsSubmitting(false);
         }
@@ -125,7 +136,7 @@ export function AthleteForm({ onSuccess }: AthleteFormProps) {
                     )}
                 />
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Cadastrando..." : "Cadastrar Atleta"}
+                    {isSubmitting ? "Salvando..." : (initialData ? "Salvar Alterações" : "Cadastrar Atleta")}
                 </Button>
             </form>
         </Form>

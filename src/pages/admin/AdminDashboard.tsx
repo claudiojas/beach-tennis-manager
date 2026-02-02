@@ -195,8 +195,8 @@ export default function AdminDashboard() {
                       {tournament.location}
                     </p>
                   )}
-                  <Button variant="secondary" className="w-full">
-                    Gerenciar
+                  <Button variant="secondary" className="w-full" asChild>
+                    <Link to={`/admin/tournament/${tournament.id}`}>Gerenciar</Link>
                   </Button>
                 </CardContent>
               </Card>

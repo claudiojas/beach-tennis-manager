@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { Court, MatchResult } from "@/types/beach-tennis";
-import { ref, onValue, update, set } from "firebase/database";
+import { ref, onValue, update, set, push, query, orderByChild, equalTo } from "firebase/database";
 
 const COURTS_PATH = "courts";
 const RESULTS_PATH = "results";
@@ -13,6 +13,27 @@ export const courtService = {
             const courts: Court[] = data ? Object.values(data) : [];
             callback(courts);
         });
+    },
+
+    subscribeByTournament: (tournamentId: string, callback: (data: Court[]) => void) => {
+        const courtsQuery = query(ref(db, COURTS_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
+        return onValue(courtsQuery, (snapshot) => {
+            const data = snapshot.val();
+            const courts: Court[] = data ? Object.values(data) : [];
+            callback(courts);
+        });
+    },
+
+    create: async (court: Omit<Court, "id" | "status" | "currentMatch">) => {
+        const courtsRef = ref(db, COURTS_PATH);
+        const newCourtRef = push(courtsRef);
+        const newCourt: Court = {
+            ...court,
+            id: newCourtRef.key!,
+            status: 'livre',
+        };
+        await set(newCourtRef, newCourt);
+        return newCourtRef.key;
     },
 
     subscribeToResults: (callback: (data: MatchResult[]) => void) => {
