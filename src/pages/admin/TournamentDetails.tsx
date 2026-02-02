@@ -5,12 +5,24 @@ import { ArrowLeft, Plus, Trash2, QrCode, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { courtService } from "@/services/courtService";
+import { matchService } from "@/services/matchService";
 import { Court, Match } from "@/types/beach-tennis";
 import { toast } from "sonner";
 import { AthleteList } from "@/components/athletes/AthleteList";
@@ -25,6 +37,7 @@ const courtSchema = z.object({
 export default function TournamentDetails() {
     const { id } = useParams();
     const [courts, setCourts] = useState<Court[]>([]);
+    const [matches, setMatches] = useState<Match[]>([]); // New state
     const [open, setOpen] = useState(false);
     const [openMatchDialog, setOpenMatchDialog] = useState(false);
 
@@ -43,8 +56,12 @@ export default function TournamentDetails() {
 
     useEffect(() => {
         if (id) {
-            const unsubscribe = courtService.subscribeByTournament(id, setCourts);
-            return () => unsubscribe();
+            const unsubscribeCourts = courtService.subscribeByTournament(id, setCourts);
+            const unsubscribeMatches = matchService.subscribeByTournament(id, setMatches); // Subscribe matches
+            return () => {
+                unsubscribeCourts();
+                unsubscribeMatches();
+            };
         }
     }, [id]);
 
@@ -156,26 +173,72 @@ export default function TournamentDetails() {
                                 ) : (
                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
                                         {courts.map((court) => (
-                                            <div key={court.id} className="flex flex-col justify-between rounded-lg border p-4 shadow-sm group hover:border-primary/50 transition-colors">
-                                                <div className="space-y-1">
+                                            <div key={court.id} className="flex flex-col justify-between rounded-lg border p-4 shadow-sm group hover:border-primary/50 transition-colors bg-card">
+                                                <div className="space-y-3">
                                                     <div className="flex justify-between items-start">
-                                                        <h3 className="font-semibold text-lg">{court.name}</h3>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
-                                                            setEditingCourt(court);
-                                                            form.reset({ name: court.name });
-                                                            setOpen(true);
-                                                        }}>
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
+                                                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                                                            {court.name}
+                                                        </h3>
+                                                        <div className="flex gap-1">
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                                                setEditingCourt(court);
+                                                                form.reset({ name: court.name });
+                                                                setOpen(true);
+                                                            }}>
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Excluir Quadra?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Tem certeza que deseja excluir a <strong>{court.name}</strong>?
+                                                                            <br />
+                                                                            Isso não pode ser desfeito.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                        <AlertDialogAction
+                                                                            onClick={async (e) => {
+                                                                                // Validation Logic
+                                                                                const isCourtInUse = matches.some(m => m.courtId === court.id && m.status !== 'finished');
+                                                                                if (isCourtInUse) {
+                                                                                    e.preventDefault(); // Prevent closing
+                                                                                    toast.error("Não é possível excluir: Quadra em uso ou reservada para jogo futuro.");
+                                                                                    return;
+                                                                                }
+
+                                                                                try {
+                                                                                    await courtService.remove(court.id);
+                                                                                    toast.success("Quadra removida com sucesso!");
+                                                                                } catch (error) {
+                                                                                    toast.error("Erro ao remover quadra.");
+                                                                                }
+                                                                            }}
+                                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                        >
+                                                                            Excluir
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 p-2 rounded-md">
+
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 p-2 rounded-md border border-secondary">
                                                         <QrCode className="h-4 w-4" />
-                                                        <span>PIN do Árbitro:</span>
-                                                        <span className="font-mono font-bold text-foreground text-lg">{court.pin}</span>
+                                                        <span>PIN:</span>
+                                                        <span className="font-mono font-bold text-foreground tracking-widest">{court.pin}</span>
                                                     </div>
-                                                </div>
-                                                <div className="mt-4 flex gap-2">
-                                                    <div className="text-xs text-muted-foreground">
+
+                                                    <div className="text-xs text-muted-foreground pt-1">
                                                         Status: <span className="font-medium capitalize">{court.status.replace('_', ' ')}</span>
                                                     </div>
                                                 </div>
@@ -243,6 +306,7 @@ export default function TournamentDetails() {
                                     <MatchList
                                         tournamentId={id}
                                         courts={courts}
+                                        matches={matches} // Pass matches
                                         onEdit={(match) => {
                                             setEditingMatch(match);
                                             setOpenMatchDialog(true);

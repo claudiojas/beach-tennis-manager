@@ -23,17 +23,15 @@ import {
 interface MatchListProps {
     tournamentId: string;
     courts: Court[];
+    matches: Match[]; // Added matches prop
     onEdit: (match: Match) => void;
 }
 
-export function MatchList({ tournamentId, courts, onEdit }: MatchListProps) {
-    const [matches, setMatches] = useState<Match[]>([]);
+export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListProps) {
     const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
 
-    useEffect(() => {
-        const unsubscribe = matchService.subscribeByTournament(tournamentId, setMatches);
-        return () => unsubscribe();
-    }, [tournamentId]);
+    // Removed internal fetching
+
 
     const handleDelete = async () => {
         if (!matchToDelete) return;
@@ -79,44 +77,47 @@ export function MatchList({ tournamentId, courts, onEdit }: MatchListProps) {
                     const StatusIcon = status.icon;
 
                     return (
-                        <Card key={match.id} className="overflow-hidden group relative">
-                            {/* Actions Overlay */}
-                            <div className="absolute top-2 right-2 flex gap-1 z-10">
-                                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => onEdit(match)}>
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="destructive" className="h-8 w-8" onClick={() => setMatchToDelete(match.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-
+                        <Card key={match.id} className="overflow-hidden group">
                             <div className={`h-2 w-full ${status.color}`} />
                             <CardContent className="p-4">
-                                <div className="flex flex-col gap-2 mb-4">
-                                    <div className="flex justify-between items-start">
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            <StatusIcon className="h-3 w-3" />
-                                            {status.label}
-                                        </Badge>
-                                        {(match.courtId || match.startTime) && (
-                                            <div className="flex flex-col items-end gap-1">
-                                                {match.courtId && (
-                                                    <span className="text-xs font-mono bg-secondary px-2 py-1 rounded flex items-center gap-1">
-                                                        <MapPin className="h-3 w-3" />
-                                                        {getCourtName(match.courtId)}
-                                                    </span>
-                                                )}
-                                                {match.startTime && (
-                                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                                        <CalendarClock className="h-3 w-3" />
-                                                        {format(new Date(match.startTime), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
+                                {/* Header Row: Status + Actions */}
+                                <div className="flex justify-between items-start mb-3">
+                                    <Badge variant="outline" className="flex items-center gap-1">
+                                        <StatusIcon className="h-3 w-3" />
+                                        {status.label}
+                                    </Badge>
+
+                                    <div className="flex gap-1">
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(match)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setMatchToDelete(match.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
                                     </div>
                                 </div>
 
+                                {/* Court & Time Info (if exists) */}
+                                {(match.courtId || match.startTime) && (
+                                    <div className="mb-4 flex justify-end">
+                                        <div className="flex flex-wrap justify-end gap-2">
+                                            {match.courtId && (
+                                                <span className="text-xs font-mono bg-secondary px-2 py-1 rounded flex items-center gap-1">
+                                                    <MapPin className="h-3 w-3" />
+                                                    {getCourtName(match.courtId)}
+                                                </span>
+                                            )}
+                                            {match.startTime && (
+                                                <span className="text-xs text-muted-foreground border px-2 py-1 rounded flex items-center gap-1">
+                                                    <CalendarClock className="h-3 w-3" />
+                                                    {format(new Date(match.startTime), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Match Players */}
                                 <div className="flex justify-between items-center bg-secondary/20 p-4 rounded-lg">
                                     {/* Team A */}
                                     <div className="text-center flex-1">

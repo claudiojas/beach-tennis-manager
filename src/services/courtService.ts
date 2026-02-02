@@ -85,5 +85,10 @@ export const courtService = {
             updates[court.id] = court;
         });
         await update(courtsRef, updates);
+    },
+
+    remove: async (courtId: string) => {
+        const courtRef = ref(db, `${COURTS_PATH}/${courtId}`);
+        await set(courtRef, null);
     }
 };
