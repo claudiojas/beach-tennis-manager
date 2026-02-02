@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { tournamentService } from "@/services/tournamentService";
 import { courtService } from "@/services/courtService";
-import { Tournament } from "@/types/beach-tennis";
+import { arenaService } from "@/services/arenaService";
+import { Tournament, Arena } from "@/types/beach-tennis";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
@@ -31,9 +32,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users, Clock, PlayCircle, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -51,23 +60,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome do evento deve ter pelo menos 3 caracteres"),
   date: z.string().refine((date) => {
+    if (!date) return false;
+    const [year, month, day] = date.split('-').map(Number);
+    const inputDate = new Date(year, month - 1, day); // Create local date
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return new Date(date) >= today;
+    today.setHours(0, 0, 0, 0); // Local midnight
+    return inputDate >= today;
   }, "A data deve ser hoje ou no futuro."),
-  location: z.string().optional(),
-  importCourts: z.boolean().default(false),
+  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Horário inválido."),
+  arenaId: z.string().min(1, "Selecione uma arena."),
 });
 
 export default function AdminDashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [arenas, setArenas] = useState<Arena[]>([]);
   const [open, setOpen] = useState(false);
-  const [matchingCourtsCount, setMatchingCourtsCount] = useState<number>(0);
-  const [previousTournamentId, setPreviousTournamentId] = useState<string | null>(null);
 
   // Edit/Delete State
   const [isEditing, setIsEditing] = useState(false);
@@ -82,10 +94,19 @@ export default function AdminDashboard() {
     defaultValues: {
       name: "",
       date: "",
-      location: "",
-      importCourts: false,
+      time: "08:00",
+      arenaId: "",
     },
   });
+
+  // Load Arenas
+  useEffect(() => {
+    const fetchArenas = async () => {
+      const data = await arenaService.getAllOnce();
+      setArenas(data);
+    };
+    fetchArenas();
+  }, [open]); // Refresh when dialog opens
 
   // Function to open create dialog
   const handleOpenCreate = () => {
@@ -94,8 +115,8 @@ export default function AdminDashboard() {
     form.reset({
       name: "",
       date: "",
-      location: "",
-      importCourts: false,
+      time: "08:00",
+      arenaId: "",
     });
     setOpen(true);
   };
@@ -104,11 +125,15 @@ export default function AdminDashboard() {
   const handleEdit = (tournament: Tournament) => {
     setIsEditing(true);
     setEditingId(tournament.id);
+
+    // Find arena by name (heuristic, since we used to save location name)
+    const matchArena = arenas.find(a => a.name === tournament.location);
+
     form.reset({
       name: tournament.name,
       date: tournament.date,
-      location: tournament.location || "",
-      importCourts: false, // Don't show import on edit
+      time: tournament.time || "08:00",
+      arenaId: matchArena ? matchArena.id : "",
     });
     setOpen(true);
   };
@@ -128,48 +153,33 @@ export default function AdminDashboard() {
     }
   };
 
-  // Watch location changes to suggest imports
-  const locationWatch = form.watch("location");
+  const handleStatusChange = async (id: string, newStatus: Tournament['status']) => {
+    try {
+      await tournamentService.update(id, { status: newStatus });
+      toast.success("Status atualizado!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar status");
+    }
+  };
 
-  useEffect(() => {
-    const checkLocationHistory = async () => {
-      if (!locationWatch || isEditing) { // Skip logic if editing
-        setMatchingCourtsCount(0);
-        setPreviousTournamentId(null);
-        return;
-      }
+  const getStatusBadge = (status: Tournament['status']) => {
+    switch (status) {
+      case 'planning':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200">Planejado</Badge>;
+      case 'active':
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600 border-green-600">Em Andamento</Badge>;
+      case 'finished':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200">Finalizado</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive">Cancelado</Badge>;
+      default:
+        return null;
+    }
+  };
 
-      // Find most recent tournament at this location
-      // Sort by date descending
-      const sameLocation = tournaments
-        .filter(t => t.location?.toLowerCase() === locationWatch.toLowerCase())
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      if (sameLocation.length > 0) {
-        const lastTournament = sameLocation[0];
-        try {
-          const courts = await courtService.getByTournamentOnce(lastTournament.id);
-          if (courts.length > 0) {
-            setMatchingCourtsCount(courts.length);
-            setPreviousTournamentId(lastTournament.id);
-            // Auto-check if found
-            form.setValue("importCourts", true);
-          } else {
-            setMatchingCourtsCount(0);
-            setPreviousTournamentId(null);
-          }
-        } catch (e) {
-          console.error("Error checking history", e);
-        }
-      } else {
-        setMatchingCourtsCount(0);
-        setPreviousTournamentId(null);
-      }
-    };
-
-    const timer = setTimeout(checkLocationHistory, 500); // Debounce
-    return () => clearTimeout(timer);
-  }, [locationWatch, tournaments, form, isEditing]);
+  const selectedArenaId = form.watch("arenaId");
+  const selectedArena = arenas.find(a => a.id === selectedArenaId);
 
   useEffect(() => {
     const unsubscribe = tournamentService.subscribe(setTournaments);
@@ -178,12 +188,21 @@ export default function AdminDashboard() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      const arena = arenas.find(a => a.id === values.arenaId);
+      if (!arena) {
+        toast.error("Arena inválida.");
+        return;
+      }
+
+      const locationName = arena.name;
+
       if (isEditing && editingId) {
         // UPDATE MODE
         await tournamentService.update(editingId, {
           name: values.name,
           date: values.date,
-          location: values.location,
+          time: values.time,
+          location: locationName,
         });
         toast.success("Torneio atualizado!");
       } else {
@@ -191,31 +210,28 @@ export default function AdminDashboard() {
         const newTournamentRef = await tournamentService.create({
           name: values.name,
           date: values.date,
-          location: values.location,
-        } as Omit<Tournament, "id" | "createdAt" | "status">);
+          time: values.time,
+          location: locationName,
+          status: 'planning', // Explicitly set initial status
+        } as Omit<Tournament, "id" | "createdAt">);
 
-        // Handle Import
-        if (values.importCourts && previousTournamentId && matchingCourtsCount > 0) {
-          const oldCourts = await courtService.getByTournamentOnce(previousTournamentId);
-
-          // Clone courts
-          const promises = oldCourts.map(court => courtService.create({
+        // Auto-create courts from Arena template
+        if (arena.courts && arena.courts.length > 0) {
+          const promises = arena.courts.map(court => courtService.create({
             name: court.name,
             tournamentId: newTournamentRef,
-            pin: court.pin
+            pin: Math.floor(1000 + Math.random() * 9000).toString() // Generate random PIN
           }));
 
           await Promise.all(promises);
-          toast.success(`Torneio criado e ${oldCourts.length} quadras importadas!`);
+          toast.success(`Torneio criado e ${arena.courts.length} quadras configuradas!`);
         } else {
-          toast.success("Torneio criado com sucesso!");
+          toast.success("Torneio criado (sem quadras configuradas na arena).");
         }
       }
 
       setOpen(false);
       form.reset();
-      setMatchingCourtsCount(0);
-      setPreviousTournamentId(null);
       setIsEditing(false);
       setEditingId(null);
     } catch (error) {
@@ -291,7 +307,7 @@ export default function AdminDashboard() {
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Editar Torneio" : "Novo Torneio"}</DialogTitle>
                 <DialogDescription>
-                  {isEditing ? "Atualize as informações do evento." : "Crie um novo evento para começar a gerenciar."}
+                  {isEditing ? "Atualize as informações do evento." : "Crie um novo evento selecionando a Arena."}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -309,89 +325,75 @@ export default function AdminDashboard() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data do Evento</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  {!isEditing && (
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Local</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Ex: Arena Beach Club"
-                                {...field}
-                                list="locations-list" // HTML5 simple autocomplete
-                              />
-                            </FormControl>
-                            <datalist id="locations-list">
-                              {Array.from(new Set(tournaments.map(t => t.location).filter(Boolean))).map(loc => (
-                                <option key={loc} value={loc as string} />
-                              ))}
-                            </datalist>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {matchingCourtsCount > 0 && (
-                        <FormField
-                          control={form.control}
-                          name="importCourts"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/50">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4 mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Importar Quadras ({matchingCourtsCount})</FormLabel>
-                                <p className="text-sm text-muted-foreground">
-                                  Encontramos {matchingCourtsCount} quadras usadas anteriormente neste local. Deseja copiá-las para este novo torneio?
-                                </p>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {isEditing && (
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="location"
+                      name="date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Local</FormLabel>
+                          <FormLabel>Data</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Ex: Arena Beach Club"
-                              {...field}
-                            />
+                            <Input type="date" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Horário</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="arenaId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Local / Arena</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a Arena" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {arenas.map((arena) => (
+                              <SelectItem key={arena.id} value={arena.id}>
+                                {arena.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedArena && (
+                          <FormDescription>
+                            Ao criar, serão geradas <strong>{selectedArena.courts.length} quadras</strong> automaticamente.
+                          </FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {!isEditing && selectedArena && selectedArena.courts.length > 0 && (
+                    <div className="rounded-md border bg-muted/50 p-3 text-sm">
+                      <p className="font-semibold mb-2">Estrutura que será criada:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                        {selectedArena.courts.map((court, i) => (
+                          <li key={i}>{court.name}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
 
                   <Button type="submit" className="w-full">
@@ -420,26 +422,65 @@ export default function AdminDashboard() {
               <Card key={tournament.id} className="hover:shadow-md transition-all group relative">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="group-hover:text-primary transition-colors">{tournament.name}</CardTitle>
+                    <div className="space-y-1">
+                      <div className="mb-2">
+                        {getStatusBadge(tournament.status)}
+                      </div>
+                      <CardTitle className="group-hover:text-primary transition-colors text-xl">{tournament.name}</CardTitle>
                       <CardDescription className="flex items-center gap-1 mt-1">
                         <Calendar className="h-3 w-3" />
                         {new Date(tournament.date).toLocaleDateString('pt-BR')}
+                        {tournament.time && (
+                          <span className="flex items-center gap-1 ml-2">
+                            <Clock className="h-3 w-3" />
+                            {tournament.time}
+                          </span>
+                        )}
                       </CardDescription>
                     </div>
                     {/* Actions Menu */}
-                    {(tournament.status === 'planning' || new Date(tournament.date) > new Date()) && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 text-muted-foreground hover:text-foreground">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-muted-foreground hover:text-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {/* Standard Actions */}
+                        {(tournament.status === 'planning' || tournament.status === 'active') && (
                           <DropdownMenuItem onClick={() => handleEdit(tournament)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar
                           </DropdownMenuItem>
+                        )}
+
+                        {/* Status Actions */}
+                        {tournament.status === 'planning' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')}>
+                            <PlayCircle className="mr-2 h-4 w-4 text-green-600" />
+                            Iniciar Torneio
+                          </DropdownMenuItem>
+                        )}
+
+                        {tournament.status === 'active' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'finished')}>
+                            <CheckCircle className="mr-2 h-4 w-4 text-blue-600" />
+                            Finalizar
+                          </DropdownMenuItem>
+                        )}
+
+                        {tournament.status !== 'finished' && tournament.status !== 'cancelled' && (
+                          <DropdownMenuItem
+                            className="text-orange-600 focus:text-orange-600"
+                            onClick={() => handleStatusChange(tournament.id, 'cancelled')}
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancelar
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* Delete - Only if not active/finished (or allow if cancelled) */}
+                        {(tournament.status === 'planning' || tournament.status === 'cancelled') && (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => handleDeleteRequest(tournament.id)}
@@ -447,9 +488,9 @@ export default function AdminDashboard() {
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
                 <CardContent>

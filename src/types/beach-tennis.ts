@@ -53,7 +53,8 @@ export interface Tournament {
   id: string;
   name: string;
   date: string;
-  status: 'planning' | 'active' | 'finished';
+  time: string;
+  status: 'planning' | 'active' | 'finished' | 'cancelled';
   location?: string;
   createdAt: number;
 }
