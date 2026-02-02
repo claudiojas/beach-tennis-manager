@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,10 +11,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { courtService } from "@/services/courtService";
-import { Court } from "@/types/beach-tennis";
+import { Court, Match } from "@/types/beach-tennis";
 import { toast } from "sonner";
 import { AthleteList } from "@/components/athletes/AthleteList";
 import { AthleteForm } from "@/components/athletes/AthleteForm";
+import { MatchList } from "@/components/matches/MatchList";
+import { MatchForm } from "@/components/matches/MatchForm";
 
 const courtSchema = z.object({
     name: z.string().min(2, "Nome da quadra deve ter pelo menos 2 caracteres"),
@@ -24,6 +26,10 @@ export default function TournamentDetails() {
     const { id } = useParams();
     const [courts, setCourts] = useState<Court[]>([]);
     const [open, setOpen] = useState(false);
+    const [openMatchDialog, setOpenMatchDialog] = useState(false);
+
+    const [editingCourt, setEditingCourt] = useState<Court | null>(null);
+    const [editingMatch, setEditingMatch] = useState<Match | null>(null);
 
     // Generate a random 4-digit PIN
     const generatePin = () => Math.floor(1000 + Math.random() * 9000).toString();
@@ -46,16 +52,22 @@ export default function TournamentDetails() {
         if (!id) return;
 
         try {
-            await courtService.create({
-                name: values.name,
-                tournamentId: id,
-                pin: generatePin(),
-            });
-            toast.success("Quadra criada com sucesso!");
+            if (editingCourt) {
+                await courtService.updateName(editingCourt.id, values.name);
+                toast.success("Quadra atualizada com sucesso!");
+            } else {
+                await courtService.create({
+                    name: values.name,
+                    tournamentId: id,
+                    pin: generatePin(),
+                });
+                toast.success("Quadra criada com sucesso!");
+            }
             setOpen(false);
-            form.reset();
+            setEditingCourt(null);
+            form.reset({ name: "" });
         } catch (error) {
-            toast.error("Erro ao criar quadra");
+            toast.error(editingCourt ? "Erro ao atualizar quadra" : "Erro ao criar quadra");
         }
     };
 
@@ -82,26 +94,35 @@ export default function TournamentDetails() {
 
                     <TabsContent value="courts">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <div className="space-y-1">
+                            <CardHeader className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 pb-4 sm:pb-2">
+                                <div className="space-y-1 text-center sm:text-left">
                                     <CardTitle>Quadras do Torneio</CardTitle>
                                     <CardDescription>
                                         Crie quadras e gere PINs para os árbitros.
                                     </CardDescription>
                                 </div>
 
-                                <Dialog open={open} onOpenChange={setOpen}>
+                                <Dialog open={open} onOpenChange={(isOpen) => {
+                                    setOpen(isOpen);
+                                    if (!isOpen) {
+                                        setEditingCourt(null);
+                                        form.reset({ name: "" });
+                                    }
+                                }}>
                                     <DialogTrigger asChild>
-                                        <Button>
+                                        <Button onClick={() => {
+                                            setEditingCourt(null);
+                                            form.reset({ name: "" });
+                                        }}>
                                             <Plus className="mr-2 h-4 w-4" />
                                             Nova Quadra
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogHeader>
-                                            <DialogTitle>Adicionar Nova Quadra</DialogTitle>
+                                            <DialogTitle>{editingCourt ? "Editar Quadra" : "Adicionar Nova Quadra"}</DialogTitle>
                                             <DialogDescription>
-                                                Crie uma nova quadra para este torneio. O PIN será gerado automaticamente.
+                                                {editingCourt ? "Altere o nome da quadra." : "Crie uma nova quadra para este torneio. O PIN será gerado automaticamente."}
                                             </DialogDescription>
                                         </DialogHeader>
                                         <Form {...form}>
@@ -120,7 +141,7 @@ export default function TournamentDetails() {
                                                     )}
                                                 />
                                                 <Button type="submit" className="w-full">
-                                                    Criar Quadra
+                                                    {editingCourt ? "Salvar Alterações" : "Criar Quadra"}
                                                 </Button>
                                             </form>
                                         </Form>
@@ -135,9 +156,18 @@ export default function TournamentDetails() {
                                 ) : (
                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pt-4">
                                         {courts.map((court) => (
-                                            <div key={court.id} className="flex flex-col justify-between rounded-lg border p-4 shadow-sm">
+                                            <div key={court.id} className="flex flex-col justify-between rounded-lg border p-4 shadow-sm group hover:border-primary/50 transition-colors">
                                                 <div className="space-y-1">
-                                                    <h3 className="font-semibold text-lg">{court.name}</h3>
+                                                    <div className="flex justify-between items-start">
+                                                        <h3 className="font-semibold text-lg">{court.name}</h3>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
+                                                            setEditingCourt(court);
+                                                            form.reset({ name: court.name });
+                                                            setOpen(true);
+                                                        }}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                     <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 p-2 rounded-md">
                                                         <QrCode className="h-4 w-4" />
                                                         <span>PIN do Árbitro:</span>
@@ -159,8 +189,8 @@ export default function TournamentDetails() {
 
                     <TabsContent value="athletes">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <div className="space-y-1">
+                            <CardHeader className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 pb-4 sm:pb-2">
+                                <div className="space-y-1 text-center sm:text-left">
                                     <CardTitle>Base de Atletas</CardTitle>
                                     <CardDescription>
                                         Cadastre os atletas que participarão dos jogos.
@@ -191,10 +221,62 @@ export default function TournamentDetails() {
                         </Card>
                     </TabsContent>
                     <TabsContent value="matches">
-                        <div className="p-4 text-center text-muted-foreground">Em breve (Sprint 4)</div>
+                        <Card>
+                            <CardHeader className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 pb-4 sm:pb-2">
+                                <div className="space-y-1 text-center sm:text-left">
+                                    <CardTitle>Partidas</CardTitle>
+                                    <CardDescription>
+                                        Gerencie os confrontos do torneio.
+                                    </CardDescription>
+                                </div>
+
+                                <Button onClick={() => {
+                                    setEditingMatch(null);
+                                    setOpenMatchDialog(true);
+                                }}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Nova Partida
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                {id && (
+                                    <MatchList
+                                        tournamentId={id}
+                                        courts={courts}
+                                        onEdit={(match) => {
+                                            setEditingMatch(match);
+                                            setOpenMatchDialog(true);
+                                        }}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </main>
+
+            {/* Separate Dialog for Match Editing to avoid conflict with other dialogs if any */}
+            <Dialog open={openMatchDialog} onOpenChange={(isOpen) => {
+                setOpenMatchDialog(isOpen);
+                if (!isOpen) setEditingMatch(null);
+            }}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingMatch ? "Editar Partida" : "Nova Partida"}</DialogTitle>
+                        <DialogDescription>
+                            {editingMatch ? "Altere as duplas do confronto." : "Selecione as duplas para o confronto."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {id && (
+                        <MatchForm
+                            tournamentId={id}
+                            courts={courts}
+                            onSuccess={() => setOpenMatchDialog(false)}
+                            initialData={editingMatch || undefined}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

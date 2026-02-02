@@ -14,16 +14,20 @@ export interface Player {
 
 export interface Team {
   player1: Player;
-  player2: Player;
+  player2?: Player;
 }
 
 export interface Match {
   id: string;
+  tournamentId: string;
+  courtId?: string; // Optional, assigned when match starts
   teamA: Team;
   teamB: Team;
   scoreA: number;
   scoreB: number;
-  startTime?: Date;
+  status: 'planned' | 'ongoing' | 'finished';
+  startTime?: number; // timestamp
+  endTime?: number;
 }
 
 export interface Court {

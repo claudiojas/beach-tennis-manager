@@ -56,6 +56,27 @@ export const courtService = {
         await update(statusRef, { status });
     },
 
+    updateName: async (courtId: string, name: string) => {
+        const nameRef = ref(db, `${COURTS_PATH}/${courtId}`);
+        await update(nameRef, { name });
+    },
+
+    validatePin: async (pin: string): Promise<Court | null> => {
+        const courtsQuery = query(ref(db, COURTS_PATH), orderByChild("pin"), equalTo(pin));
+        return new Promise((resolve) => {
+            onValue(courtsQuery, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    // Return the first matching court
+                    const courts = Object.values(data) as Court[];
+                    resolve(courts[0]);
+                } else {
+                    resolve(null);
+                }
+            }, { onlyOnce: true });
+        });
+    },
+
     // Helper to initialize courts if empty (can be part of Admin setup later)
     initializeCourts: async (courts: Court[]) => {
         const courtsRef = ref(db, COURTS_PATH);
