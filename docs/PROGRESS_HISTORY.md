@@ -47,3 +47,28 @@
 ### ⏭️ Próximos Passos (Foco Total na Sprint 2)
 -   Login do Árbitro.
 -   Painel de Arbitragem (Placar em Tempo Real).
+### [02/02/2026] - Sprint 1 (Refinamento): Arquitetura Global e UX 🏛️✨
+**Status:** Módulos Globais e Fluxo de Criação 2.0.
+
+### 🌟 Entregas de Arquitetura
+1.  **Gestão Global de Atletas:**
+    -   Módulo independente (`/admin/athletes`) para cadastro de jogadores fora do contexto de torneios.
+    -   Banco único de talentos, facilitando a inscrição em múltiplos eventos.
+
+2.  **Gestão Global de Arenas:**
+    -   Novo módulo (`/admin/arenas`) para cadastro de locais físicos.
+    -   **Templates de Quadra:** Definição da estrutura fixa (ex: "Arena Central" tem 4 quadras).
+    -   Isso evita recriar quadras manualmente a cada novo torneio.
+
+### 🎨 UX e Refinamentos
+1.  **Smart Create 2.0 (Torneios):**
+    -   Integração com Arenas: Ao criar um torneio, o usuário seleciona a Arena e o sistema **importa automaticamente** todas as quadras configuradas.
+    -   Adicionado campo de **Horário** (Time Input).
+    -   Validação robusta de Fuso Horário para datas "Hoje".
+
+2.  **Status Badges e Ações:**
+    -   Identificadores visuais (Badges coloridos) para status: Planejado (Amarelo), Em Andamento (Verde), Finalizado (Cinza), Cancelado (Vermelho).
+    -   **Menu de Ações Expandido:** Funções rápidas para Iniciar, Finalizar e Cancelar torneios diretamente do card.
+
+### ⏭️ Próximos Passos
+-   Refatorar a criação de partidas/chaves para usar a base Global de Atletas.

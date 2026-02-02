@@ -30,7 +30,7 @@ O desenvolvimento é dividido em 4 Sprints estratégicas (Total: 31 dias):
 
 | Sprint | Foco | Entregáveis Principais | Status |
 | :--- | :--- | :--- | :--- |
-| **01** | **Backoffice** | Setup, Atletas, Quadras (PIN), Partidas (Agendamento). | ✅ Concluída |
+| **01** | **Backoffice** | Setup, Base Global (Atletas/Arenas), Torneios Inteligentes. | ✅ Concluída |
 | **02** | **Árbitro** | Painel Mobile de Arbitragem, Lógica de Score. | ⏳ A Fazer |
 | **03** | **Arena** | Dashboard TV, Sync Realtime, "Modo Aeroporto". | 📝 Planejada |
 | **04** | **Polimento** | Responsividade fina, Chaveamento Simples. | 📝 Planejada |
