@@ -57,3 +57,15 @@ export interface Tournament {
   location?: string;
   createdAt: number;
 }
+export interface ArenaCourt {
+  id: string; // Internal ID for the template
+  name: string;
+}
+
+export interface Arena {
+  id: string;
+  name: string;
+  location?: string;
+  courts: ArenaCourt[];
+  createdAt: number;
+}

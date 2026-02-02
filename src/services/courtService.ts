@@ -24,6 +24,17 @@ export const courtService = {
         });
     },
 
+    getByTournamentOnce: async (tournamentId: string): Promise<Court[]> => {
+        const courtsQuery = query(ref(db, COURTS_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
+        return new Promise((resolve) => {
+            onValue(courtsQuery, (snapshot) => {
+                const data = snapshot.val();
+                const courts: Court[] = data ? Object.values(data) : [];
+                resolve(courts);
+            }, { onlyOnce: true });
+        });
+    },
+
     create: async (court: Omit<Court, "id" | "status" | "currentMatch">) => {
         const courtsRef = ref(db, COURTS_PATH);
         const newCourtRef = push(courtsRef);

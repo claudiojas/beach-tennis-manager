@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { Tournament } from "@/types/beach-tennis";
-import { ref, push, set, onValue, query, orderByChild } from "firebase/database";
+import { ref, push, set, onValue, query, orderByChild, update } from "firebase/database";
 
 const DB_PATH = "tournaments";
 
@@ -27,5 +27,15 @@ export const tournamentService = {
                 : [];
             callback(tournaments);
         });
+    },
+
+    update: async (id: string, data: Partial<Tournament>) => {
+        const tournamentRef = ref(db, `${DB_PATH}/${id}`);
+        await update(tournamentRef, data);
+    },
+
+    delete: async (id: string) => {
+        const tournamentRef = ref(db, `${DB_PATH}/${id}`);
+        await set(tournamentRef, null);
     }
 };

@@ -37,26 +37,27 @@ O sistema opera em uma arquitetura de "Triângulo de Dados", onde o Firebase atu
 
 ---
 
-## 5. Cronograma e Sprints (Atualizado)
+## 5. Cronograma e Sprints (Status Atual)
 
-### Sprint 1: Fundação e Admin (Dias 1-3)
-*   Setup da Arquitetura (Firebase + Design System).
-*   Área do Admin: Cadastro de Atletas e Criação de Torneios.
-*   Listagem e Gerenciamento de Quadras (Criação de PINs).
+### Sprint 1: Fundação e Backoffice (Concluída ✅)
+*   **Fundação:** Setup (Firebase + Auth + Design System).
+*   **Atletas:** Cadastro, Listagem e Gestão Completa.
+*   **Torneios:** Criação e Dashboard.
+*   **Quadras:** CRUD, PINs e Proteção contra exclusão indevida.
+*   **Partidas:** Criação (Simples/Duplas), Agendamento (Quadra/Horário) e Listagem.
 
-### Sprint 2: Central do Árbitro (Dias 4-6)
-*   Login via PIN.
-*   Interface "Mesa de DJ" para controle de placar (Touch-friendly).
-*   Lógica de Sets e Tie-breaks.
+### Sprint 2: Central do Árbitro (Próxima ⏭️)
+*   Login via PIN da Quadra.
+*   Interface "Mesa de DJ" para controle de placar.
+*   Lógica de Pontuação (15/30/40/Game).
 
-### Sprint 3: Arena e Transmissão (Dias 7-8)
+### Sprint 3: Arena e Transmissão
 *   Dashboard p/ TV (Grid de Quadras).
-*   Lógica de Realtime Sync.
+*   **App do Torcedor (/live):** Agenda e Resultados em tempo real.
 
-### Sprint 4: Over-delivery e Polimento (Dias 9-10)
-*   **App do Torcedor (/live):** Agenda de jogos e horários.
+### Sprint 4: Over-delivery e Polimento
 *   Sistema de Chaveamento Simples.
-*   Refinamentos finais de UX e Treinamento.
+*   Refinamentos de Responsividade.
 
 ---
 

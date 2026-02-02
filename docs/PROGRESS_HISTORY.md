@@ -24,8 +24,26 @@
     - Links de navegação fluida: Home -> Login -> Admin -> Home.
     - Feedback visual de carregamento e toasts de sucesso/erro.
 
-### ⏭️ Próximos Passos (Sprint 2)
-- **Foco:** Central do Árbitro e Gestão de Quadras.
-- Criar gerenciamento de Quadras dentro de um Torneio.
-- Gerar PINs de acesso para árbitros.
-- Implementar login via PIN na rota `/arbitro`.
+
+### [02/02/2026] - Sprint 1 (Extendida): O Coração da Gestão 🫀
+**Status:** Funcionalidades de Backoffice Completas.
+
+### 🌟 Novas Entregas
+1.  **Gestão de Quadras Avançada:**
+    -   **CRUD Completo:** Criação, Edição e Exclusão.
+    -   **Geração de PIN:** Cada quadra possui um PIN único para login futuro do árbitro.
+    -   **Proteção de Dados:** Implementada regra de negócio que impede a exclusão de quadras em uso ou com jogos agendados.
+    -   **Sincronização:** Edição de nomes de quadra reflete automaticamente em todas as partidas vinculadas.
+
+2.  **Gestão de Partidas (Match Scheduling):**
+    -   **Criação Flexível:** Suporte a Simples (1x1) e Duplas (2x2) com validação de jogadores únicos.
+    -   **Agendamento:** Definição de **Quadra** e **Horário** no momento da criação.
+    -   **Dashboard de Jogos:** Cards visuais com status (Planejada, Em Andamento, Finalizada), horário formatado e identificação da quadra.
+
+3.  **Padronização de UI/UX:**
+    -   Adoção de ícones "Ghost" para ações secundárias e destaque em vermelho para ações destrutivas (Excluir).
+    -   Layouts de cards otimizados para não sobrepor informações.
+
+### ⏭️ Próximos Passos (Foco Total na Sprint 2)
+-   Login do Árbitro.
+-   Painel de Arbitragem (Placar em Tempo Real).

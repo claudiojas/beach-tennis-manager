@@ -26,14 +26,14 @@ Construído sobre a **Modulo Platform** com foco em escalabilidade e "Zero Manut
 
 ## 📦 Estrutura do Projeto
 
-O desenvolvimento é dividido em 4 Sprints estratégicas (Total: 10 dias):
+O desenvolvimento é dividido em 4 Sprints estratégicas (Total: 31 dias):
 
-| Sprint | Foco | Entregáveis Principais |
-| :--- | :--- | :--- |
-| **01** | **Fundação** | Setup, Design System, Cadastro de Atletas. |
-| **02** | **Árbitro** | Painel Mobile de Arbitragem, Lógica de Score. |
-| **03** | **Arena** | Dashboard TV, Sync Realtime, "Modo Aeroporto". |
-| **04** | **Polimento** | Responsividade fina, Chaveamento Simples (Over-delivery). |
+| Sprint | Foco | Entregáveis Principais | Status |
+| :--- | :--- | :--- | :--- |
+| **01** | **Backoffice** | Setup, Atletas, Quadras (PIN), Partidas (Agendamento). | ✅ Concluída |
+| **02** | **Árbitro** | Painel Mobile de Arbitragem, Lógica de Score. | ⏳ A Fazer |
+| **03** | **Arena** | Dashboard TV, Sync Realtime, "Modo Aeroporto". | 📝 Planejada |
+| **04** | **Polimento** | Responsividade fina, Chaveamento Simples. | 📝 Planejada |
 
 ## 💻 Instalação e Desenvolvimento
 

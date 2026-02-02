@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { tournamentService } from "@/services/tournamentService";
+import { courtService } from "@/services/courtService";
 import { Tournament } from "@/types/beach-tennis";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
@@ -32,18 +33,48 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Plus, LogOut, Calendar, MapPin, Trophy } from "lucide-react";
+import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome do evento deve ter pelo menos 3 caracteres"),
-  date: z.string().min(1, "Data é obrigatória"),
+  date: z.string().refine((date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(date) >= today;
+  }, "A data deve ser hoje ou no futuro."),
   location: z.string().optional(),
+  importCourts: z.boolean().default(false),
 });
 
 export default function AdminDashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [open, setOpen] = useState(false);
+  const [matchingCourtsCount, setMatchingCourtsCount] = useState<number>(0);
+  const [previousTournamentId, setPreviousTournamentId] = useState<string | null>(null);
+
+  // Edit/Delete State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [tournamentToDelete, setTournamentToDelete] = useState<string | null>(null);
+
   const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,8 +83,93 @@ export default function AdminDashboard() {
       name: "",
       date: "",
       location: "",
+      importCourts: false,
     },
   });
+
+  // Function to open create dialog
+  const handleOpenCreate = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    form.reset({
+      name: "",
+      date: "",
+      location: "",
+      importCourts: false,
+    });
+    setOpen(true);
+  };
+
+  // Function to open edit dialog
+  const handleEdit = (tournament: Tournament) => {
+    setIsEditing(true);
+    setEditingId(tournament.id);
+    form.reset({
+      name: tournament.name,
+      date: tournament.date,
+      location: tournament.location || "",
+      importCourts: false, // Don't show import on edit
+    });
+    setOpen(true);
+  };
+
+  // Function to request delete
+  const handleDeleteRequest = (id: string) => {
+    setTournamentToDelete(id);
+    setAlertOpen(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (tournamentToDelete) {
+      await tournamentService.delete(tournamentToDelete);
+      toast.success("Torneio excluído com sucesso.");
+      setAlertOpen(false);
+      setTournamentToDelete(null);
+    }
+  };
+
+  // Watch location changes to suggest imports
+  const locationWatch = form.watch("location");
+
+  useEffect(() => {
+    const checkLocationHistory = async () => {
+      if (!locationWatch || isEditing) { // Skip logic if editing
+        setMatchingCourtsCount(0);
+        setPreviousTournamentId(null);
+        return;
+      }
+
+      // Find most recent tournament at this location
+      // Sort by date descending
+      const sameLocation = tournaments
+        .filter(t => t.location?.toLowerCase() === locationWatch.toLowerCase())
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      if (sameLocation.length > 0) {
+        const lastTournament = sameLocation[0];
+        try {
+          const courts = await courtService.getByTournamentOnce(lastTournament.id);
+          if (courts.length > 0) {
+            setMatchingCourtsCount(courts.length);
+            setPreviousTournamentId(lastTournament.id);
+            // Auto-check if found
+            form.setValue("importCourts", true);
+          } else {
+            setMatchingCourtsCount(0);
+            setPreviousTournamentId(null);
+          }
+        } catch (e) {
+          console.error("Error checking history", e);
+        }
+      } else {
+        setMatchingCourtsCount(0);
+        setPreviousTournamentId(null);
+      }
+    };
+
+    const timer = setTimeout(checkLocationHistory, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [locationWatch, tournaments, form, isEditing]);
 
   useEffect(() => {
     const unsubscribe = tournamentService.subscribe(setTournaments);
@@ -62,12 +178,49 @@ export default function AdminDashboard() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      await tournamentService.create(values as Omit<Tournament, "id" | "createdAt" | "status">);
-      toast.success("Torneio criado com sucesso!");
+      if (isEditing && editingId) {
+        // UPDATE MODE
+        await tournamentService.update(editingId, {
+          name: values.name,
+          date: values.date,
+          location: values.location,
+        });
+        toast.success("Torneio atualizado!");
+      } else {
+        // CREATE MODE
+        const newTournamentRef = await tournamentService.create({
+          name: values.name,
+          date: values.date,
+          location: values.location,
+        } as Omit<Tournament, "id" | "createdAt" | "status">);
+
+        // Handle Import
+        if (values.importCourts && previousTournamentId && matchingCourtsCount > 0) {
+          const oldCourts = await courtService.getByTournamentOnce(previousTournamentId);
+
+          // Clone courts
+          const promises = oldCourts.map(court => courtService.create({
+            name: court.name,
+            tournamentId: newTournamentRef,
+            pin: court.pin
+          }));
+
+          await Promise.all(promises);
+          toast.success(`Torneio criado e ${oldCourts.length} quadras importadas!`);
+        } else {
+          toast.success("Torneio criado com sucesso!");
+        }
+      }
+
       setOpen(false);
       form.reset();
+      setMatchingCourtsCount(0);
+      setPreviousTournamentId(null);
+      setIsEditing(false);
+      setEditingId(null);
     } catch (error) {
-      toast.error("Erro ao criar torneio");
+      console.error(error);
+      toast.error(isEditing ? "Erro ao atualizar torneio" : "Erro ao criar torneio");
     }
   };
 
@@ -96,6 +249,31 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Link to="/admin/athletes">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg font-medium">Atletas</CardTitle>
+                <Users className="h-5 w-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gerencie a base global de jogadores.</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/admin/arenas">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg font-medium">Arenas e Quadras</CardTitle>
+                <MapPin className="h-5 w-5 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gerencie locais e layouts de quadra.</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
@@ -104,16 +282,16 @@ export default function AdminDashboard() {
 
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={handleOpenCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Torneio
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Novo Torneio</DialogTitle>
+                <DialogTitle>{isEditing ? "Editar Torneio" : "Novo Torneio"}</DialogTitle>
                 <DialogDescription>
-                  Crie um novo evento para começar a gerenciar.
+                  {isEditing ? "Atualize as informações do evento." : "Crie um novo evento para começar a gerenciar."}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -144,21 +322,80 @@ export default function AdminDashboard() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Local (Opcional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Arena Beach Club" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                  {!isEditing && (
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Local</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Ex: Arena Beach Club"
+                                {...field}
+                                list="locations-list" // HTML5 simple autocomplete
+                              />
+                            </FormControl>
+                            <datalist id="locations-list">
+                              {Array.from(new Set(tournaments.map(t => t.location).filter(Boolean))).map(loc => (
+                                <option key={loc} value={loc as string} />
+                              ))}
+                            </datalist>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {matchingCourtsCount > 0 && (
+                        <FormField
+                          control={form.control}
+                          name="importCourts"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/50">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 mt-1"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Importar Quadras ({matchingCourtsCount})</FormLabel>
+                                <p className="text-sm text-muted-foreground">
+                                  Encontramos {matchingCourtsCount} quadras usadas anteriormente neste local. Deseja copiá-las para este novo torneio?
+                                </p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {isEditing && (
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: Arena Beach Club"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <Button type="submit" className="w-full">
-                    Criar Torneio
+                    {isEditing ? "Salvar Alterações" : "Criar Torneio"}
                   </Button>
                 </form>
               </Form>
@@ -180,13 +417,40 @@ export default function AdminDashboard() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {tournaments.map((tournament) => (
-              <Card key={tournament.id} className="hover:shadow-md transition-all cursor-pointer group">
+              <Card key={tournament.id} className="hover:shadow-md transition-all group relative">
                 <CardHeader>
-                  <CardTitle className="group-hover:text-primary transition-colors">{tournament.name}</CardTitle>
-                  <CardDescription className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(tournament.date).toLocaleDateString('pt-BR')}
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="group-hover:text-primary transition-colors">{tournament.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-1 mt-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(tournament.date).toLocaleDateString('pt-BR')}
+                      </CardDescription>
+                    </div>
+                    {/* Actions Menu */}
+                    {(tournament.status === 'planning' || new Date(tournament.date) > new Date()) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2 text-muted-foreground hover:text-foreground">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(tournament)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDeleteRequest(tournament.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {tournament.location && (
@@ -204,6 +468,23 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente o torneio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirmed} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,88 +1,136 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { courtService } from "@/services/courtService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { courtService } from "@/services/courtService";
 import { toast } from "sonner";
-import { Lock, Loader2 } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { Court } from "@/types/beach-tennis";
+import { CheckCircle2, Delete, Lock, ArrowLeft } from "lucide-react";
 
 export default function RefereeLogin() {
-    const [pin, setPin] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const [pin, setPin] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleNumberClick = (num: string) => {
         if (pin.length < 4) {
-            toast.error("O PIN deve ter 4 dígitos.");
-            return;
+            setPin((prev) => prev + num);
         }
+    };
 
-        setIsLoading(true);
+    const handleDelete = () => {
+        setPin((prev) => prev.slice(0, -1));
+    };
+
+    const handleLogin = async () => {
+        if (pin.length !== 4) return;
+
+        setLoading(true);
         try {
             const court = await courtService.validatePin(pin);
+
             if (court) {
-                toast.success(`Acesso liberado: ${court.name}`);
-                // Save court info to localStorage (simple auth for now)
-                localStorage.setItem("referee_court", JSON.stringify(court));
+                // Save session
+                localStorage.setItem("beach-tennis-court-auth", JSON.stringify({
+                    courtId: court.id,
+                    pin: court.pin,
+                    name: court.name
+                }));
+
+                toast.success(`Bem-vindo à ${court.name}!`);
                 navigate("/arbitro/painel");
             } else {
                 toast.error("PIN inválido. Tente novamente.");
+                setPin("");
             }
         } catch (error) {
             console.error(error);
-            toast.error("Erro ao validar acesso.");
+            toast.error("Erro ao validar PIN.");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
-            <div className="mb-8 scale-150">
-                <Logo />
-            </div>
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 left-4 text-slate-400 hover:text-white hover:bg-slate-800"
+                    onClick={() => navigate("/")}
+                >
+                    <ArrowLeft className="w-6 h-6" />
+                </Button>
 
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Área do Árbitro</CardTitle>
-                    <CardDescription>
-                        Digite o PIN da quadra para acessar o painel de controle.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                                <Input
-                                    type="number"
-                                    placeholder="0000"
-                                    className="pl-10 text-center text-2xl tracking-widest h-14"
-                                    maxLength={4}
-                                    value={pin}
-                                    onChange={(e) => setPin(e.target.value.slice(0, 4))}
-                                    autoFocus
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                />
+                <div className="p-8 text-center space-y-2">
+                    <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock className="w-8 h-8 text-primary" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Acesso do Árbitro</h1>
+                    <p className="text-slate-400 text-sm">Digite o PIN de 4 dígitos da quadra</p>
+                </div>
+
+                <div className="p-8 pt-0 space-y-8">
+                    {/* PIN Display */}
+                    <div className="flex justify-center gap-4 mb-8">
+                        {[0, 1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className={`w-12 h-14 rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all ${pin[i]
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-slate-700 bg-slate-800/50 text-slate-500"
+                                    }`}
+                            >
+                                {pin[i] ? "•" : ""}
                             </div>
+                        ))}
+                    </div>
+
+                    {/* Keypad */}
+                    <div className="grid grid-cols-3 gap-4">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                            <Button
+                                key={num}
+                                variant="outline"
+                                className="h-16 text-2xl font-semibold bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+                                onClick={() => handleNumberClick(num.toString())}
+                                disabled={loading}
+                            >
+                                {num}
+                            </Button>
+                        ))}
+                        <div className="flex items-center justify-center">
+                            {/* Empty space or special char */}
                         </div>
-                        <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Verificando...
-                                </>
-                            ) : (
-                                "Entrar na Quadra"
-                            )}
+                        <Button
+                            variant="outline"
+                            className="h-16 text-2xl font-semibold bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
+                            onClick={() => handleNumberClick("0")}
+                            disabled={loading}
+                        >
+                            0
                         </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                        <Button
+                            variant="ghost"
+                            className="h-16 text-slate-400 hover:text-white hover:bg-slate-800/50"
+                            onClick={handleDelete}
+                            disabled={loading || pin.length === 0}
+                        >
+                            <Delete className="w-6 h-6" />
+                        </Button>
+                    </div>
+
+                    <Button
+                        className="w-full h-12 text-lg font-bold"
+                        size="lg"
+                        onClick={handleLogin}
+                        disabled={pin.length !== 4 || loading}
+                    >
+                        {loading ? "Validando..." : "Acessar Quadra"}
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }
