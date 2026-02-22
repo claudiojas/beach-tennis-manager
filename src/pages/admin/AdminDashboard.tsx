@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users, Clock, PlayCircle, CheckCircle, XCircle, UserPlus } from "lucide-react";
+import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users, Clock, PlayCircle, CheckCircle, XCircle, UserPlus, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -289,7 +289,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Link to="/admin/athletes">
             <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -309,6 +309,17 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">Gerencie locais e layouts de quadra.</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/admin/sponsors">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-primary/20 bg-primary/5">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg font-medium">Patrocinadores</CardTitle>
+                <ImageIcon className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gestão de publicidade com IA (Beta).</p>
               </CardContent>
             </Card>
           </Link>

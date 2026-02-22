@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import TournamentDetails from "./pages/admin/TournamentDetails";
 import GlobalAthletes from "./pages/admin/GlobalAthletes";
 import GlobalArenas from "./pages/admin/GlobalArenas";
+import SponsorsManager from "./pages/admin/SponsorsManager";
 import PublicView from "./pages/PublicView";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/admin/tournament/:id" element={<TournamentDetails />} />
             <Route path="/admin/athletes" element={<GlobalAthletes />} />
             <Route path="/admin/arenas" element={<GlobalArenas />} />
+            <Route path="/admin/sponsors" element={<SponsorsManager />} />
           </Route>
 
           <Route path="/" element={<Index />} />

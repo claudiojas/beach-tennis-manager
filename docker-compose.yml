@@ -24,6 +24,7 @@ services:
       - "4000:4000" # UI do Emulador
       - "9000:9000" # Database
       - "9099:9099" # Auth
+      - "9199:9199" # Storage
     volumes:
       - .:/home/node/app
     working_dir: /home/node/app

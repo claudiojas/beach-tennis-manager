@@ -114,3 +114,11 @@ export interface Arena {
   courts: ArenaCourt[];
   createdAt: number;
 }
+
+export interface Sponsor {
+  id: string;
+  name: string;
+  logoUrl: string;
+  tournamentId?: string; // Se quiser vincular a um torneio específico
+  createdAt: number;
+}
