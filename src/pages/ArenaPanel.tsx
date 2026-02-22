@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArenaHeader } from '@/components/ArenaHeader';
 import { ArenaCourtCard } from '@/components/ArenaCourtCard';
 import { ResultsTicker } from '@/components/ResultsTicker';
+import { SponsorBar } from '@/components/SponsorBar';
 import { useCourtData } from '@/hooks/useCourtData';
 import { Clock, Trophy, Star } from 'lucide-react';
 import { tournamentService } from '@/services/tournamentService';
@@ -80,10 +81,13 @@ const ArenaPanel = () => {
       {/* Header */}
       <ArenaHeader tournamentName={activeTournament?.name || 'Beach Tennis Manager'} />
 
+      {/* Sponsor Bar right below Header */}
+      <SponsorBar />
+
       {/* Main Content with Transition */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pb-48 overflow-hidden relative">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-8 pb-40 overflow-hidden relative">
         {slides.length > 0 ? (
-          <div className="w-full max-w-5xl h-full flex flex-col items-center justify-center relative">
+          <div className="w-full max-w-7xl h-full flex flex-col items-center justify-center relative">
             {slides.map((slide, idx) => (
               <div
                 key={slide.id}

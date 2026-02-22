@@ -26,10 +26,13 @@ export const ArenaCourtCard = ({ court, isHighlighted = false }: ArenaCourtCardP
   const shortenName = (name: string) => {
     const parts = name.trim().split(/\s+/);
     if (parts.length <= 1) return name;
-    // Return First Name + Initial of Last Name (e.g. "Claudio Soares" -> "Claudio S.")
-    const firstName = parts[0];
-    const lastName = parts[parts.length - 1];
-    return `${firstName} ${lastName.charAt(0).toUpperCase()}.`;
+    // If the name is too long, shorten it wisely
+    if (name.length > 18) {
+      const firstName = parts[0];
+      const lastName = parts[parts.length - 1];
+      return `${firstName} ${lastName.charAt(0).toUpperCase()}.`;
+    }
+    return name;
   };
 
   const getTeamDisplay = (team: { player1: { name: string }; player2?: { name: string } }) => {
@@ -40,7 +43,7 @@ export const ArenaCourtCard = ({ court, isHighlighted = false }: ArenaCourtCardP
   };
 
   const cardClasses = `
-    relative rounded-[2rem] p-6 sm:p-8 transition-all duration-500 overflow-hidden w-full max-w-[450px] mx-auto
+    relative rounded-[2rem] p-6 sm:p-8 transition-all duration-500 overflow-hidden w-full max-w-[800px] mx-auto
     ${isHighlighted
       ? 'bg-slate-950 ring-[6px] ring-primary/20 border border-primary/50 shadow-[0_20px_50px_rgba(206,253,3,0.2)]'
       : 'bg-slate-900 border border-white/5 shadow-2xl'
