@@ -3,25 +3,17 @@ import { ArenaHeader } from '@/components/ArenaHeader';
 import { ArenaCourtCard } from '@/components/ArenaCourtCard';
 import { ResultsTicker } from '@/components/ResultsTicker';
 import { useCourtData } from '@/hooks/useCourtData';
-import { Clock } from 'lucide-react';
-import { TournamentBrackets } from '@/components/matches/TournamentBrackets';
-import { GroupStandings } from '@/components/matches/GroupStandings';
+import { Clock, Trophy, Star } from 'lucide-react';
 import { tournamentService } from '@/services/tournamentService';
 import { matchService } from '@/services/matchService';
 import { Tournament, Match } from '@/types/beach-tennis';
+import { Badge } from '@/components/ui/badge';
 
 const ArenaPanel = () => {
   const { courts, results } = useCourtData();
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-
-  // Filter courts by active tournament and 'em_jogo' status
-  const ongoingCourts = courts.filter(c =>
-    c.status === 'em_jogo' &&
-    activeTournament &&
-    c.tournamentId === activeTournament.id
-  );
 
   // Fetch active tournament and matches
   useEffect(() => {
@@ -39,18 +31,42 @@ const ArenaPanel = () => {
     }
   }, [activeTournament]);
 
+  // Filter courts by active tournament and 'em_jogo' status
+  const ongoingCourts = courts.filter(c =>
+    c.status === 'em_jogo' &&
+    activeTournament &&
+    c.tournamentId === activeTournament.id
+  );
+
+  // Identify Champions
+  const champions = matches
+    .filter(m => m.round === 'final' && m.status === 'finished')
+    .map(m => ({
+      type: 'champion' as const,
+      id: `champ-${m.id}`,
+      category: m.category,
+      winner: m.setsA > m.setsB ? m.teamA : m.teamB,
+      score: `${m.setsA} x ${m.setsB}`
+    }));
+
+  // Combine slides: Ongoing matches OR Champions (if no matches, or just show both in sequence)
+  const slides = [
+    ...ongoingCourts.map(c => ({ type: 'court' as const, data: c, id: c.id })),
+    ...champions.map(c => ({ type: 'champion' as const, data: c, id: c.id }))
+  ];
+
   // Automatic Switcher (Carousel)
   useEffect(() => {
-    if (ongoingCourts.length <= 1) {
+    if (slides.length <= 1) {
       setActiveIndex(0);
       return;
     }
 
     const interval = setInterval(() => {
-      setActiveIndex(prev => (prev + 1) % ongoingCourts.length);
-    }, 8000); // 8 seconds per match
+      setActiveIndex(prev => (prev + 1) % slides.length);
+    }, 10000); // 10 seconds per slide
     return () => clearInterval(interval);
-  }, [ongoingCourts.length]);
+  }, [slides.length]);
 
   const getGridClass = () => {
     const count = courts.length;
@@ -65,33 +81,83 @@ const ArenaPanel = () => {
       <ArenaHeader tournamentName={activeTournament?.name || 'Beach Tennis Manager'} />
 
       {/* Main Content with Transition */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pb-32 overflow-hidden relative">
-        {ongoingCourts.length > 0 ? (
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pb-48 overflow-hidden relative">
+        {slides.length > 0 ? (
           <div className="w-full max-w-5xl h-full flex flex-col items-center justify-center relative">
-            {ongoingCourts.map((court, idx) => (
+            {slides.map((slide, idx) => (
               <div
-                key={court.id}
+                key={slide.id}
                 className={`transition-all duration-1000 absolute w-full flex justify-center
                   ${idx === activeIndex
                     ? 'opacity-100 scale-100 translate-x-0 z-10'
                     : 'opacity-0 scale-95 translate-x-32 z-0 pointer-events-none'}`}
               >
-                <div className="w-full scale-110 sm:scale-125 lg:scale-150">
-                  <ArenaCourtCard
-                    court={court}
-                    isHighlighted={true}
-                  />
-                </div>
+                {slide.type === 'court' ? (
+                  <div className="w-full scale-110 sm:scale-125 lg:scale-150">
+                    <ArenaCourtCard
+                      court={slide.data as any}
+                      isHighlighted={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full max-w-2xl relative group">
+                    {/* Background Glow */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse"></div>
+
+                    <div className="relative bg-slate-900 border border-yellow-500/30 rounded-3xl p-8 overflow-hidden shadow-2xl">
+                      {/* Decoration Icons */}
+                      <Star className="absolute top-6 left-6 text-yellow-500/10 w-8 h-8" />
+                      <Star className="absolute bottom-6 right-6 text-yellow-500/10 w-8 h-8" />
+
+                      <div className="flex flex-col items-center text-center space-y-6">
+                        <div className="relative">
+                          <div className="bg-yellow-500/10 p-4 rounded-full border border-yellow-500/20 inline-block">
+                            <Trophy className="w-12 h-12 text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
+                          </div>
+                          <Badge className="absolute -top-2 -right-2 bg-yellow-500 text-black text-[10px] font-black border-none animate-bounce px-2">
+                            CAMPEÃO
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h3 className="text-yellow-500 font-black text-sm tracking-[0.3em] uppercase italic">Pódio das Estrelas</h3>
+                          <h2 className="text-4xl font-black text-white tracking-tighter uppercase line-clamp-2">
+                            {(slide.data as any).winner.player1.name}
+                            {(slide.data as any).winner.player2 && <><span className="text-yellow-500 px-2">/</span>{(slide.data as any).winner.player2.name}</>}
+                          </h2>
+                        </div>
+
+                        <div className="flex items-center gap-6 w-full max-w-xs">
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-[8px] font-black text-slate-500 tracking-widest uppercase">Categoria</span>
+                            <Badge variant="outline" className="text-lg py-0 px-4 border-yellow-500/40 text-yellow-500 font-black italic">
+                              {(slide.data as any).category}
+                            </Badge>
+                          </div>
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+                        </div>
+
+                        <div className="pt-2">
+                          <p className="text-slate-500 text-[8px] uppercase font-black tracking-[0.4em] mb-2">Resultado da Final</p>
+                          <div className="text-2xl font-mono font-black text-white bg-black/40 px-6 py-2 rounded-xl border border-white/5">
+                            {(slide.data as any).score}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
             {/* Pagination Indicators - Only if > 1 */}
-            {ongoingCourts.length > 1 && (
+            {slides.length > 1 && (
               <div className="absolute -bottom-12 flex gap-3">
-                {ongoingCourts.map((_, idx) => (
+                {slides.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`h-3 rounded-full transition-all duration-500 
+                    className={`h-3 rounded-full transition-all duration-500
                                 ${idx === activeIndex ? 'bg-primary w-12' : 'bg-white/10 w-3'}`}
                   />
                 ))}
@@ -118,4 +184,3 @@ const ArenaPanel = () => {
 };
 
 export default ArenaPanel;
-

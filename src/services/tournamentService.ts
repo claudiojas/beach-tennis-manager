@@ -38,30 +38,36 @@ export const tournamentService = {
     delete: async (id: string) => {
         const updates: Record<string, any> = {};
 
-        // 1. Prepare matches for deletion (Using server-side query)
-        const matchesRef = ref(db, "matches");
-        const matchesSnapshot = await get(query(matchesRef, orderByChild("tournamentId"), equalTo(id)));
+        // 1. Prepare matches for deletion (Fetch all and filter locally to avoid indexing issues)
+        const matchesSnapshot = await get(ref(db, "matches"));
         if (matchesSnapshot.exists()) {
-            Object.keys(matchesSnapshot.val()).forEach(matchId => {
-                updates[`matches/${matchId}`] = null;
+            const matches = matchesSnapshot.val();
+            Object.keys(matches).forEach(matchId => {
+                if (matches[matchId].tournamentId === id) {
+                    updates[`matches/${matchId}`] = null;
+                }
             });
         }
 
         // 2. Prepare courts for deletion
-        const courtsRef = ref(db, "courts");
-        const courtsSnapshot = await get(query(courtsRef, orderByChild("tournamentId"), equalTo(id)));
+        const courtsSnapshot = await get(ref(db, "courts"));
         if (courtsSnapshot.exists()) {
-            Object.keys(courtsSnapshot.val()).forEach(courtId => {
-                updates[`courts/${courtId}`] = null;
+            const courts = courtsSnapshot.val();
+            Object.keys(courts).forEach(courtId => {
+                if (courts[courtId].tournamentId === id) {
+                    updates[`courts/${courtId}`] = null;
+                }
             });
         }
 
         // 3. Prepare results for deletion
-        const resultsRef = ref(db, "results");
-        const resultsSnapshot = await get(query(resultsRef, orderByChild("tournamentId"), equalTo(id)));
+        const resultsSnapshot = await get(ref(db, "results"));
         if (resultsSnapshot.exists()) {
-            Object.keys(resultsSnapshot.val()).forEach(resultId => {
-                updates[`results/${resultId}`] = null;
+            const results = resultsSnapshot.val();
+            Object.keys(results).forEach(resultId => {
+                if (results[resultId].tournamentId === id) {
+                    updates[`results/${resultId}`] = null;
+                }
             });
         }
 
@@ -71,4 +77,5 @@ export const tournamentService = {
         // 5. Execute all deletions atomically
         await update(ref(db), updates);
     }
+
 };

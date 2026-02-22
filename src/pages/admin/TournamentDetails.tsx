@@ -38,6 +38,7 @@ import { GroupStandings } from "@/components/matches/GroupStandings";
 import { TournamentAthleteManager } from "@/components/athletes/TournamentAthleteManager";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ManualGroupGenerator } from "@/components/matches/ManualGroupGenerator";
 
 const courtSchema = z.object({
     name: z.string().min(2, "Nome da quadra deve ter pelo menos 2 caracteres"),
@@ -60,6 +61,7 @@ export default function TournamentDetails() {
     const [arenas, setArenas] = useState<any[]>([]);
     const [isCustomCourt, setIsCustomCourt] = useState(false);
     const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
+    const [openManualGroups, setOpenManualGroups] = useState(false);
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -351,8 +353,11 @@ export default function TournamentDetails() {
                                     <CardDescription>Acompanhe a classificação em tempo real.</CardDescription>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={handleGenerateInitialMatches} disabled={isGeneratingAuto}>
-                                        Gerar Grupos
+                                    <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-8 text-[10px]">
+                                        Gerar Manual
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleGenerateInitialMatches} disabled={isGeneratingAuto} className="h-8 text-[10px]">
+                                        Gerar Automático
                                     </Button>
                                     <Button size="sm" onClick={async () => {
                                         if (!id) return;
@@ -622,6 +627,18 @@ export default function TournamentDetails() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {id && tournament && (
+                <ManualGroupGenerator
+                    tournamentId={id}
+                    athletes={selectedCategory === "TODAS" ? athletes : athletes.filter(a => a.category === selectedCategory)}
+                    tournamentType={tournament.type as any}
+                    open={openManualGroups}
+                    onOpenChange={setOpenManualGroups}
+                    onSuccess={() => {
+                        toast.success("Grupos manuais gerados!");
+                    }}
+                />
+            )}
         </div>
     );
 }

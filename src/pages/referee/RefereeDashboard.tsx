@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Undo2, RotateCcw, CheckCircle2, BookOpen, Play, Clock, Calendar, ShieldCheck, Activity } from "lucide-react";
+import { LogOut, Undo2, RotateCcw, CheckCircle2, BookOpen, Play, Clock, Calendar, ShieldCheck, Activity, MapPin } from "lucide-react";
 import { courtService } from "@/services/courtService";
 import { matchService } from "@/services/matchService";
 import { tournamentService } from "@/services/tournamentService";
@@ -100,20 +100,11 @@ export default function RefereeDashboard() {
         if (pinCode.length < 4) setPinCode(prev => prev + num);
     };
 
-    const handleStartMatch = async () => {
-        if (!selectedMatch || pinCode.length !== 4) return;
-
-        // Find which court has this PIN
-        const court = courts.find(c => c.pin === pinCode);
-        if (!court) {
-            toast.error("PIN da quadra incorreto!");
-            setPinCode("");
-            return;
-        }
+    const handleSelectCourt = async (court: Court) => {
+        if (!selectedMatch) return;
 
         if (court.status === 'em_jogo') {
             toast.error(`A ${court.name} já está ocupada com outro jogo!`);
-            setPinCode("");
             return;
         }
 
@@ -127,7 +118,6 @@ export default function RefereeDashboard() {
 
             toast.success(`Partida iniciada na ${court.name}!`);
             setPinOpen(false);
-            setPinCode("");
             setSelectedMatch(null);
         } catch (error) {
             toast.error("Erro ao iniciar partida.");
@@ -246,66 +236,46 @@ export default function RefereeDashboard() {
                 </div>
             </div>
 
-            {/* PIN Dialog */}
-            <Dialog open={pinOpen} onOpenChange={(val) => { setPinOpen(val); if (!val) setPinCode(""); }}>
+            {/* Court Selection Dialog */}
+            <Dialog open={pinOpen} onOpenChange={(val) => { setPinOpen(val); if (!val) setSelectedMatch(null); }}>
                 <DialogContent className="sm:max-w-md bg-slate-950 border-slate-800 text-white p-0 overflow-hidden">
                     <div className="p-8 text-center space-y-6">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-center">Digite o PIN da Quadra</DialogTitle>
-                            <DialogDescription className="text-slate-400 text-center">Para assumir controle deste jogo, insira o código fixo da sua quadra.</DialogDescription>
+                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-center">Selecione a Quadra</DialogTitle>
+                            <DialogDescription className="text-slate-400 text-center">Em qual quadra você vai arbitrar este jogo?</DialogDescription>
                         </DialogHeader>
 
-                        {/* PIN Display */}
-                        <div className="flex justify-center gap-4 py-4">
-                            {[0, 1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    className={`w-12 h-16 rounded-xl border-2 flex items-center justify-center text-3xl font-black transition-all ${pinCode[i]
-                                        ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
-                                        : "border-slate-800 bg-slate-900/50 text-slate-700"
+                        <div className="grid grid-cols-2 gap-4">
+                            {courts.map((court) => (
+                                <button
+                                    key={court.id}
+                                    disabled={court.status === 'em_jogo'}
+                                    onClick={() => handleSelectCourt(court)}
+                                    className={`p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${court.status === 'em_jogo'
+                                        ? "border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed"
+                                        : "border-primary/20 bg-slate-900 hover:border-primary hover:bg-primary/10 active:scale-95"
                                         }`}
                                 >
-                                    {pinCode[i] ? "•" : ""}
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Custom Keypad */}
-                        <div className="grid grid-cols-3 gap-3">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                                <button
-                                    key={num}
-                                    onClick={() => handlePinClick(num.toString())}
-                                    className="h-16 rounded-2xl bg-slate-900 border border-white/5 text-2xl font-black hover:bg-slate-800 active:scale-95 transition-all"
-                                >
-                                    {num}
+                                    <MapPin className={`w-6 h-6 ${court.status === 'em_jogo' ? "text-slate-700" : "text-primary"}`} />
+                                    <span className="font-black uppercase tracking-tight text-sm">{court.name}</span>
+                                    {court.status === 'em_jogo' && (
+                                        <Badge variant="outline" className="text-[8px] bg-red-500/10 text-red-500 border-red-500/20">Ocupada</Badge>
+                                    )}
                                 </button>
                             ))}
-                            <div />
-                            <button
-                                onClick={() => handlePinClick("0")}
-                                className="h-16 rounded-2xl bg-slate-900 border border-white/5 text-2xl font-black hover:bg-slate-800 active:scale-95 transition-all"
-                            >
-                                0
-                            </button>
-                            <button
-                                onClick={() => setPinCode(prev => prev.slice(0, -1))}
-                                className="h-16 flex items-center justify-center text-slate-500 hover:text-white"
-                            >
-                                <RotateCcw className="w-6 h-6" />
-                            </button>
                         </div>
 
                         <Button
-                            className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
-                            disabled={pinCode.length !== 4}
-                            onClick={handleStartMatch}
+                            variant="ghost"
+                            className="w-full h-12 text-slate-500 hover:text-white uppercase text-xs font-bold tracking-widest"
+                            onClick={() => setPinOpen(false)}
                         >
-                            Assumir Quadra
+                            Cancelar
                         </Button>
                     </div>
                 </DialogContent>
             </Dialog>
+
 
             <footer className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/80 backdrop-blur-md border-t border-white/5 text-center">
                 <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">Authority Mode · Modulo Web BT</p>

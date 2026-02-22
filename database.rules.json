@@ -3,14 +3,10 @@
         ".read": true,
         ".write": "auth != null",
         "tournaments": {
-            ".indexOn": [
-                "createdAt"
-            ]
+            ".indexOn": "createdAt"
         },
         "matches": {
-            ".indexOn": [
-                "tournamentId"
-            ]
+            ".indexOn": "tournamentId"
         },
         "courts": {
             ".indexOn": [
@@ -19,9 +15,7 @@
             ]
         },
         "results": {
-            ".indexOn": [
-                "tournamentId"
-            ]
+            ".indexOn": "tournamentId"
         }
     }
 }
