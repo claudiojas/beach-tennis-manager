@@ -1,28 +1,47 @@
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { Sponsor } from "@/types/beach-tennis";
 import { ref, push, set, onValue, remove, get } from "firebase/database";
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 const SPONSORS_PATH = "sponsors";
 
+// Configurações do Supabase extraídas das variáveis de ambiente
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET || "sponsors";
+
 export const sponsorService = {
     /**
-     * Faz o upload da imagem e cria o registro do patrocinador
+     * Faz o upload da imagem para o Supabase Storage e cria o registro no Firebase
      */
     create: async (name: string, imageFile: File, tournamentId?: string) => {
         const sponsorsRef = ref(db, SPONSORS_PATH);
         const newSponsorRef = push(sponsorsRef);
         const sponsorId = newSponsorRef.key!;
 
-        // 1. Upload para o Firebase Storage
-        const fileExtension = imageFile.name.split('.').pop();
-        const fileName = `${sponsorId}.${fileExtension}`;
-        const fileRef = storageRef(storage, `sponsors/${fileName}`);
+        // 1. Preparar o Upload para o Supabase via REST API
+        const fileName = `${sponsorId}.webp`;
+        const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${fileName}`;
 
-        const uploadResult = await uploadBytes(fileRef, imageFile);
-        const logoUrl = await getDownloadURL(uploadResult.ref);
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'apikey': SUPABASE_KEY,
+                'Content-Type': imageFile.type
+            },
+            body: imageFile
+        });
 
-        // 2. Salva no Realtime Database
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Erro no Supabase Upload:', errorData);
+            throw new Error(`Falha no upload para o Supabase: ${errorData.message || response.statusText}`);
+        }
+
+        // 2. Gerar a URL Pública do Supabase
+        const logoUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${fileName}`;
+
+        // 3. Salva no Realtime Database (Firebase)
         const newSponsor: Sponsor = {
             id: sponsorId,
             name,
@@ -39,7 +58,7 @@ export const sponsorService = {
     },
 
     /**
-     * Monitora patrocinadores (Realtime)
+     * Monitora patrocinadores (Realtime via Firebase)
      */
     subscribeAll: (callback: (sponsors: Sponsor[]) => void) => {
         return onValue(ref(db, SPONSORS_PATH), (snapshot) => {
@@ -50,26 +69,32 @@ export const sponsorService = {
     },
 
     /**
-     * Remove um patrocinador (Imagem + Registro)
+     * Remove um patrocinador (Imagem no Supabase + Registro no Firebase)
      */
     delete: async (sponsorId: string) => {
-        // 1. Pega os dados para saber a URL da imagem
         const sponsorRef = ref(db, `${SPONSORS_PATH}/${sponsorId}`);
         const snapshot = await get(sponsorRef);
 
         if (snapshot.exists()) {
             const sponsor = snapshot.val() as Sponsor;
 
-            // 2. Tenta deletar a imagem do Storage
+            // 1. Tenta deletar a imagem do Supabase Storage via REST
             try {
-                // Extrai o nome do arquivo da URL do Firebase Storage
-                const fileRef = storageRef(storage, sponsor.logoUrl);
-                await deleteObject(fileRef);
+                const fileName = `${sponsorId}.webp`;
+                const deleteUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${fileName}`;
+
+                await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
             } catch (error) {
-                console.warn("Erro ao deletar imagem do storage (ou imagem fixa):", error);
+                console.warn("Erro ao deletar imagem do Supabase:", error);
             }
 
-            // 3. Deleta do Database
+            // 2. Deleta do Database (Firebase)
             await remove(sponsorRef);
         }
     }
