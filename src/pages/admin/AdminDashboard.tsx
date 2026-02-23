@@ -536,8 +536,8 @@ export default function AdminDashboard() {
                           </DropdownMenuItem>
                         )}
 
-                        {/* Delete - Only if not active/finished (or allow if cancelled) */}
-                        {(tournament.status === 'planning' || tournament.status === 'cancelled') && (
+                        {/* Delete - Only if not active (allow if planning, finished or cancelled) */}
+                        {tournament.status !== 'active' && (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onSelect={(e) => {
