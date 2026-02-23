@@ -85,9 +85,9 @@ const ArenaPanel = () => {
       <SponsorBar />
 
       {/* Main Content with Transition */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-8 pb-40 overflow-hidden relative">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 pt-8 pb-32 overflow-hidden relative">
         {slides.length > 0 ? (
-          <div className="w-full max-w-7xl h-full flex flex-col items-center justify-center relative">
+          <div className="w-full max-w-7xl h-full flex flex-col items-center justify-center relative -translate-y-12">
             {slides.map((slide, idx) => (
               <div
                 key={slide.id}

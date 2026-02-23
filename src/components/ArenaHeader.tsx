@@ -6,7 +6,7 @@ interface ArenaHeaderProps {
 
 export const ArenaHeader = ({ tournamentName }: ArenaHeaderProps) => {
   return (
-    <header className="header-gradient px-6 py-4 flex items-center justify-between">
+    <header className="header-gradient px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
           <Palmtree className="text-accent-foreground" size={24} />

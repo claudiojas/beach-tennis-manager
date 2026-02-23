@@ -36,7 +36,7 @@ export const SponsorBar = () => {
     );
 
     return (
-        <div className="w-full bg-slate-900/60 backdrop-blur-md border-b border-white/5 py-4 overflow-hidden relative shadow-2xl">
+        <div className="w-full bg-slate-900/60 backdrop-blur-md border-b border-white/5 py-2 overflow-hidden relative shadow-2xl">
             <div className="flex items-center">
                 {/* Visual Fading Gradients */}
                 <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-slate-900 via-slate-900/60 to-transparent z-10" />
