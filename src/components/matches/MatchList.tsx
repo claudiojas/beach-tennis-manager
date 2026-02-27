@@ -4,7 +4,7 @@ import { matchService } from "@/services/matchService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Unlock } from "lucide-react";
+import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Unlock, Check, X, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +31,40 @@ interface MatchListProps {
 export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListProps) {
     const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
     const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
+    const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
+    const [tempScore, setTempScore] = useState<{
+        setsA: number;
+        setsB: number;
+        pointsA: string | number;
+        pointsB: string | number;
+    } | null>(null);
+
+    const handleStartEditScore = (match: Match) => {
+        setEditingScoreId(match.id);
+        setTempScore({
+            setsA: match.setsA,
+            setsB: match.setsB,
+            pointsA: match.pointsA,
+            pointsB: match.pointsB
+        });
+    };
+
+    const handleSaveScore = async (matchId: string) => {
+        if (!tempScore) return;
+        try {
+            await matchService.update(matchId, {
+                setsA: Number(tempScore.setsA),
+                setsB: Number(tempScore.setsB),
+                pointsA: tempScore.pointsA,
+                pointsB: tempScore.pointsB
+            });
+            toast.success("Placar atualizado!");
+            setEditingScoreId(null);
+            setTempScore(null);
+        } catch (error) {
+            toast.error("Erro ao atualizar placar.");
+        }
+    };
 
     // Removed internal fetching
 
@@ -100,23 +134,45 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                     </div>
 
                                     <div className="flex gap-1">
-                                        {match.status === 'ongoing' && match.controlledBy && (
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
-                                                onClick={() => setMatchToRelease(match)}
-                                                title="Forçar Liberação de Dispositivo"
-                                            >
-                                                <Unlock className="h-4 w-4" />
-                                            </Button>
+                                        {editingScoreId === match.id ? (
+                                            <>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleSaveScore(match.id)}>
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setEditingScoreId(null)}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {match.status === 'ongoing' && match.controlledBy && (
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                                                        onClick={() => setMatchToRelease(match)}
+                                                        title="Forçar Liberação de Dispositivo"
+                                                    >
+                                                        <Unlock className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 text-primary"
+                                                    onClick={() => handleStartEditScore(match)}
+                                                    title="Editar Placar"
+                                                >
+                                                    <Trophy className="h-4 w-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(match)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setMatchToDelete(match.id)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </>
                                         )}
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(match)}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setMatchToDelete(match.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
                                     </div>
                                 </div>
 
@@ -148,8 +204,17 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                             <p className="font-bold text-sm truncate uppercase">{shortenName(match.teamA.player1.name)}</p>
                                             {match.teamA.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase">{shortenName(match.teamA.player2.name)}</p>}
                                             <div className="mt-1 flex justify-end items-center gap-1.5">
-                                                {match.serving === 'teamA' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
-                                                <span className="text-2xl font-black text-primary tabular-nums">{match.pointsA}</span>
+                                                {match.serving === 'teamA' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
+                                                {editingScoreId === match.id ? (
+                                                    <input
+                                                        type="text"
+                                                        className="w-12 h-10 bg-white border border-primary/20 rounded text-center text-xl font-black text-primary"
+                                                        value={tempScore?.pointsA}
+                                                        onChange={(e) => setTempScore(prev => prev ? { ...prev, pointsA: e.target.value } : null)}
+                                                    />
+                                                ) : (
+                                                    <span className="text-2xl font-black text-primary tabular-nums">{match.pointsA}</span>
+                                                )}
                                             </div>
                                         </div>
 
@@ -157,9 +222,29 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                         <div className="px-6 flex flex-col items-center">
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Sets</span>
                                             <div className="flex items-center gap-2 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                                                <span className="text-xl font-black">{match.setsA}</span>
-                                                <span className="text-muted-foreground/30 text-xs">/</span>
-                                                <span className="text-xl font-black">{match.setsB}</span>
+                                                {editingScoreId === match.id ? (
+                                                    <>
+                                                        <input
+                                                            type="number"
+                                                            className="w-10 h-8 bg-white border border-black/10 rounded text-center font-black"
+                                                            value={tempScore?.setsA}
+                                                            onChange={(e) => setTempScore(prev => prev ? { ...prev, setsA: parseInt(e.target.value) || 0 } : null)}
+                                                        />
+                                                        <span className="text-muted-foreground/30 text-xs">/</span>
+                                                        <input
+                                                            type="number"
+                                                            className="w-10 h-8 bg-white border border-black/10 rounded text-center font-black"
+                                                            value={tempScore?.setsB}
+                                                            onChange={(e) => setTempScore(prev => prev ? { ...prev, setsB: parseInt(e.target.value) || 0 } : null)}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-xl font-black">{match.setsA}</span>
+                                                        <span className="text-muted-foreground/30 text-xs">/</span>
+                                                        <span className="text-xl font-black">{match.setsB}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
 
@@ -168,8 +253,17 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                             <p className="font-bold text-sm truncate uppercase">{shortenName(match.teamB.player1.name)}</p>
                                             {match.teamB.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase">{shortenName(match.teamB.player2.name)}</p>}
                                             <div className="mt-1 flex justify-start items-center gap-1.5">
-                                                <span className="text-2xl font-black text-primary tabular-nums">{match.pointsB}</span>
-                                                {match.serving === 'teamB' && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
+                                                {editingScoreId === match.id ? (
+                                                    <input
+                                                        type="text"
+                                                        className="w-12 h-10 bg-white border border-primary/20 rounded text-center text-xl font-black text-primary"
+                                                        value={tempScore?.pointsB}
+                                                        onChange={(e) => setTempScore(prev => prev ? { ...prev, pointsB: e.target.value } : null)}
+                                                    />
+                                                ) : (
+                                                    <span className="text-2xl font-black text-primary tabular-nums">{match.pointsB}</span>
+                                                )}
+                                                {match.serving === 'teamB' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
                                             </div>
                                         </div>
                                     </div>
