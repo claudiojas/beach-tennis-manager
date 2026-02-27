@@ -14,6 +14,17 @@ import { Trophy, Medal, Target, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { matchService } from "@/services/matchService";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 interface GroupStandingsProps {
     tournamentId: string;
@@ -23,6 +34,7 @@ interface GroupStandingsProps {
 }
 
 export function GroupStandings({ tournamentId, category, groupName, matches }: GroupStandingsProps) {
+    const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
     // 1. Identify all unique teams in this group
     const teamMap = new Map<string, { name: string; team: Team }>();
     matches.forEach(m => {
@@ -98,16 +110,7 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={async () => {
-                            if (confirm(`Deseja deletar TODAS as partidas do Grupo ${groupName}? Esta ação não pode ser desfeita.`)) {
-                                try {
-                                    await matchService.deleteMatchesByGroup(tournamentId, category, groupName);
-                                    toast.success(`Grupo ${groupName} removido!`);
-                                } catch (e) {
-                                    toast.error("Erro ao deletar grupo");
-                                }
-                            }
-                        }}
+                        onClick={() => setOpenDeleteConfirm(true)}
                         className="h-8 w-8 p-0 text-slate-500 hover:text-red-500 hover:bg-red-50"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -148,6 +151,34 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
                     </Table>
                 </div>
             </CardContent>
+
+            <AlertDialog open={openDeleteConfirm} onOpenChange={setOpenDeleteConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Deletar Grupo {groupName}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação removerá permanentemente todas as partidas e classificações deste grupo. Jogos já finalizados também serão excluídos.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                try {
+                                    await matchService.deleteMatchesByGroup(tournamentId, category, groupName);
+                                    toast.success(`Grupo ${groupName} removido!`);
+                                    setOpenDeleteConfirm(false);
+                                } catch (e) {
+                                    toast.error("Erro ao deletar grupo");
+                                }
+                            }}
+                            className="bg-red-500 text-white hover:bg-red-600"
+                        >
+                            Confirmar Exclusão
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     );
 }
