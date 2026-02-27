@@ -10,14 +10,19 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Target } from "lucide-react";
+import { Trophy, Medal, Target, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { matchService } from "@/services/matchService";
+import { toast } from "sonner";
 
 interface GroupStandingsProps {
+    tournamentId: string;
+    category: string;
     groupName: string;
     matches: Match[];
 }
 
-export function GroupStandings({ groupName, matches }: GroupStandingsProps) {
+export function GroupStandings({ tournamentId, category, groupName, matches }: GroupStandingsProps) {
     // 1. Identify all unique teams in this group
     const teamMap = new Map<string, { name: string; team: Team }>();
     matches.forEach(m => {
@@ -86,10 +91,27 @@ export function GroupStandings({ groupName, matches }: GroupStandingsProps) {
     return (
         <Card className="border-none shadow-none bg-transparent">
             <CardHeader className="px-0 pt-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2">
                     <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-lg px-3 py-1">
                         Grupo {groupName}
                     </Badge>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                            if (confirm(`Deseja deletar TODAS as partidas do Grupo ${groupName}? Esta ação não pode ser desfeita.`)) {
+                                try {
+                                    await matchService.deleteMatchesByGroup(tournamentId, category, groupName);
+                                    toast.success(`Grupo ${groupName} removido!`);
+                                } catch (e) {
+                                    toast.error("Erro ao deletar grupo");
+                                }
+                            }
+                        }}
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-red-500 hover:bg-red-50"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="px-0">

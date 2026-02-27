@@ -384,5 +384,22 @@ export const matchService = {
             });
             await update(ref(db, MATCHES_PATH), updates);
         }
+    },
+
+    deleteMatchesByGroup: async (tournamentId: string, category: string, groupName: string) => {
+        const matchesQuery = query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
+        const snapshot = await get(matchesQuery);
+        const matchesData = snapshot.val();
+
+        if (matchesData) {
+            const updates: Record<string, any> = {};
+            Object.keys(matchesData).forEach(key => {
+                const match = matchesData[key] as Match;
+                if (match.category === category && match.group === groupName) {
+                    updates[key] = null;
+                }
+            });
+            await update(ref(db, MATCHES_PATH), updates);
+        }
     }
 };

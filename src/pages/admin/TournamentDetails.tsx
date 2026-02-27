@@ -390,6 +390,8 @@ export default function TournamentDetails() {
                                                     {groups.map(g => (
                                                         <GroupStandings
                                                             key={`${cat}-${g}`}
+                                                            tournamentId={id}
+                                                            category={cat}
                                                             groupName={g!}
                                                             matches={catMatches.filter(m => m.group === g)}
                                                         />
