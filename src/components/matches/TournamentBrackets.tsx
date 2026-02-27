@@ -116,6 +116,7 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches }: To
     return (
         <div className="p-4 w-full">
             <div className="flex flex-col md:flex-row gap-12 items-center md:items-start justify-center py-8">
+                {renderRound('oitavas', 'Oitavas de Final')}
                 {renderRound('quartas', 'Quartas de Final')}
                 {renderRound('semi', 'Semifinais')}
                 {renderRound('final', 'Grande Final')}

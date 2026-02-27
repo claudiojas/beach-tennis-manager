@@ -319,19 +319,18 @@ export const matchService = {
             });
 
             // 4. Generate Bracket
-            if (teamsToPromote.length === 2 || teamsToPromote.length === 4 || teamsToPromote.length === 8) {
+            if (teamsToPromote.length >= 2) {
                 const bracketServiceImport = (await import('./bracketService')).bracketService;
                 await bracketServiceImport.generateBracket(tournamentId, category, teamsToPromote);
                 return true;
             } else {
-                throw new Error(`Número de equipes promovidas (${teamsToPromote.length}) não é compatível com chaves de 2, 4 ou 8.`);
+                throw new Error(`Número de equipes promovidas (${teamsToPromote.length}) é insuficiente para gerar mata-mata.`);
             }
         } catch (error: any) {
             console.error("Erro em promoteGroupWinners:", error);
             throw error;
         }
     },
-
 
     remove: async (matchId: string) => {
         const matchRef = ref(db, `${MATCHES_PATH}/${matchId}`);

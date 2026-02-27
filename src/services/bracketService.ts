@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { Match, Team, Category } from "@/types/beach-tennis";
-import { ref, push, set, query, orderByChild, equalTo, get } from "firebase/database";
+import { ref, push, set, query, orderByChild, equalTo, get, update } from "firebase/database";
 import { courtService } from "./courtService";
 
 const MATCHES_PATH = "matches";
@@ -11,10 +11,30 @@ export const bracketService = {
      * Supports 4 or 8 teams for now.
      */
     generateBracket: async (tournamentId: string, category: Category, teams: Team[]) => {
-        const teamCount = teams.length;
-        if (teamCount !== 2 && teamCount !== 4 && teamCount !== 8) {
-            throw new Error("O sistema atualmente suporta apenas chaves de 2, 4 ou 8 duplas.");
-        }
+        const N = teams.length;
+        if (N < 2) throw new Error("Mínimo de 2 duplas para gerar chave.");
+
+        // 1. Find the target power of 2 (P) such that P <= N < 2P
+        // P will be the number of slots in the "Base Round" (e.g., Quartas = 8)
+        let P = 2;
+        while (P * 2 <= N) P *= 2;
+
+        const round1MatchesCount = N - P; // Number of play-in matches
+        const teamsInRound1 = round1MatchesCount * 2;
+        const byeTeamsCount = N - teamsInRound1;
+
+        // Round Mapping
+        const ROUND_NAMES: Record<number, Match['round']> = {
+            2: 'final',
+            4: 'semi',
+            8: 'quartas',
+            16: 'oitavas'
+        };
+
+        const baseRoundName = ROUND_NAMES[P];
+        const prelimRoundName = ROUND_NAMES[P * 2];
+
+        if (!baseRoundName) throw new Error(`O sistema não suporta chaves para ${N} equipes no momento.`);
 
         // Fetch available courts for this tournament
         const allCourts = await courtService.getByTournamentOnce(tournamentId);
@@ -29,89 +49,122 @@ export const bracketService = {
         const getNextCourt = () => availableCourts.shift()?.id || null;
 
         const matchesRef = ref(db, MATCHES_PATH);
+        const matchUpdates: Record<string, any> = {};
 
-        if (teamCount === 2) {
-            // Grande Final Direta
-            const finalRef = push(matchesRef);
-            const finalId = finalRef.key!;
-
-            const matchData = {
-                ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0),
-                teamA: teams[0],
-                teamB: teams[1],
-                courtId: getNextCourt()
-            };
-
-            await set(ref(db, `${MATCHES_PATH}/${finalId}`), matchData);
-            return { finalId };
-        }
-
-        if (teamCount === 4) {
-            // Final
-            const finalRef = push(matchesRef);
-            const finalId = finalRef.key!;
-
-            // Semis
-            const semi1Ref = push(matchesRef);
-            const semi2Ref = push(matchesRef);
-
-            const matches: Record<string, Match> = {
-                [finalId]: { ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0), courtId: getNextCourt() },
-                [semi1Ref.key!]: {
-                    ...createPlaceholderMatch(semi1Ref.key!, tournamentId, category, 'semi', 0),
-                    teamA: teams[0],
-                    teamB: teams[3],
-                    nextMatchId: finalId,
-                    courtId: getNextCourt()
-                },
-                [semi2Ref.key!]: {
-                    ...createPlaceholderMatch(semi2Ref.key!, tournamentId, category, 'semi', 1),
-                    teamA: teams[1],
-                    teamB: teams[2],
-                    nextMatchId: finalId,
-                    courtId: getNextCourt()
+        // Helper to get bracket indices for standard seeding
+        const getSeeding = (size: number) => {
+            let seeding = [0, 1];
+            while (seeding.length < size) {
+                const next: number[] = [];
+                for (let i = 0; i < seeding.length; i++) {
+                    next.push(seeding[i]);
+                    next.push(seeding.length * 2 - 1 - seeding[i]);
                 }
-            };
-
-            for (const [id, matchData] of Object.entries(matches)) {
-                await set(ref(db, `${MATCHES_PATH}/${id}`), matchData);
+                seeding = next;
             }
-            return { finalId };
+            return seeding;
+        };
+
+        const baseSeeding = getSeeding(P);
+
+        // 2. Generate the tree backwards from Final
+        const createRound = async (size: number, nextRoundMatches?: string[]) => {
+            const currentRoundIds: string[] = [];
+            const rName = ROUND_NAMES[size];
+
+            for (let i = 0; i < size / 2; i++) {
+                const mRef = push(matchesRef);
+                const mId = mRef.key!;
+                currentRoundIds.push(mId);
+
+                const data = createPlaceholderMatch(mId, tournamentId, category, rName, i);
+                data.nextMatchId = nextRoundMatches ? nextRoundMatches[Math.floor(i / 2)] : undefined;
+                data.courtId = getNextCourt();
+
+                matchUpdates[mId] = data;
+            }
+            return currentRoundIds;
+        };
+
+        // Create Final
+        const finalId = (await createRound(2))[0];
+
+        // Create levels down to Base Round
+        let currentLevelSize = 4;
+        let lastLevelIds = [finalId];
+
+        while (currentLevelSize <= P) {
+            lastLevelIds = await createRound(currentLevelSize, lastLevelIds);
+            currentLevelSize *= 2;
         }
 
-        if (teamCount === 8) {
-            // Final (1)
-            const finalRef = push(matchesRef);
-            const finalId = finalRef.key!;
+        // Now lastLevelIds contains the IDs for the Base Round (e.g., the 4 matches of Quartas)
+        // We need to fill them with teams or links to Prelim Round
+        const byeTeams = teams.slice(0, byeTeamsCount);
+        const playInTeams = teams.slice(byeTeamsCount);
 
-            // Semis (2)
-            const s1Ref = push(matchesRef);
-            const s2Ref = push(matchesRef);
+        const baseRoundMatches = lastLevelIds.map(id => matchUpdates[id]);
 
-            // Quartas (4)
-            const q1Ref = push(matchesRef);
-            const q2Ref = push(matchesRef);
-            const q3Ref = push(matchesRef);
-            const q4Ref = push(matchesRef);
+        // Distribute teams into the Base Round slots based on seeding
+        // For P=8, seeding is [0, 7, 3, 4, 1, 6, 2, 5]
+        // But we fill them into the 4 matches (8 slots)
+        // Match 0: Slot 0 & 1 -> Teams baseSeeding[0] vs baseSeeding[P-1]
+        // Match 1: Slot 2 & 3 -> Teams baseSeeding[P/2-1] vs baseSeeding[P/2]
 
-            const matches: Record<string, Match> = {
-                [finalId]: { ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0), courtId: getNextCourt() },
+        // Simplified Distribution for Beach Tennis (1 vs 8, 4 vs 5, 2 vs 7, 3 vs 6)
+        let byeIndex = 0;
+        let playInPairIndex = 0;
 
-                [s1Ref.key!]: { ...createPlaceholderMatch(s1Ref.key!, tournamentId, category, 'semi', 0), nextMatchId: finalId, courtId: getNextCourt() },
-                [s2Ref.key!]: { ...createPlaceholderMatch(s2Ref.key!, tournamentId, category, 'semi', 1), nextMatchId: finalId, courtId: getNextCourt() },
+        for (let i = 0; i < P / 2; i++) {
+            const match = baseRoundMatches[i];
 
-                [q1Ref.key!]: { ...createPlaceholderMatch(q1Ref.key!, tournamentId, category, 'quartas', 0), teamA: teams[0], teamB: teams[7], nextMatchId: s1Ref.key!, courtId: getNextCourt() },
-                [q2Ref.key!]: { ...createPlaceholderMatch(q2Ref.key!, tournamentId, category, 'quartas', 1), teamA: teams[3], teamB: teams[4], nextMatchId: s1Ref.key!, courtId: getNextCourt() },
-                [q3Ref.key!]: { ...createPlaceholderMatch(q3Ref.key!, tournamentId, category, 'quartas', 2), teamA: teams[1], teamB: teams[6], nextMatchId: s2Ref.key!, courtId: getNextCourt() },
-                [q4Ref.key!]: { ...createPlaceholderMatch(q4Ref.key!, tournamentId, category, 'quartas', 3), teamA: teams[2], teamB: teams[5], nextMatchId: s2Ref.key!, courtId: getNextCourt() },
-            };
-
-            for (const [id, matchData] of Object.entries(matches)) {
-                await set(ref(db, `${MATCHES_PATH}/${id}`), matchData);
+            // Slot A
+            if (byeIndex < byeTeamsCount) {
+                match.teamA = byeTeams[byeIndex++];
+            } else {
+                // Must be a play-in link
+                const piRef = push(matchesRef);
+                const piId = piRef.key!;
+                const piData = {
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2),
+                    teamA: playInTeams[playInPairIndex * 2],
+                    teamB: playInTeams[playInPairIndex * 2 + 1],
+                    nextMatchId: match.id,
+                    courtId: getNextCourt()
+                };
+                matchUpdates[piId] = piData;
+                playInPairIndex++;
             }
-            return { finalId };
+
+            // Slot B
+            if (byeIndex < byeTeamsCount) {
+                match.teamB = byeTeams[byeIndex++];
+            } else {
+                // Must be a play-in link
+                const piRef = push(matchesRef);
+                const piId = piRef.key!;
+                const piData = {
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2),
+                    teamA: playInTeams[playInPairIndex * 2],
+                    teamB: playInTeams[playInPairIndex * 2 + 1],
+                    nextMatchId: match.id,
+                    courtId: getNextCourt()
+                };
+                matchUpdates[piId] = piData;
+                playInPairIndex++;
+            }
         }
-    }
+
+        // Save everything to DB
+        const dbRef = ref(db);
+        const finalUpdates: Record<string, any> = {};
+        Object.entries(matchUpdates).forEach(([id, data]) => {
+            finalUpdates[`${MATCHES_PATH}/${id}`] = data;
+        });
+
+        await update(dbRef, finalUpdates);
+        return { finalId };
+    },
 };
 
 /**

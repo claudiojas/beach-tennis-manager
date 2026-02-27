@@ -55,7 +55,7 @@ export interface Match {
   actualStartTime?: number; // REAL absolute start time
   endTime?: number;
   // Bracket specific
-  round?: 'quartas' | 'semi' | 'final';
+  round?: 'oitavas' | 'quartas' | 'semi' | 'final';
   bracketPosition?: number; // 0 to N-1
   nextMatchId?: string; // ID of the match the winner goes to
   group?: string; // NEW: "A", "B", "C"...
