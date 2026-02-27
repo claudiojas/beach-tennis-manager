@@ -37,6 +37,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
         setsB: number;
         pointsA: string | number;
         pointsB: string | number;
+        status: Match['status'];
         courtId?: string;
     } | null>(null);
 
@@ -47,25 +48,34 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
             setsB: match.setsB,
             pointsA: match.pointsA,
             pointsB: match.pointsB,
+            status: match.status,
             courtId: match.courtId
         });
     };
 
     const handleSaveScore = async (matchId: string) => {
         if (!tempScore) return;
+
+        // Validação explícita para feedback claro ao usuário
+        if (!tempScore.courtId) {
+            toast.warning("Selecione uma quadra para o jogo antes de salvar.");
+            return;
+        }
+
         try {
             await matchService.update(matchId, {
                 setsA: Number(tempScore.setsA),
                 setsB: Number(tempScore.setsB),
                 pointsA: tempScore.pointsA,
                 pointsB: tempScore.pointsB,
+                status: tempScore.status,
                 courtId: tempScore.courtId
             });
-            toast.success("Placar atualizado!");
+            toast.success("Partida atualizada!");
             setEditingScoreId(null);
             setTempScore(null);
         } catch (error) {
-            toast.error("Erro ao atualizar placar.");
+            toast.error("Erro ao atualizar partida. Verifique a conexão.");
         }
     };
 
@@ -181,36 +191,38 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
 
                                 {/* Court & Time Info (if exists) */}
                                 {editingScoreId === match.id ? (
-                                    <div className="mb-4 flex flex-col gap-2 bg-primary/5 p-3 rounded-xl border border-primary/10">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Localização do Jogo</label>
-                                        {match.status === 'ongoing' ? (
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white/50 p-2 rounded-lg">
-                                                <MapPin className="h-3 w-3" />
-                                                {getCourtName(match.courtId)} (Em andamento - Bloqueado)
-                                            </div>
-                                        ) : (
-                                            <div className="flex gap-2 items-center">
+                                    <div className="mb-4 flex flex-col gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Status do Jogo</label>
                                                 <select
-                                                    className="flex-1 h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                    className="w-full h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                    value={tempScore?.status}
+                                                    onChange={(e) => setTempScore(prev => prev ? { ...prev, status: e.target.value as any } : null)}
+                                                >
+                                                    <option value="planned">Planejado (WAIT)</option>
+                                                    <option value="ongoing">Em Jogo (LIVE)</option>
+                                                    <option value="finished">Finalizado (FIM)</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Local (Quadra)</label>
+                                                <select
+                                                    className="w-full h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
                                                     value={tempScore?.courtId || ""}
                                                     onChange={(e) => setTempScore(prev => prev ? { ...prev, courtId: e.target.value } : null)}
                                                 >
-                                                    <option value="">Selecione a quadra...</option>
-                                                    {courts.map(c => {
-                                                        const isOccupied = matches.some(m =>
-                                                            m.id !== match.id &&
-                                                            m.courtId === c.id &&
-                                                            (m.status === 'planned' || m.status === 'ongoing')
-                                                        );
-                                                        if (isOccupied && c.id !== match.courtId) return null;
-                                                        return <option key={c.id} value={c.id}>{c.name}</option>;
-                                                    })}
+                                                    <option value="">Selecione...</option>
+                                                    {courts.map(c => (
+                                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                                    ))}
                                                 </select>
-                                                {match.startTime && (
-                                                    <span className="text-[10px] text-muted-foreground border px-2 py-2 rounded-lg bg-white">
-                                                        {format(new Date(match.startTime), "dd/MM HH:mm")}
-                                                    </span>
-                                                )}
+                                            </div>
+                                        </div>
+                                        {match.startTime && (
+                                            <div className="text-[10px] text-muted-foreground bg-white/50 p-1.5 rounded-lg border border-dashed flex items-center justify-center gap-2">
+                                                <CalendarClock className="h-3 w-3" />
+                                                Agendado para: {format(new Date(match.startTime), "dd/MM HH:mm")}
                                             </div>
                                         )}
                                     </div>

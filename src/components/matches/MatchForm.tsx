@@ -62,13 +62,8 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Filter courts that are ALREADY taken by another planned or ongoing match
-    const occupiedCourtIds = matches
-        .filter(m => (m.status === 'planned' || m.status === 'ongoing') && m.id !== initialData?.id)
-        .map(m => m.courtId)
-        .filter(Boolean);
-
-    const availableCourts = courts.filter(c => !occupiedCourtIds.includes(c.id));
+    // No longer filtering occupied courts to allow total admin flexibility
+    const availableCourts = courts;
 
     useEffect(() => {
         const unsubscribe = athleteService.subscribe((data) => {
@@ -214,11 +209,6 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableCourts.length === 0 && (
-                                            <div className="p-4 text-xs text-muted-foreground text-center">
-                                                Nenhuma quadra disponível momento. <br /> Libere um jogo para reutilizar o local.
-                                            </div>
-                                        )}
                                         {availableCourts.map((court) => (
                                             <SelectItem key={court.id} value={court.id}>
                                                 {court.name}

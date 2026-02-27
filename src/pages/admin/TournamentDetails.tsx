@@ -450,7 +450,7 @@ export default function TournamentDetails() {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type} matches={filteredMatches} />}
+                                {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type} matches={filteredMatches} courts={courts} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} />}
                             </CardContent>
                         </Card>
                     </TabsContent>
