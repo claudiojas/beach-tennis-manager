@@ -53,9 +53,6 @@ export default function RefereeDashboard() {
 
     // Active Match State
     const [activeMatch, setActiveMatch] = useState<Match | null>(null);
-    const [pinOpen, setPinOpen] = useState(false);
-    const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-    const [pinCode, setPinCode] = useState("");
 
     const deviceId = getDeviceId();
 
@@ -96,12 +93,18 @@ export default function RefereeDashboard() {
         navigate("/arbitro");
     };
 
-    const handlePinClick = (num: string) => {
-        if (pinCode.length < 4) setPinCode(prev => prev + num);
-    };
 
-    const handleSelectCourt = async (court: Court) => {
-        if (!selectedMatch) return;
+    const handleSelectMatch = async (match: Match) => {
+        if (!match.courtId) {
+            toast.error("Esta partida não tem uma quadra definida pelo administrador.");
+            return;
+        }
+
+        const court = courts.find(c => c.id === match.courtId);
+        if (!court) {
+            toast.error("Quadra não encontrada.");
+            return;
+        }
 
         if (court.status === 'em_jogo') {
             toast.error(`A ${court.name} já está ocupada com outro jogo!`);
@@ -110,15 +113,13 @@ export default function RefereeDashboard() {
 
         try {
             // Lock the match to this device
-            await matchService.update(selectedMatch.id, {
+            await matchService.update(match.id, {
                 controlledBy: deviceId
             } as any);
 
-            await matchService.startMatch(selectedMatch, court.id);
+            await matchService.startMatch(match, court.id);
 
             toast.success(`Partida iniciada na ${court.name}!`);
-            setPinOpen(false);
-            setSelectedMatch(null);
         } catch (error) {
             toast.error("Erro ao iniciar partida.");
         }
@@ -200,82 +201,51 @@ export default function RefereeDashboard() {
                         </div>
                     ) : (
                         <div className="grid gap-4">
-                            {plannedMatches.map((match) => (
-                                <button
-                                    key={match.id}
-                                    onClick={() => { setSelectedMatch(match); setPinOpen(true); }}
-                                    className="w-full text-left bg-slate-900 border border-white/5 rounded-2xl p-5 shadow-2xl hover:border-primary/50 transition-all active:scale-[0.98] group"
-                                >
-                                    <div className="flex justify-between items-center mb-4">
-                                        <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase tracking-tighter">
-                                            Cat. {match.category}
-                                        </Badge>
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-primary transition-colors">Iniciar Partida</span>
-                                    </div>
-
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="flex-1 text-center bg-white/5 rounded-xl py-3 border border-white/5">
-                                            <p className="text-sm font-black uppercase leading-tight">{match.teamA.player1.name}</p>
-                                            {match.teamA.player2 && <p className="text-[9px] text-slate-500 font-bold uppercase truncate">{match.teamA.player2.name}</p>}
+                            {plannedMatches.map((match) => {
+                                const matchCourt = courts.find(c => c.id === match.courtId);
+                                return (
+                                    <button
+                                        key={match.id}
+                                        onClick={() => handleSelectMatch(match)}
+                                        className="w-full text-left bg-slate-900 border border-white/5 rounded-2xl p-5 shadow-2xl hover:border-primary/50 transition-all active:scale-[0.98] group"
+                                    >
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div className="flex gap-2">
+                                                <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black uppercase tracking-tighter">
+                                                    Cat. {match.category}
+                                                </Badge>
+                                                {matchCourt && (
+                                                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary/80 uppercase">
+                                                        <MapPin className="w-2.5 h-2.5 mr-1" /> {matchCourt.name}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-primary transition-colors">Iniciar Partida</span>
                                         </div>
-                                        <div className="text-slate-700 font-black text-[10px] italic">VS</div>
-                                        <div className="flex-1 text-center bg-white/5 rounded-xl py-3 border border-white/5">
-                                            <p className="text-sm font-black uppercase leading-tight">{match.teamB.player1.name}</p>
-                                            {match.teamB.player2 && <p className="text-[9px] text-slate-500 font-bold uppercase truncate">{match.teamB.player2.name}</p>}
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase text-primary/80 pt-2 border-t border-white/5">
-                                        <Play className="w-3 h-3 fill-current" />
-                                        Confirmar Entrada
-                                    </div>
-                                </button>
-                            ))}
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="flex-1 text-center bg-white/5 rounded-xl py-3 border border-white/5">
+                                                <p className="text-sm font-black uppercase leading-tight">{match.teamA.player1.name}</p>
+                                                {match.teamA.player2 && <p className="text-[9px] text-slate-500 font-bold uppercase truncate">{match.teamA.player2.name}</p>}
+                                            </div>
+                                            <div className="text-slate-700 font-black text-[10px] italic">VS</div>
+                                            <div className="flex-1 text-center bg-white/5 rounded-xl py-3 border border-white/5">
+                                                <p className="text-sm font-black uppercase leading-tight">{match.teamB.player1.name}</p>
+                                                {match.teamB.player2 && <p className="text-[9px] text-slate-500 font-bold uppercase truncate">{match.teamB.player2.name}</p>}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase text-primary/80 pt-2 border-t border-white/5">
+                                            <Play className="w-3 h-3 fill-current" />
+                                            Confirmar Entrada
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Court Selection Dialog */}
-            <Dialog open={pinOpen} onOpenChange={(val) => { setPinOpen(val); if (!val) setSelectedMatch(null); }}>
-                <DialogContent className="sm:max-w-md bg-slate-950 border-slate-800 text-white p-0 overflow-hidden">
-                    <div className="p-8 text-center space-y-6">
-                        <DialogHeader>
-                            <DialogTitle className="text-2xl font-black uppercase tracking-tighter text-center">Selecione a Quadra</DialogTitle>
-                            <DialogDescription className="text-slate-400 text-center">Em qual quadra você vai arbitrar este jogo?</DialogDescription>
-                        </DialogHeader>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            {courts.map((court) => (
-                                <button
-                                    key={court.id}
-                                    disabled={court.status === 'em_jogo'}
-                                    onClick={() => handleSelectCourt(court)}
-                                    className={`p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${court.status === 'em_jogo'
-                                        ? "border-slate-800 bg-slate-900/50 opacity-50 cursor-not-allowed"
-                                        : "border-primary/20 bg-slate-900 hover:border-primary hover:bg-primary/10 active:scale-95"
-                                        }`}
-                                >
-                                    <MapPin className={`w-6 h-6 ${court.status === 'em_jogo' ? "text-slate-700" : "text-primary"}`} />
-                                    <span className="font-black uppercase tracking-tight text-sm">{court.name}</span>
-                                    {court.status === 'em_jogo' && (
-                                        <Badge variant="outline" className="text-[8px] bg-red-500/10 text-red-500 border-red-500/20">Ocupada</Badge>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-
-                        <Button
-                            variant="ghost"
-                            className="w-full h-12 text-slate-500 hover:text-white uppercase text-xs font-bold tracking-widest"
-                            onClick={() => setPinOpen(false)}
-                        >
-                            Cancelar
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
 
             <footer className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/80 backdrop-blur-md border-t border-white/5 text-center">
                 <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">Authority Mode · Modulo Web BT</p>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -62,6 +62,7 @@ export default function TournamentDetails() {
     const [isCustomCourt, setIsCustomCourt] = useState(false);
     const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
     const [openManualGroups, setOpenManualGroups] = useState(false);
+    const [openResetConfirm, setOpenResetConfirm] = useState(false);
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -412,9 +413,20 @@ export default function TournamentDetails() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Lista de Jogos</CardTitle>
-                                <Button size="sm" onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}>
-                                    <Plus className="mr-2 h-4 w-4" /> Novo Jogo
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setOpenResetConfirm(true)}
+                                        className="h-8 text-[10px] text-orange-600 border-orange-200 hover:bg-orange-50"
+                                    >
+                                        <RotateCcw className="mr-2 h-3 w-3" />
+                                        Resetar Quadras
+                                    </Button>
+                                    <Button size="sm" onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}>
+                                        <Plus className="mr-2 h-4 w-4" /> Novo Jogo
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 {id && <MatchList tournamentId={id} courts={courts} matches={filteredMatches} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} />}
@@ -516,7 +528,7 @@ export default function TournamentDetails() {
             <Dialog open={openMatchDialog} onOpenChange={setOpenMatchDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingMatch ? "Editar Jogo" : "Novo Jogo"}</DialogTitle></DialogHeader>
-                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} courts={courts} categories={tournament?.categories} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
+                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} matches={matches} courts={courts} categories={tournament?.categories} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
                 </DialogContent>
             </Dialog>
 
@@ -639,6 +651,31 @@ export default function TournamentDetails() {
                     }}
                 />
             )}
+
+            <AlertDialog open={openResetConfirm} onOpenChange={setOpenResetConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Resetar todas as quadras?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Isso removerá a atribuição de quadra de todos os jogos **planejados**. Jogos em andamento ou finalizados não serão afetados.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={async () => {
+                                if (!id) return;
+                                await matchService.resetCourtsByTournament(id);
+                                toast.success("Quadras resetadas com sucesso!");
+                                setOpenResetConfirm(false);
+                            }}
+                            className="bg-orange-500 text-white hover:bg-orange-600"
+                        >
+                            Resetar Quadras
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

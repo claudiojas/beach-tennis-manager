@@ -37,6 +37,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
         setsB: number;
         pointsA: string | number;
         pointsB: string | number;
+        courtId?: string;
     } | null>(null);
 
     const handleStartEditScore = (match: Match) => {
@@ -45,7 +46,8 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
             setsA: match.setsA,
             setsB: match.setsB,
             pointsA: match.pointsA,
-            pointsB: match.pointsB
+            pointsB: match.pointsB,
+            courtId: match.courtId
         });
     };
 
@@ -56,7 +58,8 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                 setsA: Number(tempScore.setsA),
                 setsB: Number(tempScore.setsB),
                 pointsA: tempScore.pointsA,
-                pointsB: tempScore.pointsB
+                pointsB: tempScore.pointsB,
+                courtId: tempScore.courtId
             });
             toast.success("Placar atualizado!");
             setEditingScoreId(null);
@@ -177,7 +180,41 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                 </div>
 
                                 {/* Court & Time Info (if exists) */}
-                                {(match.courtId || match.startTime) && (
+                                {editingScoreId === match.id ? (
+                                    <div className="mb-4 flex flex-col gap-2 bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Localização do Jogo</label>
+                                        {match.status === 'ongoing' ? (
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white/50 p-2 rounded-lg">
+                                                <MapPin className="h-3 w-3" />
+                                                {getCourtName(match.courtId)} (Em andamento - Bloqueado)
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2 items-center">
+                                                <select
+                                                    className="flex-1 h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
+                                                    value={tempScore?.courtId || ""}
+                                                    onChange={(e) => setTempScore(prev => prev ? { ...prev, courtId: e.target.value } : null)}
+                                                >
+                                                    <option value="">Selecione a quadra...</option>
+                                                    {courts.map(c => {
+                                                        const isOccupied = matches.some(m =>
+                                                            m.id !== match.id &&
+                                                            m.courtId === c.id &&
+                                                            (m.status === 'planned' || m.status === 'ongoing')
+                                                        );
+                                                        if (isOccupied && c.id !== match.courtId) return null;
+                                                        return <option key={c.id} value={c.id}>{c.name}</option>;
+                                                    })}
+                                                </select>
+                                                {match.startTime && (
+                                                    <span className="text-[10px] text-muted-foreground border px-2 py-2 rounded-lg bg-white">
+                                                        {format(new Date(match.startTime), "dd/MM HH:mm")}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (match.courtId || match.startTime) && (
                                     <div className="mb-4 flex justify-end">
                                         <div className="flex flex-wrap justify-end gap-2">
                                             {match.courtId && (

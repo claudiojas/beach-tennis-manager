@@ -1,6 +1,7 @@
 import { db } from "@/lib/firebase";
 import { Match, Team, Player, MatchResult } from "@/types/beach-tennis";
 import { ref, push, set, onValue, query, orderByChild, equalTo, update, get } from "firebase/database";
+import { courtService } from "./courtService";
 
 const MATCHES_PATH = "matches";
 
@@ -139,15 +140,28 @@ export const matchService = {
     generateInitialMatches: async (tournamentId: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
         if (athletes.length < 2) throw new Error("Atletas insuficientes.");
 
+        // Fetch available courts
+        const allCourts = await courtService.getByTournamentOnce(tournamentId);
+        const existingMatchesSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
+        const existingMatches = existingMatchesSnapshot.exists() ? Object.values(existingMatchesSnapshot.val()) as Match[] : [];
+
+        const occupiedCourtIds = existingMatches
+            .filter(m => m.status === 'planned' || m.status === 'ongoing')
+            .map(m => m.courtId);
+
+        let availableCourts = allCourts.filter(c => !occupiedCourtIds.includes(c.id));
+
         const shuffled = [...athletes].sort(() => Math.random() - 0.5);
 
         if (type === 'Simples') {
             for (let i = 0; i < shuffled.length - 1; i += 2) {
+                const court = availableCourts.shift();
                 const matchData = {
                     tournamentId,
                     category: shuffled[i].category,
                     teamA: { player1: shuffled[i] },
                     teamB: { player1: shuffled[i + 1] },
+                    courtId: court?.id || null
                 };
                 await matchService.create(matchData as any);
             }
@@ -155,11 +169,13 @@ export const matchService = {
             // Duplas
             if (athletes.length < 4) throw new Error("Atletas insuficientes para duplas.");
             for (let i = 0; i < shuffled.length - 3; i += 4) {
+                const court = availableCourts.shift();
                 const matchData = {
                     tournamentId,
                     category: shuffled[i].category,
                     teamA: { player1: shuffled[i], player2: shuffled[i + 1] },
                     teamB: { player1: shuffled[i + 2], player2: shuffled[i + 3] },
+                    courtId: court?.id || null
                 };
                 await matchService.create(matchData as any);
             }
@@ -182,23 +198,28 @@ export const matchService = {
 
         if (teams.length < 3) throw new Error("Mínimo de 3 duplas/atletas para fase de grupos.");
 
+        // Fetch available courts
+        const allCourts = await courtService.getByTournamentOnce(tournamentId);
+        const existingMatchesSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
+        const existingMatches = existingMatchesSnapshot.exists() ? Object.values(existingMatchesSnapshot.val()) as Match[] : [];
+
+        const occupiedCourtIds = existingMatches
+            .filter(m => m.status === 'planned' || m.status === 'ongoing')
+            .map(m => m.courtId);
+
+        let availableCourts = allCourts.filter(c => !occupiedCourtIds.includes(c.id));
+
         const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
 
         // Smart division: Prefer groups of 3 or 4
-        // Example: 10 teams -> 2 groups of 3, 1 group of 4
         const groupAssignments: Team[][] = [];
         let remaining = shuffledTeams.length;
 
         while (remaining > 0) {
-            // If remaining is 5, we split into 3 and 2? No, minimum 3. 
-            // Better: if remaining is 5, split into 3 and 2 (invalid) -> must be 3 and 2? 
-            // In BT, usually if 5 teams, it's 1 group of 5 or 2 groups (3 and 2). 
-            // Let's keep it simple: take 4 whenever possible, unless it leaves less than 3.
             let size = 3;
             if (remaining >= 4 && remaining !== 5) size = 4;
-            if (remaining === 5) size = 3; // Leaves 2 (will be fixed by next iterations)
+            if (remaining === 5) size = 3;
             if (remaining === 2) {
-                // Fix: join with last group
                 const lastGroup = groupAssignments.pop()!;
                 groupAssignments.push([...lastGroup, ...shuffledTeams.splice(0, 2)]);
                 break;
@@ -215,13 +236,15 @@ export const matchService = {
 
             for (let i = 0; i < groupTeams.length; i++) {
                 for (let j = i + 1; j < groupTeams.length; j++) {
+                    const court = availableCourts.shift();
                     const matchData = {
                         tournamentId,
                         category: groupTeams[i].player1.category,
                         teamA: groupTeams[i],
                         teamB: groupTeams[j],
                         group: groupName,
-                        round: 'Grupos' as any
+                        round: 'Grupos' as any,
+                        courtId: court?.id || null
                     };
                     await matchService.create(matchData as any);
                 }
@@ -344,6 +367,23 @@ export const matchService = {
                 const courtMatchRef = ref(db, `courts/${match.courtId}/currentMatch`);
                 await update(courtMatchRef, { controlledBy: null });
             }
+        }
+    },
+
+    resetCourtsByTournament: async (tournamentId: string) => {
+        const matchesQuery = query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
+        const snapshot = await get(matchesQuery);
+        const matchesData = snapshot.val();
+
+        if (matchesData) {
+            const updates: Record<string, any> = {};
+            Object.keys(matchesData).forEach(key => {
+                const match = matchesData[key] as Match;
+                if (match.status === 'planned') {
+                    updates[`${key}/courtId`] = null;
+                }
+            });
+            await update(ref(db, MATCHES_PATH), updates);
         }
     }
 };

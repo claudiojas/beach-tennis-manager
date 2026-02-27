@@ -1,6 +1,7 @@
 import { db } from "@/lib/firebase";
 import { Match, Team, Category } from "@/types/beach-tennis";
-import { ref, push, set } from "firebase/database";
+import { ref, push, set, query, orderByChild, equalTo, get } from "firebase/database";
+import { courtService } from "./courtService";
 
 const MATCHES_PATH = "matches";
 
@@ -15,6 +16,18 @@ export const bracketService = {
             throw new Error("O sistema atualmente suporta apenas chaves de 2, 4 ou 8 duplas.");
         }
 
+        // Fetch available courts for this tournament
+        const allCourts = await courtService.getByTournamentOnce(tournamentId);
+        const existingMatchesSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
+        const existingMatches = existingMatchesSnapshot.exists() ? Object.values(existingMatchesSnapshot.val()) as Match[] : [];
+
+        const occupiedCourtIds = existingMatches
+            .filter(m => m.status === 'planned' || m.status === 'ongoing')
+            .map(m => m.courtId);
+
+        let availableCourts = allCourts.filter(c => !occupiedCourtIds.includes(c.id));
+        const getNextCourt = () => availableCourts.shift()?.id || null;
+
         const matchesRef = ref(db, MATCHES_PATH);
 
         if (teamCount === 2) {
@@ -26,6 +39,7 @@ export const bracketService = {
                 ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0),
                 teamA: teams[0],
                 teamB: teams[1],
+                courtId: getNextCourt()
             };
 
             await set(ref(db, `${MATCHES_PATH}/${finalId}`), matchData);
@@ -42,18 +56,20 @@ export const bracketService = {
             const semi2Ref = push(matchesRef);
 
             const matches: Record<string, Match> = {
-                [finalId]: createPlaceholderMatch(finalId, tournamentId, category, 'final', 0),
+                [finalId]: { ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0), courtId: getNextCourt() },
                 [semi1Ref.key!]: {
                     ...createPlaceholderMatch(semi1Ref.key!, tournamentId, category, 'semi', 0),
                     teamA: teams[0],
                     teamB: teams[3],
-                    nextMatchId: finalId
+                    nextMatchId: finalId,
+                    courtId: getNextCourt()
                 },
                 [semi2Ref.key!]: {
                     ...createPlaceholderMatch(semi2Ref.key!, tournamentId, category, 'semi', 1),
                     teamA: teams[1],
                     teamB: teams[2],
-                    nextMatchId: finalId
+                    nextMatchId: finalId,
+                    courtId: getNextCourt()
                 }
             };
 
@@ -79,15 +95,15 @@ export const bracketService = {
             const q4Ref = push(matchesRef);
 
             const matches: Record<string, Match> = {
-                [finalId]: createPlaceholderMatch(finalId, tournamentId, category, 'final', 0),
+                [finalId]: { ...createPlaceholderMatch(finalId, tournamentId, category, 'final', 0), courtId: getNextCourt() },
 
-                [s1Ref.key!]: { ...createPlaceholderMatch(s1Ref.key!, tournamentId, category, 'semi', 0), nextMatchId: finalId },
-                [s2Ref.key!]: { ...createPlaceholderMatch(s2Ref.key!, tournamentId, category, 'semi', 1), nextMatchId: finalId },
+                [s1Ref.key!]: { ...createPlaceholderMatch(s1Ref.key!, tournamentId, category, 'semi', 0), nextMatchId: finalId, courtId: getNextCourt() },
+                [s2Ref.key!]: { ...createPlaceholderMatch(s2Ref.key!, tournamentId, category, 'semi', 1), nextMatchId: finalId, courtId: getNextCourt() },
 
-                [q1Ref.key!]: { ...createPlaceholderMatch(q1Ref.key!, tournamentId, category, 'quartas', 0), teamA: teams[0], teamB: teams[7], nextMatchId: s1Ref.key! },
-                [q2Ref.key!]: { ...createPlaceholderMatch(q2Ref.key!, tournamentId, category, 'quartas', 1), teamA: teams[3], teamB: teams[4], nextMatchId: s1Ref.key! },
-                [q3Ref.key!]: { ...createPlaceholderMatch(q3Ref.key!, tournamentId, category, 'quartas', 2), teamA: teams[1], teamB: teams[6], nextMatchId: s2Ref.key! },
-                [q4Ref.key!]: { ...createPlaceholderMatch(q4Ref.key!, tournamentId, category, 'quartas', 3), teamA: teams[2], teamB: teams[5], nextMatchId: s2Ref.key! },
+                [q1Ref.key!]: { ...createPlaceholderMatch(q1Ref.key!, tournamentId, category, 'quartas', 0), teamA: teams[0], teamB: teams[7], nextMatchId: s1Ref.key!, courtId: getNextCourt() },
+                [q2Ref.key!]: { ...createPlaceholderMatch(q2Ref.key!, tournamentId, category, 'quartas', 1), teamA: teams[3], teamB: teams[4], nextMatchId: s1Ref.key!, courtId: getNextCourt() },
+                [q3Ref.key!]: { ...createPlaceholderMatch(q3Ref.key!, tournamentId, category, 'quartas', 2), teamA: teams[1], teamB: teams[6], nextMatchId: s2Ref.key!, courtId: getNextCourt() },
+                [q4Ref.key!]: { ...createPlaceholderMatch(q4Ref.key!, tournamentId, category, 'quartas', 3), teamA: teams[2], teamB: teams[5], nextMatchId: s2Ref.key!, courtId: getNextCourt() },
             };
 
             for (const [id, matchData] of Object.entries(matches)) {

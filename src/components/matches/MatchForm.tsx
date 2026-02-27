@@ -34,7 +34,7 @@ const formSchema = z.object({
     player2A: z.string().optional(),
     player1B: z.string().min(1, "Selecione o jogador 1 da Dupla B"),
     player2B: z.string().optional(),
-    courtId: z.string().optional(),
+    courtId: z.string().min(1, "Selecione a quadra para este jogo"),
     scheduledDate: z.string().optional(),
     scheduledTime: z.string().optional(),
 }).refine((data) => {
@@ -51,15 +51,24 @@ interface MatchFormProps {
     tournamentId: string;
     tournamentType: 'Simples' | 'Duplas';
     courts: Court[];
+    matches: Match[];
     categories?: string[];
     onSuccess?: () => void;
     initialData?: Match;
 }
 
-export function MatchForm({ tournamentId, tournamentType, courts, categories, onSuccess, initialData }: MatchFormProps) {
+export function MatchForm({ tournamentId, tournamentType, courts, matches, categories, onSuccess, initialData }: MatchFormProps) {
     const [players, setPlayers] = useState<Player[]>([]);
     const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Filter courts that are ALREADY taken by another planned or ongoing match
+    const occupiedCourtIds = matches
+        .filter(m => (m.status === 'planned' || m.status === 'ongoing') && m.id !== initialData?.id)
+        .map(m => m.courtId)
+        .filter(Boolean);
+
+    const availableCourts = courts.filter(c => !occupiedCourtIds.includes(c.id));
 
     useEffect(() => {
         const unsubscribe = athleteService.subscribe((data) => {
@@ -196,7 +205,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, categories, on
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-2">
-                                    <MapPin className="h-4 w-4" /> Quadra (Opcional)
+                                    <MapPin className="h-4 w-4" /> Quadra
                                 </FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
@@ -205,8 +214,12 @@ export function MatchForm({ tournamentId, tournamentType, courts, categories, on
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="unassigned">Sem local definido</SelectItem>
-                                        {courts.map((court) => (
+                                        {availableCourts.length === 0 && (
+                                            <div className="p-4 text-xs text-muted-foreground text-center">
+                                                Nenhuma quadra disponível momento. <br /> Libere um jogo para reutilizar o local.
+                                            </div>
+                                        )}
+                                        {availableCourts.map((court) => (
                                             <SelectItem key={court.id} value={court.id}>
                                                 {court.name}
                                             </SelectItem>

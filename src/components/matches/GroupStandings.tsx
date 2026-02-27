@@ -109,7 +109,7 @@ export function GroupStandings({ groupName, matches }: GroupStandingsProps) {
                             {sortedStandings.map((team, index) => (
                                 <TableRow key={team.teamId} className={index < 2 ? "bg-primary/5" : ""}>
                                     <TableCell className="text-center font-bold">
-                                        {index === 0 ? <Trophy className="h-4 w-4 text-yellow-500 mx-auto" /> : index + 1}
+                                        {index + 1}
                                     </TableCell>
                                     <TableCell>
                                         <div className="font-semibold uppercase text-xs">{team.teamName}</div>
