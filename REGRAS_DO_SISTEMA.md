@@ -1,6 +1,6 @@
-# 🎾 Guia do Sistema de Competição - AgilizAI
+# 🎾 Guia do Sistema de Competição - Beach Tennis Manager
 
-Este documento detalha as regras técnicas de organização de torneios implementadas no sistema **AgilizAI**, seguindo os padrões oficiais das federações de Beach Tennis (CBT/FPT). O objetivo é garantir total transparência para organizadores e atletas.
+Este documento detalha as regras técnicas de organização de torneios implementadas no sistema **Beach Tennis Manager**, seguindo os padrões oficiais das federações de Beach Tennis (CBT/FPT). O objetivo é garantir total transparência para organizadores e atletas.
 
 ---
 
@@ -20,7 +20,7 @@ O sistema organiza as duplas em grupos de forma inteligente para garantir o equi
 
 ## 2. Fase Mata-Mata (Chaveamento Inteligente)
 
-O AgilizAI utiliza um algoritmo de **Chaveamento Dinâmico**, o que permite que o torneio siga para a fase final mesmo com números "quebrados" de duplas classificadas.
+O Beach Tennis Manager utiliza um algoritmo de **Chaveamento Dinâmico**, o que permite que o torneio siga para a fase final mesmo com números "quebrados" de duplas classificadas.
 
 ### Sistema de "Cabeças de Chave" e "Byes":
 Sempre que o número de duplas classificadas não for uma potência de 2 (2, 4, 8, 16...), o sistema aplica a regra de **Bye** (Descanso):
@@ -47,4 +47,4 @@ Para garantir a integridade dos resultados e a facilidade de uso pelos árbitros
 *   **Sincronização em Tempo Real**: Assim que o árbitro marca um ponto no celular, o placar é atualizado instantaneamente no **Painel da Arena (TV)** e no **Link Público** dos torcedores.
 
 ---
-*Gerado automaticamente pelo ecossistema AgilizAI - Tecnologia a serviço do esporte.*
+*Gerado automaticamente pelo ecossistema Beach Tennis Manager - Tecnologia a serviço do esporte.*
