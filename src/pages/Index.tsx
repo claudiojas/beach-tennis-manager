@@ -25,7 +25,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Organizer Panel Card */}
           <Card className="glass-card group hover:shadow-xl transition-all duration-300 border-primary/20">
             <CardHeader className="text-center pb-4">
@@ -49,7 +49,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Referee Panel Card */}
+          {/* Referee Panel Card - HIDDEN AS PER CLIENT REQUEST
           <Card className="glass-card group hover:shadow-xl transition-all duration-300">
             <CardHeader className="text-center pb-4">
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
@@ -71,6 +71,7 @@ const Index = () => {
               </Button>
             </CardContent>
           </Card>
+          */}
 
           {/* Arena Panel Card */}
           <Card className="glass-card group hover:shadow-xl transition-all duration-300">
