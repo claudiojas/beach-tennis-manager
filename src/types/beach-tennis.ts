@@ -10,6 +10,7 @@ export interface Player {
   category: Category;
   email?: string; // Optional for now
   photoUrl?: string;
+  registrationNumber?: string;
 }
 
 export interface Team {

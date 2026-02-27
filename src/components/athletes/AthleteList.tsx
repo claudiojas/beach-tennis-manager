@@ -53,6 +53,7 @@ export function AthleteList() {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-16">ID</TableHead>
                         <TableHead>Nome</TableHead>
                         <TableHead>Categoria</TableHead>
                         <TableHead className="hidden md:table-cell">Telefone</TableHead>
@@ -62,13 +63,16 @@ export function AthleteList() {
                 <TableBody>
                     {athletes.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
+                            <TableCell colSpan={5} className="h-24 text-center">
                                 Nenhum atleta cadastrado.
                             </TableCell>
                         </TableRow>
                     ) : (
                         athletes.map((athlete) => (
                             <TableRow key={athlete.id}>
+                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                    {athlete.registrationNumber || "--"}
+                                </TableCell>
                                 <TableCell className="font-medium">{athlete.name}</TableCell>
                                 <TableCell>{athlete.category}</TableCell>
                                 <TableCell className="hidden md:table-cell">{athlete.phone || "-"}</TableCell>

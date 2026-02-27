@@ -29,6 +29,7 @@ const formSchema = z.object({
     }),
     phone: z.string().optional(),
     category: z.string().min(1, "Selecione uma categoria"),
+    registrationNumber: z.string().optional(),
 });
 
 interface AthleteFormProps {
@@ -46,6 +47,7 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
             name: initialData?.name || "",
             phone: initialData?.phone || "",
             category: initialData?.category || "C",
+            registrationNumber: initialData?.registrationNumber || "",
         },
     });
 
@@ -58,6 +60,7 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                     name: values.name,
                     phone: values.phone,
                     category: values.category as Category,
+                    registrationNumber: values.registrationNumber,
                 });
                 toast.success("Atleta atualizado com sucesso!");
             } else {
@@ -65,6 +68,7 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                     name: values.name,
                     phone: values.phone,
                     category: values.category as Category,
+                    registrationNumber: values.registrationNumber,
                 });
                 toast.success("Atleta cadastrado com sucesso!");
             }
@@ -135,6 +139,19 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                                     <SelectItem value="B Feminino">B Feminino</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="registrationNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Número de Inscrição (Opcional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Ex: 01 (Deixe vazio para gerar auto)" {...field} />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}

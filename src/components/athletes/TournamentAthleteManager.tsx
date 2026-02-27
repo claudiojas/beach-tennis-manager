@@ -77,6 +77,7 @@ export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
+                            <TableHead className="w-16">ID</TableHead>
                             <TableHead>Nome</TableHead>
                             <TableHead>Categoria</TableHead>
                             <TableHead className="text-right">Participação</TableHead>
@@ -85,7 +86,7 @@ export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS
                     <TableBody>
                         {filteredAthletes.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={3} className="h-24 text-center">
+                                <TableCell colSpan={4} className="h-24 text-center">
                                     Nenhum atleta encontrado.
                                 </TableCell>
                             </TableRow>
@@ -94,6 +95,9 @@ export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS
                                 const isParticipating = participatingIds.includes(athlete.id);
                                 return (
                                     <TableRow key={athlete.id} className={isParticipating ? "bg-primary/5" : ""}>
+                                        <TableCell className="font-mono text-xs text-muted-foreground">
+                                            {athlete.registrationNumber || "--"}
+                                        </TableCell>
                                         <TableCell className="font-semibold">{athlete.name}</TableCell>
                                         <TableCell>
                                             <Badge variant="outline">{athlete.category}</Badge>
