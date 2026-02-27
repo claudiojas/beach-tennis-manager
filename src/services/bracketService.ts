@@ -78,7 +78,9 @@ export const bracketService = {
                 currentRoundIds.push(mId);
 
                 const data = createPlaceholderMatch(mId, tournamentId, category, rName, i);
-                data.nextMatchId = nextRoundMatches ? nextRoundMatches[Math.floor(i / 2)] : undefined;
+                if (nextRoundMatches) {
+                    data.nextMatchId = nextRoundMatches[Math.floor(i / 2)];
+                }
                 data.courtId = getNextCourt();
 
                 matchUpdates[mId] = data;
@@ -159,7 +161,11 @@ export const bracketService = {
         const dbRef = ref(db);
         const finalUpdates: Record<string, any> = {};
         Object.entries(matchUpdates).forEach(([id, data]) => {
-            finalUpdates[`${MATCHES_PATH}/${id}`] = data;
+            // Clean undefined values for Firebase safety
+            const cleanData = Object.fromEntries(
+                Object.entries(data).filter(([_, v]) => v !== undefined)
+            );
+            finalUpdates[`${MATCHES_PATH}/${id}`] = cleanData;
         });
 
         await update(dbRef, finalUpdates);
