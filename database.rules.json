@@ -1,21 +1,33 @@
 {
     "rules": {
         ".read": true,
-        ".write": "auth != null",
         "tournaments": {
-            ".indexOn": "createdAt"
+            ".indexOn": "createdAt",
+            ".write": "auth != null"
         },
         "matches": {
-            ".indexOn": "tournamentId"
+            ".indexOn": "tournamentId",
+            ".write": true
         },
         "courts": {
             ".indexOn": [
                 "tournamentId",
                 "pin"
-            ]
+            ],
+            ".write": true
         },
         "results": {
-            ".indexOn": "tournamentId"
+            ".indexOn": "tournamentId",
+            ".write": true
+        },
+        "athletes": {
+            ".write": "auth != null"
+        },
+        "arenas": {
+            ".write": "auth != null"
+        },
+        "sponsors": {
+            ".write": "auth != null"
         }
     }
 }

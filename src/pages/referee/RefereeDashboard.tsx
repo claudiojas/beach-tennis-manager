@@ -8,7 +8,7 @@ import { tournamentService } from "@/services/tournamentService";
 import { Court, Match, TournamentSettings } from "@/types/beach-tennis";
 import { useMatchScore } from "@/hooks/useMatchScore";
 import { toast } from "sonner";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, get } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -100,28 +100,35 @@ export default function RefereeDashboard() {
             return;
         }
 
-        const court = courts.find(c => c.id === match.courtId);
-        if (!court) {
-            toast.error("Quadra não encontrada.");
-            return;
-        }
-
-        if (court.status === 'em_jogo') {
-            toast.error(`A ${court.name} já está ocupada com outro jogo!`);
-            return;
-        }
-
         try {
+            // DOUBLE CHECK: Fetch latest match & court status from DB to avoid race conditions
+            const matchSnapshot = await get(ref(db, `matches/${match.id}`));
+            const latestMatch = matchSnapshot.val() as Match;
+
+            if (latestMatch.status === 'ongoing') {
+                toast.error("Esta partida já foi iniciada em outro dispositivo!");
+                return;
+            }
+
+            const courtSnapshot = await get(ref(db, `courts/${match.courtId}`));
+            const latestCourt = courtSnapshot.val() as Court;
+
+            if (latestCourt.status === 'em_jogo') {
+                toast.error(`A ${latestCourt.name} já está sendo usada para outro jogo que acabou de começar!`);
+                return;
+            }
+
             // Lock the match to this device
             await matchService.update(match.id, {
                 controlledBy: deviceId
             } as any);
 
-            await matchService.startMatch(match, court.id);
+            await matchService.startMatch(match, latestCourt.id);
 
-            toast.success(`Partida iniciada na ${court.name}!`);
+            toast.success(`Partida iniciada na ${latestCourt.name}!`);
         } catch (error) {
-            toast.error("Erro ao iniciar partida.");
+            console.error(error);
+            toast.error("Erro ao iniciar partida. Verifique sua conexão.");
         }
     };
 
