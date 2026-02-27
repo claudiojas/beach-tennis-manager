@@ -29,6 +29,7 @@ import { Pencil } from "lucide-react";
 
 export function AthleteList() {
     const [athletes, setAthletes] = useState<Player[]>([]);
+    const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
 
     useEffect(() => {
         const unsubscribe = athleteService.subscribe((data) => {
@@ -77,7 +78,10 @@ export function AthleteList() {
                                 <TableCell>{athlete.category}</TableCell>
                                 <TableCell className="hidden md:table-cell">{athlete.phone || "-"}</TableCell>
                                 <TableCell className="text-right flex justify-end gap-2">
-                                    <Dialog>
+                                    <Dialog
+                                        open={editingAthleteId === athlete.id}
+                                        onOpenChange={(isOpen) => setEditingAthleteId(isOpen ? athlete.id : null)}
+                                    >
                                         <DialogTrigger asChild>
                                             <Button variant="ghost" size="icon">
                                                 <Pencil className="h-4 w-4" />
@@ -87,7 +91,7 @@ export function AthleteList() {
                                             <DialogHeader>
                                                 <DialogTitle>Editar Atleta</DialogTitle>
                                             </DialogHeader>
-                                            <AthleteForm initialData={athlete} onSuccess={() => document.getElementById('close-dialog')?.click()} />
+                                            <AthleteForm initialData={athlete} onSuccess={() => setEditingAthleteId(null)} />
                                         </DialogContent>
                                     </Dialog>
 
