@@ -211,22 +211,29 @@ export const matchService = {
 
         const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
 
-        // Smart division: Prefer groups of 3 or 4
-        const groupAssignments: Team[][] = [];
-        let remaining = shuffledTeams.length;
+        // Smart division: Prefer groups of 3 or 4 (Federation Standard)
+        const numTeams = shuffledTeams.length;
+        let numGroups = Math.floor(numTeams / 3);
 
-        while (remaining > 0) {
-            let size = 3;
-            if (remaining >= 4 && remaining !== 5) size = 4;
-            if (remaining === 5) size = 3;
-            if (remaining === 2) {
-                const lastGroup = groupAssignments.pop()!;
-                groupAssignments.push([...lastGroup, ...shuffledTeams.splice(0, 2)]);
-                break;
+        // Ensure we don't have too few groups for many teams
+        if (numTeams > 4 && numGroups < 1) numGroups = 1;
+
+        const groupAssignments: Team[][] = Array.from({ length: numGroups }, () => []);
+
+        // Distribute teams one by one into groups to ensure perfect balance
+        shuffledTeams.forEach((team, index) => {
+            const groupIndex = index % numGroups;
+            groupAssignments[groupIndex].push(team);
+        });
+
+        // Post-check: ensure no group has < 3 teams (unless total teams < 3)
+        if (numTeams >= 3 && groupAssignments.some(g => g.length < 3)) {
+            if (groupAssignments.length > 1) {
+                const smallGroup = groupAssignments.pop()!;
+                smallGroup.forEach((team, i) => {
+                    groupAssignments[i % groupAssignments.length].push(team);
+                });
             }
-
-            groupAssignments.push(shuffledTeams.splice(0, size));
-            remaining = shuffledTeams.length;
         }
 
         // Generate Round Robin matches for each group
