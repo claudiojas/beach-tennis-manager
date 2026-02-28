@@ -40,6 +40,7 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
 
+    /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
@@ -200,6 +201,16 @@
     }
   }
 
+  @keyframes progress {
+    0% {
+      width: 0%;
+    }
+
+    100% {
+      width: 100%;
+    }
+  }
+
   /* Touch-friendly tabs */
   .touch-tab {
     @apply min-h-[48px] px-6 touch-manipulation;
@@ -230,5 +241,13 @@
     .court-grid {
       grid-template-columns: repeat(3, 1fr);
     }
+  }
+
+  .ticker-animation-slow {
+    animation: ticker 60s linear infinite;
+  }
+
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
   }
 }

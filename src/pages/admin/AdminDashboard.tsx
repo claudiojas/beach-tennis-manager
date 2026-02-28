@@ -75,6 +75,7 @@ const formSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Horário inválido."),
   arenaId: z.string().min(1, "Selecione uma arena."),
   type: z.enum(['Simples', 'Duplas'], { required_error: "Selecione o tipo do torneio." }),
+  categories: z.array(z.string()).min(1, "Selecione pelo menos uma categoria."),
 });
 
 export default function AdminDashboard() {
@@ -98,6 +99,7 @@ export default function AdminDashboard() {
       time: "08:00",
       arenaId: "",
       type: "Duplas",
+      categories: [],
     },
   });
 
@@ -120,6 +122,7 @@ export default function AdminDashboard() {
       time: "08:00",
       arenaId: "",
       type: "Duplas",
+      categories: [],
     });
     setOpen(true);
   };
@@ -138,6 +141,7 @@ export default function AdminDashboard() {
       time: tournament.time || "08:00",
       arenaId: matchArena ? matchArena.id : "",
       type: tournament.type || "Duplas",
+      categories: tournament.categories || [],
     });
     setOpen(true);
   };
@@ -219,6 +223,7 @@ export default function AdminDashboard() {
           time: values.time,
           location: locationName,
           type: values.type,
+          categories: values.categories,
         });
         toast.success("Torneio atualizado!");
       } else {
@@ -236,7 +241,7 @@ export default function AdminDashboard() {
             noAd: true
           },
           participatingAthleteIds: [],
-          categories: ["A", "B", "C", "Iniciante", "Pro", "Mista"]
+          categories: values.categories
         } as Omit<Tournament, "id" | "createdAt">);
 
         // Auto-create courts from Arena template
@@ -392,70 +397,98 @@ export default function AdminDashboard() {
 
                   <FormField
                     control={form.control}
-                    name="type"
+                    name="categories"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Torneio</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Simples">Simples (1x1)</SelectItem>
-                            <SelectItem value="Duplas">Duplas (2x2)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <FormItem className="space-y-1">
+                        <FormLabel>Categorias Ativas</FormLabel>
+                        <div className="flex flex-wrap gap-1.5 py-1">
+                          {["PRO", "A", "B", "C", "D", "INICIANTE", "MISTA", "SUB-12", "SUB-14", "+40", "+50"].map((cat) => (
+                            <Badge
+                              key={cat}
+                              variant={field.value.includes(cat) ? "default" : "outline"}
+                              className="cursor-pointer px-2 py-0.5 uppercase text-[9px] transition-all"
+                              onClick={() => {
+                                const current = field.value;
+                                if (current.includes(cat)) {
+                                  field.onChange(current.filter(c => c !== cat));
+                                } else {
+                                  field.onChange([...current, cat]);
+                                }
+                              }}
+                            >
+                              {cat}
+                            </Badge>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="arenaId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Local / Arena</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a Arena" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {arenas.map((arena) => (
-                              <SelectItem key={arena.id} value={arena.id}>
-                                {arena.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {selectedArena && (
-                          <FormDescription>
-                            Ao criar, serão geradas <strong>{selectedArena.courts.length} quadras</strong> automaticamente.
-                          </FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Tipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Simples">Simples (1x1)</SelectItem>
+                              <SelectItem value="Duplas">Duplas (2x2)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="arenaId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local / Arena</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Arena" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {arenas.map((arena) => (
+                                <SelectItem key={arena.id} value={arena.id}>
+                                  {arena.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   {!isEditing && selectedArena && selectedArena.courts.length > 0 && (
-                    <div className="rounded-md border bg-muted/50 p-3 text-sm">
-                      <p className="font-semibold mb-2">Estrutura que será criada:</p>
-                      <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                    <div className="rounded-md border bg-muted/30 p-2 text-[10px]">
+                      <p className="font-bold mb-1 opacity-70">Estrutura: {selectedArena.courts.length} quadras</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground italic">
                         {selectedArena.courts.map((court, i) => (
-                          <li key={i}>{court.name}</li>
+                          <span key={i}>• {court.name}</span>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full mt-2 font-bold uppercase tracking-widest">
                     {isEditing ? "Salvar Alterações" : "Criar Torneio"}
                   </Button>
+
                 </form>
               </Form>
             </DialogContent>
@@ -494,6 +527,13 @@ export default function AdminDashboard() {
                           </span>
                         )}
                       </CardDescription>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {tournament.categories?.map(cat => (
+                          <Badge key={cat} variant="outline" className="text-[8px] uppercase h-4 px-1 border-primary/20 text-primary font-bold">
+                            {cat}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                     {/* Actions Menu */}
                     <DropdownMenu>

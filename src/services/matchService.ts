@@ -244,16 +244,15 @@ export const matchService = {
             for (let i = 0; i < groupTeams.length; i++) {
                 for (let j = i + 1; j < groupTeams.length; j++) {
                     const court = availableCourts.shift();
-                    const matchData = {
+                    await matchService.create({
                         tournamentId,
                         category: groupTeams[i].player1.category,
                         teamA: groupTeams[i],
                         teamB: groupTeams[j],
                         group: groupName,
-                        round: 'Grupos' as any,
+                        round: 'Grupos',
                         courtId: court?.id || null
-                    };
-                    await matchService.create(matchData as any);
+                    });
                 }
             }
         }

@@ -91,7 +91,10 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     });
 
     const matchType = form.watch("matchType");
+    const selectedCategory = form.watch("category");
     const selectedIds = form.watch(["player1A", "player2A", "player1B", "player2B"]);
+
+    const filteredPlayers = players.filter(p => p.category === selectedCategory);
 
     // Helper to check if a player is already selected in another slot
     const isPlayerSelected = (playerId: string, currentField: string) => {
@@ -343,7 +346,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {players.map(p => (
+                                            {filteredPlayers.map(p => (
                                                 <SelectItem key={p.id} value={p.id} disabled={isPlayerSelected(p.id, "player1A")}>{p.name}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -366,7 +369,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {players.map(p => (
+                                                {filteredPlayers.map(p => (
                                                     <SelectItem key={p.id} value={p.id} disabled={isPlayerSelected(p.id, "player2A")}>{p.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -394,7 +397,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {players.map(p => (
+                                            {filteredPlayers.map(p => (
                                                 <SelectItem key={p.id} value={p.id} disabled={isPlayerSelected(p.id, "player1B")}>{p.name}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -417,7 +420,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {players.map(p => (
+                                                {filteredPlayers.map(p => (
                                                     <SelectItem key={p.id} value={p.id} disabled={isPlayerSelected(p.id, "player2B")}>{p.name}</SelectItem>
                                                 ))}
                                             </SelectContent>

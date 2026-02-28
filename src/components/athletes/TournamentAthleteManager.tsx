@@ -53,6 +53,12 @@ export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS
     };
 
     const filteredAthletes = globalAthletes.filter(a => {
+        // Essential: Only show athletes that belong to the categories defined for this tournament
+        const isInCategory = tournament.categories?.includes(a.category.toUpperCase()) ||
+            tournament.categories?.includes(a.category);
+
+        if (!isInCategory) return false;
+
         const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             a.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === "TODAS" || a.category === selectedCategory;

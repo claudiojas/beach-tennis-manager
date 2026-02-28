@@ -55,7 +55,6 @@ export default function TournamentDetails() {
     const [isGeneratingAuto, setIsGeneratingAuto] = useState(false);
     const [editingCourt, setEditingCourt] = useState<Court | null>(null);
     const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-    const [selectedCategory, setSelectedCategory] = useState<string>("TODAS");
     const [openSettings, setOpenSettings] = useState(false);
     const [openQR, setOpenQR] = useState(false);
     const [arenas, setArenas] = useState<any[]>([]);
@@ -109,14 +108,22 @@ export default function TournamentDetails() {
         if (!id || !tournament) return;
         setIsGeneratingAuto(true);
         try {
-            // Apply filtering by category if one is selected
-            const filteredAthletes = selectedCategory === "TODAS"
-                ? athletes
-                : athletes.filter(a => a.category === selectedCategory);
+            // Generate for all categories defined in the tournament
+            const tournamentCategories = tournament.categories || [];
 
-            if (filteredAthletes.length < 2) throw new Error("Atletas insuficientes nesta categoria.");
+            if (tournamentCategories.length === 0) {
+                throw new Error("Defina as categorias do torneio nas configurações primeiro.");
+            }
 
-            await matchService.generateGroupMatches(id, filteredAthletes, tournament.type);
+            for (const cat of tournamentCategories) {
+                const catAthletes = athletes.filter(a => a.category === cat);
+                if (catAthletes.length >= 2) {
+                    await matchService.generateGroupMatches(id, catAthletes, tournament.type);
+                }
+            }
+
+            if (athletes.length < 2) throw new Error("Atletas insuficientes neste torneio.");
+
             toast.success("Fase de Grupos gerada com sucesso!");
         } catch (error: any) {
             toast.error(error.message || "Erro ao gerar grupos");
@@ -150,10 +157,8 @@ export default function TournamentDetails() {
         ...matches.map(m => m.category)
     ])).filter(Boolean).sort();
 
-    // Filtered Matches for the UI
-    const filteredMatches = selectedCategory === "TODAS"
-        ? matches
-        : matches.filter(m => m.category === selectedCategory);
+    // Simplified: Show all categories in the UI
+    const filteredMatches = matches;
 
     const matchingArena = arenas.find(a => a.name === tournament?.location);
     const availableCourtsFromTemplate = matchingArena?.courts || [];
@@ -168,14 +173,23 @@ export default function TournamentDetails() {
                         <Link to="/admin"><ArrowLeft className="h-5 w-5" /></Link>
                     </Button>
                     <div className="flex-1 flex items-center justify-between">
-                        <h1 className="text-xl font-bold flex items-center gap-2">
-                            {tournament?.name || "Gerenciar Torneio"}
-                            {tournament && (
-                                <Badge variant="outline" className="ml-2 uppercase text-[10px] h-5">
-                                    {tournament.type}
-                                </Badge>
-                            )}
-                        </h1>
+                        <div className="flex flex-col gap-1">
+                            <h1 className="text-xl font-bold flex items-center gap-2 leading-none">
+                                {tournament?.name || "Gerenciar Torneio"}
+                            </h1>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                {tournament && (
+                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-none uppercase text-[9px] h-4 px-1.5 font-black">
+                                        {tournament.type}
+                                    </Badge>
+                                )}
+                                {tournament?.categories?.map(cat => (
+                                    <Badge key={cat} variant="outline" className="uppercase text-[9px] h-4 px-1.5 border-white/20 text-muted-foreground font-bold">
+                                        {cat}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
                         <div className="flex gap-2">
                             <Button
                                 variant="outline"
@@ -229,30 +243,7 @@ export default function TournamentDetails() {
                     </div>
                 </div>
 
-                {/* Category Quick Filter */}
-                {availableCategories.length > 0 && (
-                    <div className="mx-auto max-w-5xl px-6 py-2 flex gap-2 overflow-x-auto no-scrollbar border-t bg-card/50">
-                        <Button
-                            variant={selectedCategory === "TODAS" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setSelectedCategory("TODAS")}
-                            className="rounded-full px-4 h-7 text-[10px]"
-                        >
-                            TODAS
-                        </Button>
-                        {availableCategories.map(cat => (
-                            <Button
-                                key={cat}
-                                variant={selectedCategory === cat ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setSelectedCategory(cat)}
-                                className="rounded-full px-4 h-7 text-[10px]"
-                            >
-                                {cat}
-                            </Button>
-                        ))}
-                    </div>
-                )}
+
             </header>
 
             <main className="mx-auto max-w-5xl p-6">
@@ -341,7 +332,7 @@ export default function TournamentDetails() {
                                 <CardDescription>Selecione quem participa deste torneio.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {tournament && <TournamentAthleteManager tournament={tournament} selectedCategory={selectedCategory} />}
+                                {tournament && <TournamentAthleteManager tournament={tournament} />}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -350,21 +341,22 @@ export default function TournamentDetails() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
-                                    <CardTitle>Grupos - {selectedCategory}</CardTitle>
-                                    <CardDescription>Acompanhe a classificação em tempo real.</CardDescription>
+                                    <CardDescription>Classificação de todos os grupos do evento.</CardDescription>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-8 text-[10px]">
                                         Gerar Manual
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={handleGenerateInitialMatches} disabled={isGeneratingAuto} className="h-8 text-[10px]">
-                                        Gerar Automático
+                                        Gerar Automático (Todas Categorias)
                                     </Button>
                                     <Button size="sm" onClick={async () => {
-                                        if (!id) return;
+                                        if (!id || !tournament) return;
                                         try {
-                                            await matchService.promoteGroupWinners(id, selectedCategory === "TODAS" ? (athletes[0]?.category || 'A') : selectedCategory, 2);
-                                            toast.success("Mata-mata gerado!");
+                                            for (const cat of (tournament.categories || [])) {
+                                                await matchService.promoteGroupWinners(id, cat, 2);
+                                            }
+                                            toast.success("Mata-mata gerado para todas categorias!");
                                         } catch (e: any) { toast.error(e.message); }
                                     }} disabled={!filteredMatches.some(m => m.status === 'finished')}>
                                         Promover Vencedores
@@ -373,7 +365,7 @@ export default function TournamentDetails() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-12">
-                                    {(selectedCategory === "TODAS" ? availableCategories : [selectedCategory]).map(cat => {
+                                    {(tournament?.categories || availableCategories).map(cat => {
                                         const catMatches = matches.filter(m => m.category === cat && m.group);
                                         if (catMatches.length === 0) return null;
                                         const groups = Array.from(new Set(catMatches.map(m => m.group))).sort();
@@ -441,7 +433,7 @@ export default function TournamentDetails() {
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle>Chaves de Eliminatórias</CardTitle>
-                                    <CardDescription>Mata-mata da categoria {selectedCategory}</CardDescription>
+                                    <CardDescription>Mata-mata de todas as categorias do evento</CardDescription>
                                 </div>
                                 {tournament?.status === 'finished' && (
                                     <Badge variant="default" className="bg-yellow-500 text-black gap-1">
@@ -644,7 +636,7 @@ export default function TournamentDetails() {
             {id && tournament && (
                 <ManualGroupGenerator
                     tournamentId={id}
-                    athletes={selectedCategory === "TODAS" ? athletes : athletes.filter(a => a.category === selectedCategory)}
+                    athletes={athletes}
                     tournamentType={tournament.type as any}
                     open={openManualGroups}
                     onOpenChange={setOpenManualGroups}
