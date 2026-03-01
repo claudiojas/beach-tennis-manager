@@ -13,9 +13,10 @@ interface TournamentBracketsProps {
     matches: Match[];
     courts: Court[];
     onEdit: (match: Match) => void;
+    activeCategory?: string; // Adicionado para saber qual categoria estamos gerando
 }
 
-export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit }: TournamentBracketsProps) {
+export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit, activeCategory }: TournamentBracketsProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [bracketMatches, setBracketMatches] = useState<Match[]>([]);
 
@@ -53,8 +54,13 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
                 }
             }
 
-            await bracketService.generateBracket(tournamentId, 'Pro', teams);
-            toast.success(`Chave de ${count} gerada com sucesso!`);
+            if (!activeCategory) {
+                toast.error("Selecione uma categoria antes de gerar as chaves.");
+                return;
+            }
+
+            await bracketService.generateBracket(tournamentId, activeCategory, teams);
+            toast.success(`Chave de ${count} para ${activeCategory} gerada com sucesso!`);
         } catch (error) {
             console.error(error);
             toast.error("Erro ao gerar chaves.");

@@ -10,26 +10,40 @@ interface ArenaCategoryDashboardProps {
 export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashboardProps) {
     // Agrupamento inteligente para o painel de TV e Mobile (Formato Grid e Telas)
     const { groups, knockouts } = useMemo(() => {
-        const groupMatches = matches.filter(m => m.group);
-        const knockoutMatches = matches.filter(m => !m.group);
+        const groupSections: MatchSection[] = [];
+        const knockoutSections: MatchSection[] = [];
 
-        // Agrupar Fase de Grupos
-        const groupNames = Array.from(new Set(groupMatches.map(m => m.group))).sort();
-        const groups: MatchSection[] = groupNames.map(g => ({
-            name: `Grupo ${g}`,
-            type: 'group' as const,
-            matches: groupMatches.filter(m => m.group === g)
-        }));
+        // Separação honesta: tem grupo? Vai para seções de grupo.
+        const gMatches = matches.filter(m => m.group);
+        const kMatches = matches.filter(m => !m.group);
 
-        // Fases Eliminatorias (Mata-Mata)
-        const knockoutRounds = Array.from(new Set(knockoutMatches.map(m => m.round)));
-        const knockouts: MatchSection[] = knockoutRounds.length > 0 ? knockoutRounds.map(r => ({
-            name: String(r),
-            type: 'knockout' as const,
-            matches: knockoutMatches.filter(m => m.round === r)
-        })) : [];
+        // Seções de Grupo
+        const gNames = Array.from(new Set(gMatches.map(m => m.group))).sort();
+        gNames.forEach(gn => {
+            groupSections.push({
+                name: `Grupo ${gn}`,
+                type: 'group',
+                matches: gMatches.filter(m => m.group === gn)
+            });
+        });
 
-        return { groups, knockouts };
+        // Seções de Mata-Mata (baseadas no round)
+        const rOrder = ['oitavas', 'quartas', 'semi', 'final'];
+        const rNames = Array.from(new Set(kMatches.map(m => m.round))).sort((a, b) => {
+            const aIdx = rOrder.indexOf(a as any);
+            const bIdx = rOrder.indexOf(b as any);
+            return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
+        });
+
+        rNames.forEach(rn => {
+            knockoutSections.push({
+                name: rn || 'Mata-Mata',
+                type: 'knockout',
+                matches: kMatches.filter(m => m.round === rn)
+            });
+        });
+
+        return { groups: groupSections, knockouts: knockoutSections };
     }, [matches]);
 
     return (
@@ -77,7 +91,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                     <div className="w-full flex flex-col pt-4 relative">
                         <h3 className="text-xl md:text-2xl font-black text-white/50 mb-6 uppercase tracking-[0.4em] text-center italic flex items-center justify-center gap-4">
                             <Trophy size={24} className="text-primary/50" />
-                            Mata-Mata
+                            Chaves Eliminatórias
                             <Trophy size={24} className="text-primary/50" />
                         </h3>
                         {knockouts.length > 0 ? (
@@ -90,9 +104,12 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                             <div className="flex-1 flex flex-col items-center justify-center bg-slate-900/40 rounded-[3rem] border-4 border-dashed border-white/5 mx-2 md:mx-0 py-20">
                                 <Trophy size={80} className="text-white/5 mb-6" />
                                 <span className="text-slate-500 font-black uppercase tracking-[0.3em] md:tracking-[0.5em] italic text-lg md:text-2xl text-center px-4">
-                                    Aguardando Definição
+                                    Aguardando Chaves
                                 </span>
-                                <p className="text-slate-600 mt-2 font-bold uppercase tracking-widest text-xs md:text-sm">Os confrontos aparecerão aqui em breve</p>
+                                <p className="text-slate-600 mt-2 font-bold uppercase tracking-widest text-xs md:text-sm text-center">
+                                    Os confrontos de mata-mata aparecerão aqui<br />
+                                    assim que forem gerados pelo administrador.
+                                </p>
                             </div>
                         )}
                     </div>

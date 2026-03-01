@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArenaHeader } from '@/components/ArenaHeader';
 import { SponsorBar } from '@/components/SponsorBar';
 import { useCourtData } from '@/hooks/useCourtData';
@@ -8,12 +9,14 @@ import { matchService } from '@/services/matchService';
 import { Tournament, Match } from '@/types/beach-tennis';
 import { ArenaCategoryDashboard } from '@/components/arena/ArenaCategoryDashboard';
 import { HeadCategorie } from '@/components/arena/HeadCategorie';
+import { ref, onValue } from 'firebase/database'; // Added for direct Firebase DB access
+import { db } from '@/lib/firebase'; // Assuming db is exported from here
 
 const ArenaPanel = () => {
   const { courts } = useCourtData();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [activeTournaments, setActiveTournaments] = useState<Tournament[]>([]);
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
 
   useEffect(() => {
@@ -21,50 +24,91 @@ const ArenaPanel = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch active tournament and matches
+  const [searchParams] = useSearchParams();
+  const forcedTournamentId = searchParams.get('id');
+
+  // 1. Monitorar todos os torneios ativos
   useEffect(() => {
     const unsubTournament = tournamentService.subscribe((tournaments) => {
-      const active = tournaments.find(t => t.status === 'active') || tournaments[0];
-      setActiveTournament(active);
+      let selected: Tournament[] = [];
+
+      if (forcedTournamentId) {
+        const found = tournaments.find(t => t.id === forcedTournamentId);
+        if (found) selected = [found];
+      }
+
+      if (selected.length === 0) {
+        selected = tournaments.filter(t => t.status === 'active');
+        // Se não houver nenhum "active", pegamos o mais recente como fallback
+        if (selected.length === 0 && tournaments.length > 0) {
+          selected = [tournaments[0]];
+        }
+      }
+
+      setActiveTournaments(selected);
     });
     return () => unsubTournament();
-  }, []);
+  }, [forcedTournamentId]);
 
+  // 2. Monitorar TODAS as partidas e filtrar pelos torneios ativos
   useEffect(() => {
-    if (activeTournament) {
-      const unsubMatches = matchService.subscribeByTournament(activeTournament.id, setMatches);
-      return () => unsubMatches();
-    }
-  }, [activeTournament]);
-
-  // Group everything by category for the "Airport" slides
-  const categorySlides = useMemo(() => {
-    if (!activeTournament || matches.length === 0) return [];
-
-    // Fallback para torneios antigos que não tem categorias no banco
-    const activeCategories = activeTournament.categories && activeTournament.categories.length > 0
-      ? activeTournament.categories
-      : Array.from(new Set(matches.map(m => m.category))).filter(Boolean);
-
-    return activeCategories.map(cat => {
-      const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase());
-      if (catMatches.length === 0) return null;
-
-      // Sort matches for the airport list: Ongoing first, then Planned, then Finished
-      const sortedMatches = [...catMatches].sort((a, b) => {
-        const order = { ongoing: 0, planned: 1, finished: 2 };
-        return order[a.status] - order[b.status];
+    if (activeTournaments.length > 0) {
+      const activeIds = activeTournaments.map(t => t.id);
+      // Aqui usamos um subscribe geral de partidas e filtramos
+      // Para manter a performance, buscamos apenas uma vez e deixamos o onValue agir
+      // const unsubMatches = matchService.subscribeByTournament('', (matches) => { // Original line, commented out
+      // Como o subscribeByTournament sem ID retorna vazio ou falha dependendo da regra, 
+      // vamos subscrever ao nó raiz de matches para o telão
+      const matchesRef = ref(db, 'matches');
+      const unsubscribe = onValue(matchesRef, (snapshot) => {
+        const data = snapshot.val();
+        const list: Match[] = data ? Object.values(data) : [];
+        const filtered = list.filter(m => activeIds.includes(m.tournamentId));
+        setAllMatches(filtered);
       });
+      // }); // Original line, commented out
+      return () => unsubscribe(); // Changed to unsubscribe from onValue
+    } else {
+      setAllMatches([]); // Clear matches if no active tournaments
+    }
+  }, [activeTournaments]);
 
-      return {
-        category: cat,
-        matches: sortedMatches.map(m => ({
-          ...m,
-          courtName: courts.find(c => c.id === m.courtId)?.name
-        }))
-      };
-    }).filter(Boolean) || [];
-  }, [activeTournament, matches, courts]);
+  // 3. Agrupar slides por Torneio + Categoria
+  const categorySlides = useMemo(() => {
+    if (activeTournaments.length === 0 || allMatches.length === 0) return [];
+
+    return activeTournaments.flatMap(t => {
+      const tMatches = allMatches.filter(m => m.tournamentId === t.id);
+      if (tMatches.length === 0) return [];
+
+      const officialCategories = t.categories || [];
+      const tCats = officialCategories.length > 0
+        ? Array.from(new Set(officialCategories))
+        : Array.from(new Set(tMatches.map(m => m.category))).filter(Boolean);
+
+      return tCats.map(cat => {
+        const catMatches = tMatches.filter(m =>
+          m.category && cat && m.category.trim().toUpperCase() === cat.trim().toUpperCase()
+        );
+
+        if (catMatches.length === 0) return null;
+
+        const sortedMatches = [...catMatches].sort((a, b) => {
+          const order = { ongoing: 0, planned: 1, finished: 2 };
+          return (order[a.status] || 0) - (order[b.status] || 0);
+        });
+
+        return {
+          tournamentName: t.name,
+          category: cat,
+          matches: sortedMatches.map(m => ({
+            ...m,
+            courtName: courts.find(c => c.id === m.courtId)?.name
+          }))
+        };
+      }).filter(Boolean);
+    }).filter(Boolean) as { tournamentName: string, category: string, matches: any[] }[];
+  }, [activeTournaments, allMatches, courts]);
 
   // Automatic Rotation between categories
   useEffect(() => {
@@ -75,19 +119,19 @@ const ArenaPanel = () => {
 
     const interval = setInterval(() => {
       setActiveCategoryIndex(prev => (prev + 1) % categorySlides.length);
-    }, 30000); // 30 seconds per category dashboard for enough analysis
+    }, 30000); // Back to 30 seconds as requested
     return () => clearInterval(interval);
   }, [categorySlides.length]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#020617] text-white overflow-hidden font-inter arena-theme">
       {/* Header */}
-      <ArenaHeader tournamentName={activeTournament?.name || 'Beach Tennis Manager'} />
+      <ArenaHeader tournamentName={activeTournaments?.[0]?.name || 'Beach Tennis Manager'} />
       {categorySlides.length > 0 && (
         <HeadCategorie
           currentTime={currentTime}
           category={categorySlides[activeCategoryIndex]?.category || ''}
-          tournamentName={activeTournament?.name || 'Torneio'}
+          tournamentName={categorySlides[activeCategoryIndex]?.tournamentName || ''}
         />
       )}
 

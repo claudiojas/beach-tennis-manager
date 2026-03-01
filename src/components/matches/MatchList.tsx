@@ -87,6 +87,15 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
         }
     };
 
+    const handleQuickStart = async (matchId: string) => {
+        try {
+            await matchService.update(matchId, { status: 'ongoing' });
+            toast.success("Partida iniciada!");
+        } catch (error) {
+            toast.error("Erro ao iniciar partida.");
+        }
+    };
+
 
     // Removed internal fetching
 
@@ -178,13 +187,24 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                         <Unlock className="h-4 w-4" />
                                                     </Button>
                                                 )}
-                                                {match.status !== 'finished' && (
+                                                {match.status === 'planned' && (
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        onClick={() => handleQuickStart(match.id)}
+                                                        title="Iniciar Partida"
+                                                    >
+                                                        <PlayCircle className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                {match.status === 'ongoing' && (
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
                                                         className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100"
                                                         onClick={() => handleQuickFinish(match.id)}
-                                                        title="Marcar como Finalizada"
+                                                        title="Finalizar Partida"
                                                     >
                                                         <CheckCircle2 className="h-4 w-4" />
                                                     </Button>
