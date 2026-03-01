@@ -58,7 +58,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                             <Users size={24} className="text-primary/50" />
                         </h3>
                         {groups.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max px-2 md:px-0">
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-6 auto-rows-max px-2 md:px-0">
                                 {groups.map((section, idx) => (
                                     <ArenaMatchTable key={`group-${idx}`} section={section} />
                                 ))}
@@ -81,7 +81,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                             <Trophy size={24} className="text-primary/50" />
                         </h3>
                         {knockouts.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max px-2 md:px-0">
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-6 auto-rows-max px-2 md:px-0">
                                 {knockouts.map((section, idx) => (
                                     <ArenaMatchTable key={`knockout-${idx}`} section={section} />
                                 ))}
