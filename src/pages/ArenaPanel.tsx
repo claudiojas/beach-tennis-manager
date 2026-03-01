@@ -83,7 +83,6 @@ const ArenaPanel = () => {
     <div className="min-h-screen flex flex-col bg-[#020617] text-white overflow-hidden font-inter arena-theme">
       {/* Header */}
       <ArenaHeader tournamentName={activeTournament?.name || 'Beach Tennis Manager'} />
-      <SponsorBar />
       {categorySlides.length > 0 && (
         <HeadCategorie
           currentTime={currentTime}
@@ -133,6 +132,8 @@ const ArenaPanel = () => {
           </div>
         )}
       </main>
+
+      <SponsorBar />
     </div>
   );
 };
