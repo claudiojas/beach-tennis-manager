@@ -25,9 +25,9 @@ export function HeadCategorie({ currentTime, category, tournamentName }: HeadCat
 
                 {/* 2. Centro - Etiqueta da Categoria */}
                 <div className="flex-1 flex items-center justify-center px-4">
-                    <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 px-6 py-1.5 md:py-2 rounded-full backdrop-blur-sm">
-                        <p className="text-primary font-black uppercase tracking-[0.3em] text-[10px] md:text-sm">
-                            Categoria <span className="text-white ml-1 text-xs md:text-base">{category}</span>
+                    <div className="inline-flex items-center gap-1.5 bg-primary/20 border border-primary/30 px-4 py-1 md:py-1.5 rounded-full backdrop-blur-sm">
+                        <p className="text-primary font-black uppercase tracking-[0.2em] text-[9px] md:text-xs">
+                            Categoria <span className="text-white ml-1 text-[10px] md:text-sm">{category}</span>
                         </p>
                     </div>
                 </div>
