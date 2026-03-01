@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ArenaHeader } from '@/components/ArenaHeader';
-import { ResultsTicker } from '@/components/ResultsTicker';
 import { SponsorBar } from '@/components/SponsorBar';
 import { useCourtData } from '@/hooks/useCourtData';
 import { Clock } from 'lucide-react';
@@ -11,7 +10,7 @@ import { ArenaCategoryDashboard } from '@/components/arena/ArenaCategoryDashboar
 import { HeadCategorie } from '@/components/arena/HeadCategorie';
 
 const ArenaPanel = () => {
-  const { results, courts } = useCourtData();
+  const { courts } = useCourtData();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -93,7 +92,7 @@ const ArenaPanel = () => {
         />
       )}
 
-      <main className="flex-1 flex flex-col p-4 sm:p-8 overflow-hidden relative">
+      <main className="flex-1 flex flex-col p-2 overflow-hidden relative">
         {categorySlides.length > 0 ? (
           <div className="w-full h-full flex items-center justify-center relative">
             {/* Transition Container */}
@@ -134,9 +133,6 @@ const ArenaPanel = () => {
           </div>
         )}
       </main>
-
-      {/* Results Ticker */}
-      <ResultsTicker results={results} />
     </div>
   );
 };
