@@ -2,12 +2,14 @@ import { Match } from "@/types/beach-tennis";
 import { shortenName } from "@/lib/utils/nameUtils";
 import { Users, Trophy, MapPin } from "lucide-react";
 
+export interface MatchSection {
+    name: string | number;
+    type: 'group' | 'knockout';
+    matches: (Match & { courtName?: string })[];
+}
+
 interface ArenaMatchTableProps {
-    section: {
-        name: string;
-        type: 'group' | 'knockout';
-        matches: Match[];
-    };
+    section: MatchSection;
 }
 
 export function ArenaMatchTable({ section }: ArenaMatchTableProps) {

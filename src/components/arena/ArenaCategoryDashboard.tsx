@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Match } from "@/types/beach-tennis";
 import { Activity, Trophy, Users } from 'lucide-react';
-import { ArenaMatchTable } from './ArenaMatchTable';
+import { ArenaMatchTable, MatchSection } from './ArenaMatchTable';
 interface ArenaCategoryDashboardProps {
     category: string;
     matches: (Match & { courtName?: string })[];
@@ -15,7 +15,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
 
         // Agrupar Fase de Grupos
         const groupNames = Array.from(new Set(groupMatches.map(m => m.group))).sort();
-        const groups = groupNames.map(g => ({
+        const groups: MatchSection[] = groupNames.map(g => ({
             name: `Grupo ${g}`,
             type: 'group' as const,
             matches: groupMatches.filter(m => m.group === g)
@@ -23,8 +23,8 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
 
         // Fases Eliminatorias (Mata-Mata)
         const knockoutRounds = Array.from(new Set(knockoutMatches.map(m => m.round)));
-        const knockouts = knockoutRounds.length > 0 ? knockoutRounds.map(r => ({
-            name: r,
+        const knockouts: MatchSection[] = knockoutRounds.length > 0 ? knockoutRounds.map(r => ({
+            name: String(r),
             type: 'knockout' as const,
             matches: knockoutMatches.filter(m => m.round === r)
         })) : [];
@@ -39,15 +39,16 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                 <style>
                     {`
                         @keyframes slideScreens {
-                            0%, 40% { transform: translateY(0%); }
-                            50%, 90% { transform: translateY(-50%); }
+                            0%, 3.33% { transform: translateY(0%); }
+                            90% { transform: translateY(-50%); }
+                            95% { transform: translateY(-50%); }
                             100% { transform: translateY(0%); }
                         }
                     `}
                 </style>
                 <div
                     className="flex flex-col w-full h-[200%]"
-                    style={{ animation: 'slideScreens 30s ease-in-out infinite', willChange: 'transform' }}
+                    style={{ animation: 'slideScreens 60s linear infinite', willChange: 'transform' }}
                 >
                     {/* Tela 1: Fase de Grupos */}
                     <div className="h-1/2 w-full flex flex-col pt-0 pb-4">
@@ -59,7 +60,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                         {groups.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max px-2 md:px-0">
                                 {groups.map((section, idx) => (
-                                    <ArenaMatchTable key={`group-${idx}`} section={section as any} />
+                                    <ArenaMatchTable key={`group-${idx}`} section={section} />
                                 ))}
                             </div>
                         ) : (
@@ -82,7 +83,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                         {knockouts.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-max px-2 md:px-0">
                                 {knockouts.map((section, idx) => (
-                                    <ArenaMatchTable key={`knockout-${idx}`} section={section as any} />
+                                    <ArenaMatchTable key={`knockout-${idx}`} section={section} />
                                 ))}
                             </div>
                         ) : (
