@@ -96,7 +96,6 @@ const ArenaPanel = () => {
                 <ArenaCategoryDashboard
                   category={slide!.category}
                   matches={slide!.matches}
-                  tournamentId={activeTournament!.id}
                   tournamentName={activeTournament?.name || 'Torneio'}
                 />
               </div>

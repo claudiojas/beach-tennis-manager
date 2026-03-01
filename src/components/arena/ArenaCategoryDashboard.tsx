@@ -7,11 +7,10 @@ import { HeadCategorie } from './HeadCategorie';
 interface ArenaCategoryDashboardProps {
     category: string;
     matches: (Match & { courtName?: string })[];
-    tournamentId: string;
     tournamentName: string;
 }
 
-export function ArenaCategoryDashboard({ category, matches, tournamentId, tournamentName }: ArenaCategoryDashboardProps) {
+export function ArenaCategoryDashboard({ category, matches, tournamentName }: ArenaCategoryDashboardProps) {
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -50,7 +49,7 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId, tourna
 
 
                 {/* Painel Principal com Efeito de Marquee (Duas Telas: Grupos e Mata-Mata) */}
-                <div className="flex-1 overflow-hidden relative" style={{ perspective: '1000px' }}>
+                <div className="flex-1 relative" style={{ perspective: '1000px' }}>
                     <style>
                         {`
                         @keyframes slideScreens {
