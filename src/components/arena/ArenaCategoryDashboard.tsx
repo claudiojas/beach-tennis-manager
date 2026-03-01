@@ -48,7 +48,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
                 </style>
                 <div
                     className="flex flex-col w-full h-fit gap-20 pb-32"
-                    style={{ animation: 'slideScreens 60s linear infinite', willChange: 'transform' }}
+                    style={{ animation: 'slideScreens 40s linear infinite', willChange: 'transform' }}
                 >
                     {/* Tela 1: Fase de Grupos */}
                     <div className="w-full flex flex-col pt-0">
