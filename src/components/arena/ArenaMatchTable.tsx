@@ -1,112 +1,115 @@
 import { Match } from "@/types/beach-tennis";
 import { shortenName } from "@/lib/utils/nameUtils";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, PlayCircle, CheckCircle2, Clock } from "lucide-react";
+import { Users, Trophy, MapPin } from "lucide-react";
 
 interface ArenaMatchTableProps {
-    title: string;
-    subtitle?: string;
-    matches: Match[];
+    section: {
+        name: string;
+        type: 'group' | 'knockout';
+        matches: Match[];
+    };
 }
 
-export function ArenaMatchTable({ title, subtitle, matches }: ArenaMatchTableProps) {
-    if (matches.length === 0) return null;
-
-    const getStatusLabel = (status: Match['status']) => {
+export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
+    const getStatusStyle = (status: Match['status']) => {
         switch (status) {
-            case 'ongoing': return { text: 'Jogando', color: 'text-green-500 animate-pulse', icon: PlayCircle };
-            case 'finished': return { text: 'Finalizado', color: 'text-slate-500', icon: CheckCircle2 };
-            default: return { text: 'Aguardando', color: 'text-yellow-500/70', icon: Clock };
+            case 'ongoing': return 'bg-green-500/20 text-green-400 border-green-500/30 animate-pulse';
+            case 'finished': return 'bg-slate-500/10 text-slate-500 border-white/5';
+            default: return 'bg-amber-500/10 text-amber-500/70 border-amber-500/20';
+        }
+    };
+
+    const getStatusText = (status: Match['status']) => {
+        switch (status) {
+            case 'ongoing': return 'JOGANDO';
+            case 'finished': return 'FINALIZADO';
+            default: return 'AGUARDANDO';
         }
     };
 
     return (
-        <div className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col h-full">
-            {/* Header */}
-            <div className="bg-white/5 p-6 border-b border-white/5">
-                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">
-                    {title}
-                </h3>
-                {subtitle && (
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mt-1">
-                        {subtitle}
-                    </p>
-                )}
+        <div className="w-full bg-slate-900/60 backdrop-blur-md rounded-[2.5rem] border border-white/5 shadow-2xl relative mb-8">
+            {/* Indicador de Tipo */}
+            <div className="absolute top-6 right-6 opacity-10">
+                {section.type === 'group' ? <Users size={80} /> : <Trophy size={80} />}
             </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-black/20 text-[8px] font-black uppercase tracking-[0.2em] text-slate-500">
-                            <th className="py-4 px-6">Confronto</th>
-                            <th className="py-4 px-4 text-center">Sets</th>
-                            <th className="py-4 px-4">Quadra</th>
-                            <th className="py-4 px-6 text-right">Status</th>
+            <div className="px-6 pt-6 pb-2 flex items-center gap-3">
+                <div className={`p-1.5 rounded-xl ${section.type === 'group' ? 'bg-blue-500/20 text-blue-400' : 'bg-primary/20 text-primary'}`}>
+                    {section.type === 'group' ? <Users size={18} /> : <Trophy size={18} />}
+                </div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-white italic">{section.name}</h3>
+            </div>
+
+            <div className="w-full px-4 pb-4">
+                <table className="w-full text-left border-separate border-spacing-y-1.5">
+                    <thead className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                        <tr>
+                            <th className="px-4 py-1">Confronto</th>
+                            <th className="px-2 py-1 text-center w-24">Placar</th>
+                            <th className="px-2 py-1 w-40">Fase / Quadra</th>
+                            <th className="px-4 py-1 text-right w-32">Status</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {matches.map((match) => {
-                            const status = getStatusLabel(match.status);
-                            const StatusIcon = status.icon;
+                    <tbody>
+                        {section.matches.map(m => (
+                            <tr key={m.id} className="group transition-all duration-300">
+                                {/* Atletas */}
+                                <td className="bg-white/[0.03] rounded-l-xl px-4 py-2 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-base font-black truncate ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
+                                                {shortenName(m.teamA.player1.name)}
+                                                {m.teamA.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamA.player2.name)}</span>}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-[1px] w-4 bg-primary/30" />
+                                            <span className="text-[9px] font-black text-slate-600 italic">VS</span>
+                                            <div className="h-[1px] w-4 bg-primary/30" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-base font-black truncate ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
+                                                {shortenName(m.teamB.player1.name)}
+                                                {m.teamB.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamB.player2.name)}</span>}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
 
-                            return (
-                                <tr key={match.id} className="hover:bg-white/[0.02] transition-colors group">
-                                    <td className="py-5 px-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex flex-col text-right min-w-[100px]">
-                                                <span className="text-xs font-black text-white uppercase truncate">
-                                                    {shortenName(match.teamA.player1.name)}
-                                                </span>
-                                                {match.teamA.player2 && (
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase truncate">
-                                                        {shortenName(match.teamA.player2.name)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] font-black text-primary italic">X</span>
-                                            <div className="flex flex-col text-left min-w-[100px]">
-                                                <span className="text-xs font-black text-white uppercase truncate">
-                                                    {shortenName(match.teamB.player1.name)}
-                                                </span>
-                                                {match.teamB.player2 && (
-                                                    <span className="text-[9px] font-bold text-slate-500 uppercase truncate">
-                                                        {shortenName(match.teamB.player2.name)}
-                                                    </span>
-                                                )}
-                                            </div>
+                                {/* Placar */}
+                                <td className="bg-black/40 px-2 py-2 border-y border-white/5 group-hover:bg-black/60">
+                                    <div className="flex items-center justify-center gap-2 font-mono text-3xl font-black text-primary italic">
+                                        <span>{m.setsA}</span>
+                                        <span className="text-white/10 text-xl">x</span>
+                                        <span>{m.setsB}</span>
+                                    </div>
+                                </td>
+
+                                {/* Fase / Quadra */}
+                                <td className="bg-white/[0.03] px-2 py-2 border-y border-white/5 group-hover:bg-white/[0.05]">
+                                    <div className="flex flex-col gap-1.5 text-xs font-bold uppercase">
+                                        <div className="flex items-center gap-1 text-primary">
+                                            {m.group ? <Users size={12} /> : <Trophy size={12} />}
+                                            <span className="truncate">{m.group ? `Grupo ${m.group}` : m.round}</span>
                                         </div>
-                                    </td>
-                                    <td className="py-5 px-4 text-center">
-                                        <div className="inline-flex items-center gap-2 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
-                                            <span className={`text-lg font-black tabular-nums ${match.status === 'finished' && match.setsA > match.setsB ? 'text-primary' : 'text-white'}`}>
-                                                {match.setsA}
-                                            </span>
-                                            <span className="text-slate-700 text-xs">-</span>
-                                            <span className={`text-lg font-black tabular-nums ${match.status === 'finished' && match.setsB > match.setsA ? 'text-primary' : 'text-white'}`}>
-                                                {match.setsB}
-                                            </span>
+                                        <div className="flex items-center gap-1 text-slate-400">
+                                            <MapPin size={12} />
+                                            <span className="truncate">{m.courtName || 'A DEFINIR'}</span>
                                         </div>
-                                    </td>
-                                    <td className="py-5 px-4">
-                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                            <MapPin className="w-3 h-3 text-primary opacity-50" />
-                                            <span className="text-[10px] font-bold uppercase truncate max-w-[80px]">
-                                                {match.courtName || 'Arena'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="py-5 px-6 text-right">
-                                        <div className={`flex items-center justify-end gap-2 ${status.color}`}>
-                                            <span className="text-[9px] font-black uppercase tracking-wider">
-                                                {status.text}
-                                            </span>
-                                            <StatusIcon className="w-3 h-3" />
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                                    </div>
+                                </td>
+
+                                {/* Status */}
+                                <td className="bg-white/[0.03] rounded-r-xl px-4 py-2 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
+                                    <div className="flex justify-end">
+                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black border tracking-wider ${getStatusStyle(m.status)}`}>
+                                            {getStatusText(m.status)}
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
