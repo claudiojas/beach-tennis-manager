@@ -33,9 +33,7 @@ export function ArenaCategoryDashboard({ category, matches }: ArenaCategoryDashb
     }, [matches]);
 
     return (
-        <div className="w-full h-full flex flex-col pt-1 animate-in fade-in zoom-in-95 duration-700">
-
-
+        <div className="w-full h-full flex flex-col pt-0 animate-in fade-in zoom-in-95 duration-700">
             {/* Painel Principal com Efeito de Marquee (Duas Telas: Grupos e Mata-Mata) */}
             <div className="flex-1 relative" style={{ perspective: '1000px' }}>
                 <style>
