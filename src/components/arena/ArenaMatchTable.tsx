@@ -28,48 +28,48 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
     };
 
     return (
-        <div className="w-full bg-slate-900/60 backdrop-blur-md rounded-[2.5rem] border border-white/5 shadow-2xl relative mb-8">
+        <div className="w-full h-fit flex-none bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl relative overflow-hidden">
             {/* Indicador de Tipo */}
-            <div className="absolute top-6 right-6 opacity-10">
-                {section.type === 'group' ? <Users size={80} /> : <Trophy size={80} />}
+            <div className="absolute top-4 right-4 opacity-10">
+                {section.type === 'group' ? <Users size={48} /> : <Trophy size={48} />}
             </div>
 
-            <div className="px-4 md:px-6 pt-4 md:pt-6 pb-2 flex items-center gap-2 md:gap-3">
-                <div className={`p-1.5 rounded-xl ${section.type === 'group' ? 'bg-blue-500/20 text-blue-400' : 'bg-primary/20 text-primary'}`}>
-                    {section.type === 'group' ? <Users className="w-4 h-4 md:w-[18px] md:h-[18px]" /> : <Trophy className="w-4 h-4 md:w-[18px] md:h-[18px]" />}
+            <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+                <div className={`p-1.5 rounded-lg ${section.type === 'group' ? 'bg-blue-500/20 text-blue-400' : 'bg-primary/20 text-primary'}`}>
+                    {section.type === 'group' ? <Users className="w-4 h-4" /> : <Trophy className="w-4 h-4" />}
                 </div>
-                <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-white italic">{section.name}</h3>
+                <h3 className="text-base font-black uppercase tracking-tight text-white italic">{section.name}</h3>
             </div>
 
-            <div className="w-full px-2 md:px-4 pb-4 overflow-x-auto scrollbar-none">
-                <table className="w-full min-w-[400px] md:min-w-full text-left border-separate border-spacing-y-1.5">
-                    <thead className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
+            <div className="w-full px-2 md:px-3 pb-3 overflow-x-auto scrollbar-none">
+                <table className="w-full min-w-[320px] text-left border-separate border-spacing-y-1">
+                    <thead className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">
                         <tr>
-                            <th className="px-3 md:px-4 py-1">Confronto</th>
-                            <th className="px-2 py-1 text-center w-16 md:w-24">Placar</th>
-                            <th className="px-2 py-1 w-28 md:w-40">Fase / Quadra</th>
-                            <th className="px-3 md:px-4 py-1 text-right w-24 md:w-32">Status</th>
+                            <th className="px-3 py-1">Confronto</th>
+                            <th className="px-2 py-1 text-center w-16">Placar</th>
+                            <th className="px-2 py-1 w-24">Fase/Qdr</th>
+                            <th className="px-3 py-1 text-right w-20">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {section.matches.map(m => (
                             <tr key={m.id} className="group transition-all duration-300">
                                 {/* Atletas */}
-                                <td className="bg-white/[0.03] rounded-l-xl px-3 md:px-4 py-2 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-sm md:text-base font-black truncate max-w-[120px] md:max-w-[200px] ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
+                                <td className="bg-white/[0.03] rounded-l-lg px-2 md:px-3 py-1.5 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
+                                    <div className="flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-1">
+                                            <span className={`text-xs md:text-sm font-black truncate max-w-[100px] md:max-w-[140px] ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
                                                 {shortenName(m.teamA.player1.name)}
                                                 {m.teamA.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamA.player2.name)}</span>}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-[1px] w-3 md:w-4 bg-primary/30" />
-                                            <span className="text-[8px] md:text-[9px] font-black text-slate-600 italic">VS</span>
-                                            <div className="h-[1px] w-3 md:w-4 bg-primary/30" />
+                                        <div className="flex items-center gap-1">
+                                            <div className="h-[1px] w-2 md:w-3 bg-primary/30" />
+                                            <span className="text-[7px] md:text-[8px] font-black text-slate-600 italic">VS</span>
+                                            <div className="h-[1px] w-2 md:w-3 bg-primary/30" />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-sm md:text-base font-black truncate max-w-[120px] md:max-w-[200px] ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
+                                        <div className="flex items-center gap-1">
+                                            <span className={`text-xs md:text-sm font-black truncate max-w-[100px] md:max-w-[140px] ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
                                                 {shortenName(m.teamB.player1.name)}
                                                 {m.teamB.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamB.player2.name)}</span>}
                                             </span>
@@ -78,32 +78,32 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
                                 </td>
 
                                 {/* Placar */}
-                                <td className="bg-black/40 px-2 py-2 border-y border-white/5 group-hover:bg-black/60">
-                                    <div className="flex items-center justify-center gap-1.5 md:gap-2 font-mono text-xl md:text-3xl font-black text-primary italic">
+                                <td className="bg-black/40 px-1 md:px-2 py-1.5 border-y border-white/5 group-hover:bg-black/60">
+                                    <div className="flex items-center justify-center gap-1 font-mono text-lg md:text-xl font-black text-primary italic">
                                         <span>{m.setsA}</span>
-                                        <span className="text-white/10 text-sm md:text-xl">x</span>
+                                        <span className="text-white/10 text-xs md:text-sm">x</span>
                                         <span>{m.setsB}</span>
                                     </div>
                                 </td>
 
                                 {/* Fase / Quadra */}
-                                <td className="bg-white/[0.03] px-2 py-2 border-y border-white/5 group-hover:bg-white/[0.05]">
-                                    <div className="flex flex-col gap-1 md:gap-1.5 text-[10px] md:text-xs font-bold uppercase">
+                                <td className="bg-white/[0.03] px-1 md:px-2 py-1.5 border-y border-white/5 group-hover:bg-white/[0.05]">
+                                    <div className="flex flex-col gap-0.5 md:gap-1 text-[9px] md:text-[10px] font-bold uppercase">
                                         <div className="flex items-center gap-1 text-primary">
-                                            {m.group ? <Users className="w-3 h-3 md:w-4 md:h-4" /> : <Trophy className="w-3 h-3 md:w-4 md:h-4" />}
-                                            <span className="truncate max-w-[80px] md:max-w-none">{m.group ? `Grp ${m.group}` : m.round}</span>
+                                            {m.group ? <Users className="w-2.5 h-2.5 md:w-3 md:h-3" /> : <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />}
+                                            <span className="truncate max-w-[60px] md:max-w-[80px]">{m.group ? `Grp ${m.group}` : m.round}</span>
                                         </div>
                                         <div className="flex items-center gap-1 text-slate-400">
-                                            <MapPin className="w-3 h-3 md:w-4 md:h-4" />
-                                            <span className="truncate max-w-[80px] md:max-w-none">{m.courtName || 'A DEFINIR'}</span>
+                                            <MapPin className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                                            <span className="truncate max-w-[60px] md:max-w-[80px]">{m.courtName || 'A DEFINIR'}</span>
                                         </div>
                                     </div>
                                 </td>
 
                                 {/* Status */}
-                                <td className="bg-white/[0.03] rounded-r-xl px-3 md:px-4 py-2 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
+                                <td className="bg-white/[0.03] rounded-r-lg px-2 md:px-3 py-1.5 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
                                     <div className="flex justify-end">
-                                        <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-[8px] md:text-[9px] font-black border tracking-wider ${getStatusStyle(m.status)}`}>
+                                        <span className={`px-2 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black border tracking-wider ${getStatusStyle(m.status)}`}>
                                             {getStatusText(m.status)}
                                         </span>
                                     </div>
