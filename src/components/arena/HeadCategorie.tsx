@@ -11,8 +11,7 @@ export function HeadCategorie({ currentTime, category, tournamentName }: HeadCat
             <div className={`
                 flex items-center justify-between 
                 border-l-8 border-primary pl-6 pr-6 md:pr-10 py-2 md:py-4 z-10 
-                bg-black w-full h-[65px]
-                absolute -top-10 md:-top-8 left-0 right-0
+                bg-black w-full h-[65px] flex-none
             `}>
 
                 {/* 1. Esquerda - Nome do Torneio */}

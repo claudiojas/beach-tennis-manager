@@ -8,12 +8,19 @@ import { tournamentService } from '@/services/tournamentService';
 import { matchService } from '@/services/matchService';
 import { Tournament, Match } from '@/types/beach-tennis';
 import { ArenaCategoryDashboard } from '@/components/arena/ArenaCategoryDashboard';
+import { HeadCategorie } from '@/components/arena/HeadCategorie';
 
 const ArenaPanel = () => {
   const { results, courts } = useCourtData();
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch active tournament and matches
   useEffect(() => {
@@ -78,8 +85,15 @@ const ArenaPanel = () => {
       {/* Header */}
       <ArenaHeader tournamentName={activeTournament?.name || 'Beach Tennis Manager'} />
       <SponsorBar />
+      {categorySlides.length > 0 && (
+        <HeadCategorie
+          currentTime={currentTime}
+          category={categorySlides[activeCategoryIndex]?.category || ''}
+          tournamentName={activeTournament?.name || 'Torneio'}
+        />
+      )}
 
-      <main className="flex-1 flex flex-col p-4 sm:p-8 pt-4 overflow-hidden relative">
+      <main className="flex-1 flex flex-col p-4 sm:p-8 overflow-hidden relative">
         {categorySlides.length > 0 ? (
           <div className="w-full h-full flex items-center justify-center relative">
             {/* Transition Container */}
@@ -96,7 +110,6 @@ const ArenaPanel = () => {
                 <ArenaCategoryDashboard
                   category={slide!.category}
                   matches={slide!.matches}
-                  tournamentName={activeTournament?.name || 'Torneio'}
                 />
               </div>
             ))}
