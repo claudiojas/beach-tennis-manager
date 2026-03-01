@@ -78,6 +78,15 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
             toast.error("Erro ao atualizar partida. Verifique a conexão.");
         }
     };
+    const handleQuickFinish = async (matchId: string) => {
+        try {
+            await matchService.update(matchId, { status: 'finished' });
+            toast.success("Partida marcada como finalizada!");
+        } catch (error) {
+            toast.error("Erro ao finalizar partida.");
+        }
+    };
+
 
     // Removed internal fetching
 
@@ -126,7 +135,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                     const StatusIcon = status.icon;
 
                     return (
-                        <Card key={match.id} className="overflow-hidden group">
+                        <Card key={match.id} className={`overflow-hidden group transition-all duration-300 ${match.status === 'finished' ? 'opacity-70 bg-muted/30 scale-[0.98]' : ''}`}>
                             <div className={`h-2 w-full ${status.color}`} />
                             <CardContent className="p-4">
                                 {/* Header Row: Status + Actions */}
@@ -167,6 +176,17 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                         title="Forçar Liberação de Dispositivo"
                                                     >
                                                         <Unlock className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                {match.status !== 'finished' && (
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                                        onClick={() => handleQuickFinish(match.id)}
+                                                        title="Marcar como Finalizada"
+                                                    >
+                                                        <CheckCircle2 className="h-4 w-4" />
                                                     </Button>
                                                 )}
                                                 <Button

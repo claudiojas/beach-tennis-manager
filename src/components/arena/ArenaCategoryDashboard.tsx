@@ -14,39 +14,31 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
 
     // Agrupamento inteligente para o painel da TV
     const sections = useMemo(() => {
-        const stageMap: Record<string, { type: 'group' | 'knockout', matches: Match[] }> = {};
+        const result: { name: string; type: 'group' | 'knockout'; matches: Match[] }[] = [];
 
-        matches.forEach(m => {
-            let key = "Geral";
-            let type: 'group' | 'knockout' = 'knockout';
+        const groupMatches = matches.filter(m => m.group);
+        const knockoutMatches = matches.filter(m => !m.group);
 
-            if (m.group) {
-                key = `Grupo ${m.group}`;
-                type = 'group';
-            } else if (m.round) {
-                const r = m.round.toLowerCase();
-                if (r.includes('oitava')) key = "Oitavas de Final";
-                else if (r.includes('quarta')) key = "Quartas de Final";
-                else if (r.includes('semi')) key = "Semi-Final";
-                else if (r.includes('final')) key = "Grande Final";
-                else key = m.round;
-                type = 'knockout';
+        // Como a TV não rola sozinha, dividimos as tabelas grandes em páginas
+        const MATCHES_PER_TABLE = 8;
+
+        if (groupMatches.length > 0) {
+            for (let i = 0; i < groupMatches.length; i += MATCHES_PER_TABLE) {
+                const chunk = groupMatches.slice(i, i + MATCHES_PER_TABLE);
+                const suffix = groupMatches.length > MATCHES_PER_TABLE ? ` (${Math.floor(i / MATCHES_PER_TABLE) + 1}/${Math.ceil(groupMatches.length / MATCHES_PER_TABLE)})` : '';
+                result.push({ name: `Fase de Grupos${suffix}`, type: 'group', matches: chunk });
             }
+        }
 
-            if (!stageMap[key]) stageMap[key] = { type, matches: [] };
-            stageMap[key].matches.push(m);
-        });
+        if (knockoutMatches.length > 0) {
+            for (let i = 0; i < knockoutMatches.length; i += MATCHES_PER_TABLE) {
+                const chunk = knockoutMatches.slice(i, i + MATCHES_PER_TABLE);
+                const suffix = knockoutMatches.length > MATCHES_PER_TABLE ? ` (${Math.floor(i / MATCHES_PER_TABLE) + 1}/${Math.ceil(knockoutMatches.length / MATCHES_PER_TABLE)})` : '';
+                result.push({ name: `Mata-Mata${suffix}`, type: 'knockout', matches: chunk });
+            }
+        }
 
-        // Ordenação lógica: Grupos primeiro, depois Mata-mata
-        return Object.keys(stageMap)
-            .sort((a, b) => {
-                const isAGroup = stageMap[a].type === 'group';
-                const isBGroup = stageMap[b].type === 'group';
-                if (isAGroup && !isBGroup) return -1;
-                if (!isAGroup && isBGroup) return 1;
-                return a.localeCompare(b);
-            })
-            .map(name => ({ name, ...stageMap[name] }));
+        return result;
     }, [matches]);
 
     // Paginação para telas pequenas ou muitos grupos (mostra 2 seções por vez)
@@ -95,7 +87,6 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
                     </h2>
                 </div>
                 <div className="flex flex-col items-end">
-
                     <span className="text-3xl font-black font-mono text-white/20">
                         {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -124,7 +115,7 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
                                     <tr>
                                         <th className="px-6 py-2">Confronto</th>
                                         <th className="px-2 py-2 text-center w-24">Placar</th>
-                                        <th className="px-2 py-2 w-32">Quadra</th>
+                                        <th className="px-2 py-2 w-40">Fase / Quadra</th>
                                         <th className="px-6 py-2 text-right w-32">Status</th>
                                     </tr>
                                 </thead>
@@ -132,7 +123,7 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
                                     {section.matches.map(m => (
                                         <tr key={m.id} className="group transition-all duration-300">
                                             {/* Atletas */}
-                                            <td className="bg-white/[0.03] rounded-l-2xl px-6 py-5 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
+                                            <td className="bg-white/[0.03] rounded-l-2xl px-6 py-4 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-base font-black truncate ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
@@ -155,7 +146,7 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
                                             </td>
 
                                             {/* Placar */}
-                                            <td className="bg-black/40 px-2 py-5 border-y border-white/5 group-hover:bg-black/60">
+                                            <td className="bg-black/40 px-2 py-4 border-y border-white/5 group-hover:bg-black/60">
                                                 <div className="flex items-center justify-center gap-2 font-mono text-3xl font-black text-primary italic">
                                                     <span>{m.setsA}</span>
                                                     <span className="text-white/10 text-xl">x</span>
@@ -163,16 +154,22 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
                                                 </div>
                                             </td>
 
-                                            {/* Quadra */}
-                                            <td className="bg-white/[0.03] px-2 py-5 border-y border-white/5 group-hover:bg-white/[0.05]">
-                                                <div className="flex items-center gap-2 text-slate-300 font-bold uppercase text-xs">
-                                                    <MapPin size={14} className="text-primary" />
-                                                    <span className="truncate">{m.courtName || 'A DEFINIR'}</span>
+                                            {/* Fase / Quadra */}
+                                            <td className="bg-white/[0.03] px-2 py-4 border-y border-white/5 group-hover:bg-white/[0.05]">
+                                                <div className="flex flex-col gap-1.5 text-xs font-bold uppercase">
+                                                    <div className="flex items-center gap-1 text-primary">
+                                                        {m.group ? <Users size={12} /> : <Trophy size={12} />}
+                                                        <span className="truncate">{m.group ? `Grupo ${m.group}` : m.round}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-slate-400">
+                                                        <MapPin size={12} />
+                                                        <span className="truncate">{m.courtName || 'A DEFINIR'}</span>
+                                                    </div>
                                                 </div>
                                             </td>
 
                                             {/* Status */}
-                                            <td className="bg-white/[0.03] rounded-r-2xl px-6 py-5 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
+                                            <td className="bg-white/[0.03] rounded-r-2xl px-6 py-4 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
                                                 <div className="flex justify-end">
                                                     <span className={`px-3 py-1 rounded-full text-[9px] font-black border tracking-wider ${getStatusStyle(m.status)}`}>
                                                         {getStatusText(m.status)}

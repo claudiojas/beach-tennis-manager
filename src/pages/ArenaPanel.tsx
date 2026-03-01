@@ -35,8 +35,13 @@ const ArenaPanel = () => {
   const categorySlides = useMemo(() => {
     if (!activeTournament || matches.length === 0) return [];
 
-    return activeTournament.categories?.map(cat => {
-      const catMatches = matches.filter(m => m.category === cat);
+    // Fallback para torneios antigos que não tem categorias no banco
+    const activeCategories = activeTournament.categories && activeTournament.categories.length > 0
+      ? activeTournament.categories
+      : Array.from(new Set(matches.map(m => m.category))).filter(Boolean);
+
+    return activeCategories.map(cat => {
+      const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase());
       if (catMatches.length === 0) return null;
 
       // Sort matches for the airport list: Ongoing first, then Planned, then Finished

@@ -116,7 +116,7 @@ export default function TournamentDetails() {
             }
 
             for (const cat of tournamentCategories) {
-                const catAthletes = athletes.filter(a => a.category === cat);
+                const catAthletes = athletes.filter(a => a.category.toUpperCase() === cat.toUpperCase());
                 if (catAthletes.length >= 2) {
                     await matchService.generateGroupMatches(id, catAthletes, tournament.type);
                 }
@@ -263,7 +263,7 @@ export default function TournamentDetails() {
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                 {tournament.categories?.map(cat => {
                                     // Try to find the final match for this category
-                                    const finalMatch = matches.find(m => m.category === cat && m.round === 'final' && m.status === 'finished');
+                                    const finalMatch = matches.find(m => m.category.toUpperCase() === cat.toUpperCase() && m.round === 'final' && m.status === 'finished');
                                     if (!finalMatch) return null;
 
                                     const winner = finalMatch.setsA > finalMatch.setsB ? finalMatch.teamA : finalMatch.teamB;
@@ -366,7 +366,7 @@ export default function TournamentDetails() {
                             <CardContent>
                                 <div className="space-y-12">
                                     {(tournament?.categories || availableCategories).map(cat => {
-                                        const catMatches = matches.filter(m => m.category === cat && m.group);
+                                        const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase() && m.group);
                                         if (catMatches.length === 0) return null;
                                         const groups = Array.from(new Set(catMatches.map(m => m.group))).sort();
 
