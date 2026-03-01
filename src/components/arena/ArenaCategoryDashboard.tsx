@@ -8,9 +8,10 @@ interface ArenaCategoryDashboardProps {
     category: string;
     matches: (Match & { courtName?: string })[];
     tournamentId: string;
+    tournamentName: string;
 }
 
-export function ArenaCategoryDashboard({ category, matches, tournamentId }: ArenaCategoryDashboardProps) {
+export function ArenaCategoryDashboard({ category, matches, tournamentId, tournamentName }: ArenaCategoryDashboardProps) {
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -49,7 +50,7 @@ export function ArenaCategoryDashboard({ category, matches, tournamentId }: Aren
 
     return (
         <>
-            <HeadCategorie currentTime={currentTime} category={category} />
+            <HeadCategorie currentTime={currentTime} category={category} tournamentName={tournamentName} />
             <div className="w-full h-full flex flex-col px-6 py-1 animate-in fade-in zoom-in-95 duration-700">
 
 

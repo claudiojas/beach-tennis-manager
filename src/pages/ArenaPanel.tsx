@@ -89,14 +89,15 @@ const ArenaPanel = () => {
                 className={`
                     absolute inset-0 transition-all duration-1000 flex flex-col
                     ${idx === activeCategoryIndex
-                    ? 'opacity-100 translate-x-0 z-10 scale-100'
-                    : 'opacity-0 -translate-x-full z-0 scale-95 pointer-events-none'}
+                    ? 'opacity-100 translate-x-0 z-50 scale-100'
+                    : 'opacity-0 -translate-x-full -z-10 scale-95 pointer-events-none'}
                 `}
               >
                 <ArenaCategoryDashboard
                   category={slide!.category}
                   matches={slide!.matches}
                   tournamentId={activeTournament!.id}
+                  tournamentName={activeTournament?.name || 'Torneio'}
                 />
               </div>
             ))}
