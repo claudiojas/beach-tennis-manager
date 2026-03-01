@@ -64,8 +64,8 @@ export function ArenaCategoryDashboard({ category, matches, tournamentName }: Ar
                         style={{ animation: 'slideScreens 30s ease-in-out infinite', willChange: 'transform' }}
                     >
                         {/* Tela 1: Fase de Grupos */}
-                        <div className="h-1/2 w-full flex flex-col pt-4 md:pt-4 pb-4">
-                            <h3 className="text-xl md:text-2xl font-black text-white/50 mb-6 uppercase tracking-[0.4em] text-center italic flex items-center justify-center gap-4">
+                        <div className="h-1/2 w-full flex flex-col pt-0 pb-4">
+                            <h3 className="text-xl md:text-2xl font-black text-white/50 mb-3 uppercase tracking-[0.4em] text-center italic flex items-center justify-center gap-4">
                                 <Users size={24} className="text-primary/50" />
                                 Fase de Grupos
                                 <Users size={24} className="text-primary/50" />
