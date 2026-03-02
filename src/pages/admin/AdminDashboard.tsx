@@ -5,7 +5,7 @@ import * as z from "zod";
 import { tournamentService } from "@/services/tournamentService";
 import { courtService } from "@/services/courtService";
 import { arenaService } from "@/services/arenaService";
-import { Tournament, Arena } from "@/types/beach-tennis";
+import { Tournament, Arena, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
@@ -402,7 +402,7 @@ export default function AdminDashboard() {
                       <FormItem className="space-y-1">
                         <FormLabel>Categorias Ativas</FormLabel>
                         <div className="flex flex-wrap gap-1.5 py-1">
-                          {["PRO", "A", "B", "C", "D", "INICIANTE", "MISTA", "SUB-12", "SUB-14", "+40", "+50"].map((cat) => (
+                          {TOURNAMENT_CATEGORIES.map((cat) => (
                             <Badge
                               key={cat}
                               variant={field.value.includes(cat) ? "default" : "outline"}

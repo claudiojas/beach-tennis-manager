@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { matchService } from "@/services/matchService";
 import { athleteService } from "@/services/athleteService";
-import { Player, Court, Match } from "@/types/beach-tennis";
+import { Player, Court, Match, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 import { Loader2, Users, User, CalendarClock, Clock, MapPin, Trophy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
@@ -245,12 +245,9 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                             ))
                                         ) : (
                                             <>
-                                                <SelectItem value="Pro">Profissional (Pro)</SelectItem>
-                                                <SelectItem value="A">Categoria A</SelectItem>
-                                                <SelectItem value="B">Categoria B</SelectItem>
-                                                <SelectItem value="C">Categoria C</SelectItem>
-                                                <SelectItem value="Iniciante">Iniciante</SelectItem>
-                                                <SelectItem value="Mista">Mista</SelectItem>
+                                                {TOURNAMENT_CATEGORIES.map((cat) => (
+                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                                ))}
                                             </>
                                         )}
                                     </SelectContent>

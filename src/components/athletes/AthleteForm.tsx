@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { athleteService } from "@/services/athleteService";
 import { useState } from "react";
-import { Category, Player } from "@/types/beach-tennis";
+import { Category, Player, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 
 const formSchema = z.object({
     name: z.string().min(2, {
@@ -127,16 +127,9 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="Pro">Pro</SelectItem>
-                                    <SelectItem value="A">A</SelectItem>
-                                    <SelectItem value="B">B</SelectItem>
-                                    <SelectItem value="C">C</SelectItem>
-                                    <SelectItem value="D">D</SelectItem>
-                                    <SelectItem value="Iniciante">Iniciante</SelectItem>
-                                    <SelectItem value="Mista">Mista</SelectItem>
-                                    <SelectItem value="S Masculino">S Masculino</SelectItem>
-                                    <SelectItem value="A Feminino">A Feminino</SelectItem>
-                                    <SelectItem value="B Feminino">B Feminino</SelectItem>
+                                    {TOURNAMENT_CATEGORIES.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <FormMessage />

@@ -3,6 +3,20 @@ export type CourtStatus = 'livre' | 'em_jogo' | 'pausada' | 'manutencao';
 
 export type Category = string;
 
+export const TOURNAMENT_CATEGORIES = [
+  "PRO",
+  "A",
+  "B",
+  "C",
+  "D",
+  "INICIANTE",
+  "MISTA",
+  "SUB-12",
+  "SUB-14",
+  "+40",
+  "+50"
+] as const;
+
 export interface Player {
   id: string;
   name: string;
