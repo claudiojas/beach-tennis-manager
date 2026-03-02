@@ -86,6 +86,8 @@ const ArenaPanel = () => {
         ? Array.from(new Set(officialCategories))
         : Array.from(new Set(tMatches.map(m => m.category))).filter(Boolean);
 
+      const allCatsJoined = tCats.join(' / ');
+
       return tCats.map(cat => {
         const catMatches = tMatches.filter(m =>
           m.category && cat && m.category.trim().toUpperCase() === cat.trim().toUpperCase()
@@ -101,13 +103,14 @@ const ArenaPanel = () => {
         return {
           tournamentName: t.name,
           category: cat,
+          displayCategory: allCatsJoined,
           matches: sortedMatches.map(m => ({
             ...m,
             courtName: courts.find(c => c.id === m.courtId)?.name
           }))
         };
       }).filter(Boolean);
-    }).filter(Boolean) as { tournamentName: string, category: string, matches: any[] }[];
+    }).filter(Boolean) as { tournamentName: string, category: string, displayCategory: string, matches: any[] }[];
   }, [activeTournaments, allMatches, courts]);
 
   // Automatic Rotation between categories
@@ -130,7 +133,7 @@ const ArenaPanel = () => {
       {categorySlides.length > 0 && (
         <HeadCategorie
           currentTime={currentTime}
-          category={categorySlides[activeCategoryIndex]?.category || ''}
+          category={categorySlides[activeCategoryIndex]?.displayCategory || categorySlides[activeCategoryIndex]?.category || ''}
           tournamentName={categorySlides[activeCategoryIndex]?.tournamentName || ''}
         />
       )}
