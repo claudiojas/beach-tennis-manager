@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -169,107 +169,36 @@ export default function TournamentDetails() {
     const pendingCourts = availableCourtsFromTemplate.filter(ac => !addedCourtNames.includes(ac.name));
 
     return (
-        <div className="min-h-screen bg-background">
-            <header className="border-b bg-card">
-                <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-4">
-                    <Button variant="ghost" size="icon" asChild>
+        <div className="min-h-screen bg-background pb-20 md:pb-0">
+            {/* App Bar - Native Feel */}
+            <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md px-4 py-3 md:px-6">
+                <div className="mx-auto flex max-w-5xl items-center gap-4">
+                    <Button variant="ghost" size="icon" asChild className="rounded-full">
                         <Link to="/admin"><ArrowLeft className="h-5 w-5" /></Link>
                     </Button>
-                    <div className="flex-1 flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                            <h1 className="text-xl font-bold flex items-center gap-2 leading-none">
-                                {activeSubTournament ? (
-                                    <span className="flex items-center gap-2">
-                                        <Trophy className="h-5 w-5 text-primary" />
-                                        {activeSubTournament}
-                                        <span className="text-xs font-normal text-muted-foreground ml-2">({tournament?.name})</span>
-                                    </span>
-                                ) : (
-                                    tournament?.name || "Gerenciar Etapa"
-                                )}
-                            </h1>
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                {tournament && (
-                                    <Badge variant="secondary" className="bg-primary/20 text-primary border-none uppercase text-[9px] h-4 px-1.5 font-black">
-                                        {tournament.type}
-                                    </Badge>
-                                )}
-                                {tournament?.categories?.map(cat => (
-                                    <Badge key={cat} variant="outline" className="uppercase text-[9px] h-4 px-1.5 border-white/20 text-muted-foreground font-bold">
-                                        {cat}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px]"
-                                onClick={() => setOpenQR(true)}
-                            >
-                                <QrCode className="mr-2 h-3 w-3" />
-                                Link Público
-                            </Button>
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px]"
-                                onClick={() => setOpenSettings(true)}
-                            >
-                                <Settings className="mr-2 h-3 w-3" />
-                                Regras
-                            </Button>
-
-                            {activeSubTournament && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 text-[10px] bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                                    onClick={() => setActiveSubTournament(null)}
-                                >
-                                    <ArrowLeft className="mr-2 h-3 w-3" />
-                                    Voltar p/ Etapa
-                                </Button>
-                            )}
-
-                            {tournament?.status === 'active' && (
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            className="h-8 text-[10px]"
-                                        >
-                                            Finalizar Etapa
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Deseja finalizar a etapa?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Esta ação irá encerrar a etapa e gerar o Hall da Fama. Não será possível reverter sem intervenção do sistema.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Voltar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => {
-                                                tournamentService.update(id!, { status: 'finished' });
-                                                toast.success("Torneio finalizado!");
-                                            }} className="bg-destructive text-destructive-foreground">Confirmar</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            )}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-lg font-bold tracking-tight truncate">
+                            {activeSubTournament || tournament?.name || "Gerenciar"}
+                        </h1>
+                        {!activeSubTournament && (
+                            <p className="text-[10px] text-muted-foreground uppercase font-black truncate">Etapa</p>
+                        )}
+                        {activeSubTournament && (
+                            <p className="text-[10px] text-primary uppercase font-black truncate">{tournament?.name}</p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setOpenQR(true)} className="rounded-full">
+                            <QrCode className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setOpenSettings(true)} className="rounded-full">
+                            <Settings className="h-5 w-5" />
+                        </Button>
                     </div>
                 </div>
-
-
             </header>
 
-            <main className="mx-auto max-w-5xl p-6">
+            <main className="mx-auto max-w-5xl p-4 md:p-6">
                 {tournament?.status === 'finished' && (
                     <Card className="mb-8 border-yellow-500/20 bg-yellow-500/5 shadow-lg overflow-hidden border-2">
                         <div className="bg-yellow-500 h-1" />
@@ -400,15 +329,35 @@ export default function TournamentDetails() {
                     </Card>
 
                     {activeSubTournament && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                            {/* Drill-down Header/Back for sub-tournaments */}
+                            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-primary p-1.5 rounded-lg shadow-lg shadow-primary/20">
+                                        <Trophy className="h-4 w-4 text-primary-foreground" />
+                                    </div>
+                                    <span className="font-black uppercase text-xs tracking-tight">{activeSubTournament}</span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setActiveSubTournament(null)}
+                                    className="text-[10px] font-bold uppercase h-7 px-3 bg-background border"
+                                >
+                                    Trocar Torneio
+                                </Button>
+                            </div>
+
                             <Tabs defaultValue="athletes" className="space-y-4">
-                                <TabsList className="bg-muted/50 p-1 rounded-lg">
-                                    <TabsTrigger value="courts">Quadras</TabsTrigger>
-                                    <TabsTrigger value="athletes">Atletas</TabsTrigger>
-                                    <TabsTrigger value="groups">Fase de Grupos</TabsTrigger>
-                                    <TabsTrigger value="matches">Jogos</TabsTrigger>
-                                    <TabsTrigger value="brackets">Mata-mata</TabsTrigger>
-                                </TabsList>
+                                <div className="sticky top-[60px] z-40 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b md:relative md:top-0 md:bg-transparent md:border-none md:p-0 md:m-0 overflow-x-auto no-scrollbar">
+                                    <TabsList className="bg-muted/50 p-1 rounded-lg inline-flex min-w-full md:w-auto">
+                                        <TabsTrigger value="courts" className="text-[10px] md:text-sm uppercase font-bold">Quadras</TabsTrigger>
+                                        <TabsTrigger value="athletes" className="text-[10px] md:text-sm uppercase font-bold">Atletas</TabsTrigger>
+                                        <TabsTrigger value="groups" className="text-[10px] md:text-sm uppercase font-bold">Grupos</TabsTrigger>
+                                        <TabsTrigger value="matches" className="text-[10px] md:text-sm uppercase font-bold">Jogos</TabsTrigger>
+                                        <TabsTrigger value="brackets" className="text-[10px] md:text-sm uppercase font-bold">Chaves</TabsTrigger>
+                                    </TabsList>
+                                </div>
 
                                 <TabsContent value="courts">
                                     <Card>
@@ -788,6 +737,27 @@ export default function TournamentDetails() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {/* Bottom Navigation for Mobile */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-lg border-t px-6 py-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div className="flex items-center justify-between max-w-md mx-auto">
+                    <Link to="/admin" className="flex flex-col items-center gap-1 text-primary">
+                        <Trophy className="h-6 w-6" />
+                        <span className="text-[10px] font-bold">Etapas</span>
+                    </Link>
+                    <Link to="/admin/athletes" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <Users className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Atletas</span>
+                    </Link>
+                    <Link to="/admin/arenas" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <MapPin className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Arenas</span>
+                    </Link>
+                    <Link to="/admin/sponsors" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Ads</span>
+                    </Link>
+                </div>
+            </nav>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Users } from "lucide-react";
+import { ArrowLeft, Plus, Users, Trophy, MapPin, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
@@ -18,22 +18,20 @@ export default function GlobalAthletes() {
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            <header className="border-b bg-card px-6 py-4">
+        <div className="min-h-screen bg-background text-foreground pb-20 md:pb-0">
+            {/* App Bar - Native Feel */}
+            <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md px-4 py-3 md:px-6">
                 <div className="mx-auto flex max-w-5xl items-center gap-4">
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" asChild className="rounded-full">
                         <Link to="/admin">
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                     </Button>
-                    <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Users className="h-6 w-6 text-primary" />
-                        Gestão de Atletas
-                    </h1>
+                    <h1 className="text-lg font-bold tracking-tight">Atletas</h1>
                 </div>
             </header>
 
-            <main className="mx-auto max-w-5xl p-6">
+            <main className="mx-auto max-w-5xl p-4 md:p-6">
                 <Card>
                     <CardHeader className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 pb-4 sm:pb-2">
                         <div className="space-y-1 text-center sm:text-left">
@@ -66,6 +64,27 @@ export default function GlobalAthletes() {
                     </CardContent>
                 </Card>
             </main>
+            {/* Bottom Navigation for Mobile */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-lg border-t px-6 py-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div className="flex items-center justify-between max-w-md mx-auto">
+                    <Link to="/admin" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <Trophy className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Etapas</span>
+                    </Link>
+                    <Link to="/admin/athletes" className="flex flex-col items-center gap-1 text-primary">
+                        <Users className="h-6 w-6" />
+                        <span className="text-[10px] font-bold">Atletas</span>
+                    </Link>
+                    <Link to="/admin/arenas" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <MapPin className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Arenas</span>
+                    </Link>
+                    <Link to="/admin/sponsors" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-[10px] font-medium">Ads</span>
+                    </Link>
+                </div>
+            </nav>
         </div>
     );
 }

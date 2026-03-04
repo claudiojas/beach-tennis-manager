@@ -275,74 +275,82 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card px-6 py-4">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {/* App Bar - Native Feel */}
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md px-4 py-3 md:px-6">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            Minhas Etapas
-          </h1>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/">Início</Link>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
+            <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
+              <Trophy className="h-5 w-5 text-primary" />
+            </div>
+            <h1 className="text-lg font-bold tracking-tight">AgilizAI</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <main className="mx-auto max-w-5xl p-4 md:p-6">
+        {/* Quick Stats/Links - Desktop Only */}
+        <div className="hidden md:grid grid-cols-3 gap-4 mb-8">
           <Link to="/admin/athletes">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">Atletas</CardTitle>
-                <Users className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Atletas</CardTitle>
+                <Users className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Gerencie a base global de jogadores.</p>
+                <p className="text-lg font-black">Base Global</p>
               </CardContent>
             </Card>
           </Link>
           <Link to="/admin/arenas">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">Arenas e Quadras</CardTitle>
-                <MapPin className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Arenas</CardTitle>
+                <MapPin className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Gerencie locais e layouts de quadra.</p>
+                <p className="text-lg font-black">Locais</p>
               </CardContent>
             </Card>
           </Link>
           <Link to="/admin/sponsors">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-primary/20 bg-primary/5">
+            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-primary/5">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-medium">Patrocinadores</CardTitle>
-                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary">Ads</CardTitle>
+                <ImageIcon className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Gestão de publicidade com IA (Beta).</p>
+                <p className="text-lg font-black text-primary">IA Patrocínio</p>
               </CardContent>
             </Card>
           </Link>
         </div>
 
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Gerenciar Etapas</h2>
-            <p className="text-muted-foreground">Selecione uma etapa para gerenciar ou crie uma nova.</p>
+            <h2 className="text-xl md:text-2xl font-black">Minhas Etapas</h2>
+            <p className="text-sm text-muted-foreground">Gerencie seus eventos ativos.</p>
           </div>
 
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={handleOpenCreate}>
+              <Button onClick={handleOpenCreate} className="hidden md:flex rounded-full px-6 shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-4 w-4" />
                 Nova Etapa
               </Button>
             </DialogTrigger>
+            {/* Floating Action Button for Mobile */}
+            <Button
+              onClick={() => { handleOpenCreate(); setOpen(true); }}
+              className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 z-[60] p-0"
+            >
+              <Plus className="h-7 w-7" />
+            </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
@@ -479,104 +487,108 @@ export default function AdminDashboard() {
             <Button onClick={() => setOpen(true)}>Criar Agora</Button>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {tournaments.map((tournament) => (
-              <Card key={tournament.id} className="hover:shadow-md transition-all group relative">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="mb-2">
+              <div key={tournament.id} className="relative group">
+                <Link to={`/admin/tournament/${tournament.id}`} className="block">
+                  <Card className="hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 border-muted/40 overflow-hidden rounded-2xl">
+                    <div className="bg-primary/5 h-1.5 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
+                          <Trophy className="h-4 w-4 text-primary" />
+                        </div>
                         {getStatusBadge(tournament.status)}
                       </div>
-                      <CardTitle className="group-hover:text-primary transition-colors text-xl">{tournament.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(tournament.date).toLocaleDateString('pt-BR')}
-                        {tournament.time && (
-                          <span className="flex items-center gap-1 ml-2">
-                            <Clock className="h-3 w-3" />
-                            {tournament.time}
-                          </span>
-                        )}
-                      </CardDescription>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {tournament.categories?.map(cat => (
-                          <Badge key={cat} variant="outline" className="text-[8px] uppercase h-4 px-1 border-primary/20 text-primary font-bold">
+                      <CardTitle className="text-xl font-black tracking-tight group-hover:text-primary transition-colors">
+                        {tournament.name}
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase bg-muted/40 px-2 py-0.5 rounded-md">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(tournament.date).toLocaleDateString('pt-BR')}
+                        </div>
+                        {tournament.categories?.slice(0, 2).map(cat => (
+                          <Badge key={cat} variant="outline" className="text-[9px] uppercase h-5 px-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
                             {cat}
                           </Badge>
                         ))}
+                        {tournament.categories && tournament.categories.length > 2 && (
+                          <span className="text-[10px] font-bold text-muted-foreground">+{tournament.categories.length - 2}</span>
+                        )}
                       </div>
-                    </div>
-                    {/* Actions Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-muted-foreground hover:text-foreground">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {/* Standard Actions */}
-                        {(tournament.status === 'planning' || tournament.status === 'active') && (
-                          <DropdownMenuItem onClick={() => handleEdit(tournament)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                        )}
+                    </CardHeader>
+                    <CardContent className="pb-4 pt-0">
+                      <div className="flex items-center justify-between pt-4 border-t border-muted/20">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[150px]">{tournament.location}</span>
+                        </div>
+                        <span className="text-[10px] font-black text-primary flex items-center gap-1 uppercase tracking-tighter">
+                          Gerenciar
+                          <PlayCircle className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
 
-                        {/* Status Actions */}
-                        {tournament.status === 'planning' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')}>
-                            <PlayCircle className="mr-2 h-4 w-4 text-green-600" />
-                            Iniciar Etapa
-                          </DropdownMenuItem>
-                        )}
+                {/* Actions Menu Hooked as Absolute */}
+                <div className="absolute top-4 right-4 z-10">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-background/80 rounded-full">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-muted/40">
+                      {(tournament.status === 'planning' || tournament.status === 'active') && (
+                        <DropdownMenuItem onClick={() => handleEdit(tournament)} className="rounded-lg">
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                      )}
 
-                        {tournament.status === 'active' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'finished')}>
-                            <CheckCircle className="mr-2 h-4 w-4 text-blue-600" />
-                            Finalizar
-                          </DropdownMenuItem>
-                        )}
+                      {tournament.status === 'planning' && (
+                        <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')} className="rounded-lg text-green-600 font-bold">
+                          <PlayCircle className="mr-2 h-4 w-4" />
+                          Iniciar Etapa
+                        </DropdownMenuItem>
+                      )}
 
-                        {tournament.status !== 'finished' && tournament.status !== 'cancelled' && (
-                          <DropdownMenuItem
-                            className="text-orange-600 focus:text-orange-600"
-                            onClick={() => handleStatusChange(tournament.id, 'cancelled')}
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancelar
-                          </DropdownMenuItem>
-                        )}
+                      {tournament.status === 'active' && (
+                        <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'finished')} className="rounded-lg text-blue-600">
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Finalizar
+                        </DropdownMenuItem>
+                      )}
 
-                        {/* Delete - Only if not active (allow if planning, finished or cancelled) */}
-                        {tournament.status !== 'active' && (
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              handleDeleteRequest(tournament.id);
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {tournament.location && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mb-4">
-                      <MapPin className="h-3 w-3" />
-                      {tournament.location}
-                    </p>
-                  )}
-                  <Button variant="secondary" className="w-full" asChild>
-                    <Link to={`/admin/tournament/${tournament.id}`}>Gerenciar</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                      {tournament.status !== 'finished' && tournament.status !== 'cancelled' && (
+                        <DropdownMenuItem
+                          className="text-orange-600 focus:text-orange-600 rounded-lg"
+                          onClick={() => handleStatusChange(tournament.id, 'cancelled')}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancelar
+                        </DropdownMenuItem>
+                      )}
+
+                      {tournament.status !== 'active' && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive rounded-lg"
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            handleDeleteRequest(tournament.id);
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -602,6 +614,27 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Bottom Navigation for Mobile */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-lg border-t px-6 py-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <Link to="/admin" className="flex flex-col items-center gap-1 text-primary">
+            <Trophy className="h-6 w-6" />
+            <span className="text-[10px] font-bold">Etapas</span>
+          </Link>
+          <Link to="/admin/athletes" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+            <Users className="h-6 w-6" />
+            <span className="text-[10px] font-medium">Atletas</span>
+          </Link>
+          <Link to="/admin/arenas" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+            <MapPin className="h-6 w-6" />
+            <span className="text-[10px] font-medium">Arenas</span>
+          </Link>
+          <Link to="/admin/sponsors" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+            <ImageIcon className="h-6 w-6" />
+            <span className="text-[10px] font-medium">Ads</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }
