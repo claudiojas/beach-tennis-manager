@@ -219,14 +219,14 @@ export default function TournamentDetails() {
                                             size="sm"
                                             className="h-8 text-[10px]"
                                         >
-                                            Finalizar Torneio
+                                            Finalizar Etapa
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Deseja finalizar o torneio?</AlertDialogTitle>
+                                            <AlertDialogTitle>Deseja finalizar a etapa?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Esta ação irá encerrar o torneio e gerar o Hall da Fama. Não será possível reverter sem intervenção do sistema.
+                                                Esta ação irá encerrar a etapa e gerar o Hall da Fama. Não será possível reverter sem intervenção do sistema.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -282,14 +282,99 @@ export default function TournamentDetails() {
                     </Card>
                 )}
 
-                <Tabs defaultValue="courts" className="space-y-4">
+                <Tabs defaultValue="tournaments" className="space-y-4">
                     <TabsList className="bg-muted/50 p-1 rounded-lg">
+                        <TabsTrigger value="tournaments">Torneios / Categorias</TabsTrigger>
                         <TabsTrigger value="courts">Quadras</TabsTrigger>
                         <TabsTrigger value="athletes">Atletas</TabsTrigger>
                         <TabsTrigger value="groups">Fase de Grupos</TabsTrigger>
                         <TabsTrigger value="matches">Jogos</TabsTrigger>
                         <TabsTrigger value="brackets">Mata-mata</TabsTrigger>
                     </TabsList>
+
+                    <TabsContent value="tournaments">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Torneios e Categorias</CardTitle>
+                                    <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-6">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <Input
+                                            placeholder="Ex: Masculina A, Mista Open, Iniciante..."
+                                            id="new-category-name"
+                                            className="max-w-xs"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const input = e.currentTarget;
+                                                    const name = input.value.trim().toUpperCase();
+                                                    if (name && id && tournament) {
+                                                        const currentCats = tournament.categories || [];
+                                                        if (!currentCats.includes(name)) {
+                                                            tournamentService.update(id, { categories: [...currentCats, name] });
+                                                            input.value = '';
+                                                            toast.success(`Torneio ${name} adicionado!`);
+                                                        } else {
+                                                            toast.error("Este torneio já existe nesta etapa.");
+                                                        }
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            onClick={() => {
+                                                const input = document.getElementById('new-category-name') as HTMLInputElement;
+                                                const name = input.value.trim().toUpperCase();
+                                                if (name && id && tournament) {
+                                                    const currentCats = tournament.categories || [];
+                                                    if (!currentCats.includes(name)) {
+                                                        tournamentService.update(id, { categories: [...currentCats, name] });
+                                                        input.value = '';
+                                                        toast.success(`Torneio ${name} adicionado!`);
+                                                    } else {
+                                                        toast.error("Este torneio já existe nesta etapa.");
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
+                                        </Button>
+                                    </div>
+
+                                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                                        {tournament?.categories?.map(cat => (
+                                            <div key={cat} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                                                <span className="font-bold text-sm uppercase">{cat}</span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                                    onClick={() => {
+                                                        if (id && tournament) {
+                                                            const updated = (tournament.categories || []).filter(c => c !== cat);
+                                                            tournamentService.update(id, { categories: updated });
+                                                            toast.success(`Torneio ${cat} removido.`);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {(!tournament?.categories || tournament.categories.length === 0) && (
+                                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                                            Nenhuma categoria/torneio criado para esta etapa.
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
 
                     <TabsContent value="courts">
                         <Card>
@@ -526,12 +611,12 @@ export default function TournamentDetails() {
                 </DialogContent>
             </Dialog>
 
-            {/* Configurações do Torneio */}
+            {/* Configurações da Etapa */}
             <Dialog open={openSettings} onOpenChange={setOpenSettings}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Configurações de Jogo</DialogTitle>
-                        <DialogDescription>Defina as regras para todas as categorias deste torneio.</DialogDescription>
+                        <DialogDescription>Defina as regras para todas as categorias desta etapa.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-6 pt-4">
                         <div className="space-y-2">
@@ -579,14 +664,14 @@ export default function TournamentDetails() {
             <Dialog open={openQR} onOpenChange={setOpenQR}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Compartilhar Torneio</DialogTitle>
+                        <DialogTitle>Compartilhar Etapa</DialogTitle>
                         <DialogDescription>Apresente este QR Code para os jogadores acessarem os resultados.</DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col items-center justify-center space-y-4 py-8">
                         <div className="bg-white p-4 rounded-xl shadow-inner border">
                             <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + '/torneio/' + id)}`}
-                                alt="QR Code do Torneio"
+                                alt="QR Code da Etapa"
                                 className="w-48 h-48"
                             />
                         </div>

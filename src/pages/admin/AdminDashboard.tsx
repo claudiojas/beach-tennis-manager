@@ -75,7 +75,7 @@ const formSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Horário inválido."),
   arenaId: z.string().min(1, "Selecione uma arena."),
   type: z.enum(['Simples', 'Duplas'], { required_error: "Selecione o tipo do torneio." }),
-  categories: z.array(z.string()).min(1, "Selecione pelo menos uma categoria."),
+  categories: z.array(z.string()).optional(),
 });
 
 export default function AdminDashboard() {
@@ -223,9 +223,9 @@ export default function AdminDashboard() {
           time: values.time,
           location: locationName,
           type: values.type,
-          categories: values.categories,
+          categories: values.categories || [],
         });
-        toast.success("Torneio atualizado!");
+        toast.success("Etapa atualizada!");
       } else {
         // CREATE MODE
         const newTournamentRef = await tournamentService.create({
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
             noAd: true
           },
           participatingAthleteIds: [],
-          categories: values.categories
+          categories: values.categories || []
         } as Omit<Tournament, "id" | "createdAt">);
 
         // Auto-create courts from Arena template
@@ -253,9 +253,9 @@ export default function AdminDashboard() {
           }));
 
           await Promise.all(promises);
-          toast.success(`Torneio criado e ${arena.courts.length} quadras configuradas!`);
+          toast.success(`Etapa criada e ${arena.courts.length} quadras configuradas!`);
         } else {
-          toast.success("Torneio criado (sem quadras configuradas na arena).");
+          toast.success("Etapa criada (sem quadras configuradas na arena).");
         }
       }
 
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Trophy className="h-6 w-6 text-primary" />
-            Meus Torneios
+            Minhas Etapas
           </h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -332,22 +332,22 @@ export default function AdminDashboard() {
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Gerenciar Eventos</h2>
-            <p className="text-muted-foreground">Selecione um torneio para gerenciar ou crie um novo.</p>
+            <h2 className="text-2xl font-bold">Gerenciar Etapas</h2>
+            <p className="text-muted-foreground">Selecione uma etapa para gerenciar ou crie uma nova.</p>
           </div>
 
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={handleOpenCreate}>
                 <Plus className="mr-2 h-4 w-4" />
-                Novo Torneio
+                Nova Etapa
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar Torneio" : "Novo Torneio"}</DialogTitle>
+                <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
                 <DialogDescription>
-                  {isEditing ? "Atualize as informações do evento." : "Crie um novo evento selecionando a Arena."}
+                  {isEditing ? "Atualize as informações da etapa." : "Crie uma nova etapa selecionando a Arena."}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -395,35 +395,7 @@ export default function AdminDashboard() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="categories"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel>Categorias Ativas</FormLabel>
-                        <div className="flex flex-wrap gap-1.5 py-1">
-                          {TOURNAMENT_CATEGORIES.map((cat) => (
-                            <Badge
-                              key={cat}
-                              variant={field.value.includes(cat) ? "default" : "outline"}
-                              className="cursor-pointer px-2 py-0.5 uppercase text-[9px] transition-all"
-                              onClick={() => {
-                                const current = field.value;
-                                if (current.includes(cat)) {
-                                  field.onChange(current.filter(c => c !== cat));
-                                } else {
-                                  field.onChange([...current, cat]);
-                                }
-                              }}
-                            >
-                              {cat}
-                            </Badge>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -486,7 +458,7 @@ export default function AdminDashboard() {
                   )}
 
                   <Button type="submit" className="w-full mt-2 font-bold uppercase tracking-widest">
-                    {isEditing ? "Salvar Alterações" : "Criar Torneio"}
+                    {isEditing ? "Salvar Alterações" : "Criar Etapa"}
                   </Button>
 
                 </form>
@@ -500,9 +472,9 @@ export default function AdminDashboard() {
             <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Trophy className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold">Nenhum torneio encontrado</h3>
+            <h3 className="mt-4 text-lg font-semibold">Nenhuma etapa encontrada</h3>
             <p className="mb-4 text-muted-foreground max-w-sm">
-              Crie seu primeiro torneio para começar a gerenciar duplas e partidas.
+              Crie sua primeira etapa para começar a gerenciar torneios e partidas.
             </p>
             <Button onClick={() => setOpen(true)}>Criar Agora</Button>
           </div>
@@ -555,7 +527,7 @@ export default function AdminDashboard() {
                         {tournament.status === 'planning' && (
                           <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')}>
                             <PlayCircle className="mr-2 h-4 w-4 text-green-600" />
-                            Iniciar Torneio
+                            Iniciar Etapa
                           </DropdownMenuItem>
                         )}
 
@@ -613,9 +585,9 @@ export default function AdminDashboard() {
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Etapa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Essa ação não pode ser desfeita. Isso excluirá permanentemente o torneio.
+              Essa ação não pode ser desfeita. Isso excluirá permanentemente a etapa e todos os seus dados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
