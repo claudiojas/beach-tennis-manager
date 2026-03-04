@@ -18,10 +18,10 @@ import { Input } from "@/components/ui/input";
 
 interface TournamentAthleteManagerProps {
     tournament: Tournament;
-    selectedCategory?: string;
+    activeCategory?: string | null;
 }
 
-export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS" }: TournamentAthleteManagerProps) {
+export function TournamentAthleteManager({ tournament, activeCategory = null }: TournamentAthleteManagerProps) {
     const [globalAthletes, setGlobalAthletes] = useState<Player[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -61,7 +61,7 @@ export function TournamentAthleteManager({ tournament, selectedCategory = "TODAS
 
         const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             a.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === "TODAS" || a.category === selectedCategory;
+        const matchesCategory = !activeCategory || a.category.toUpperCase() === activeCategory.toUpperCase();
         return matchesSearch && matchesCategory;
     });
 

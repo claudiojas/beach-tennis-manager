@@ -62,6 +62,7 @@ export default function TournamentDetails() {
     const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
     const [openManualGroups, setOpenManualGroups] = useState(false);
     const [openResetConfirm, setOpenResetConfirm] = useState(false);
+    const [activeSubTournament, setActiveSubTournament] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -158,7 +159,9 @@ export default function TournamentDetails() {
     ])).filter(Boolean).sort();
 
     // Simplified: Show all categories in the UI
-    const filteredMatches = matches;
+    const filteredMatches = activeSubTournament
+        ? matches.filter(m => m.category.toUpperCase() === activeSubTournament.toUpperCase())
+        : matches;
 
     const matchingArena = arenas.find(a => a.name === tournament?.location);
     const availableCourtsFromTemplate = matchingArena?.courts || [];
@@ -175,7 +178,15 @@ export default function TournamentDetails() {
                     <div className="flex-1 flex items-center justify-between">
                         <div className="flex flex-col gap-1">
                             <h1 className="text-xl font-bold flex items-center gap-2 leading-none">
-                                {tournament?.name || "Gerenciar Torneio"}
+                                {activeSubTournament ? (
+                                    <span className="flex items-center gap-2">
+                                        <Trophy className="h-5 w-5 text-primary" />
+                                        {activeSubTournament}
+                                        <span className="text-xs font-normal text-muted-foreground ml-2">({tournament?.name})</span>
+                                    </span>
+                                ) : (
+                                    tournament?.name || "Gerenciar Etapa"
+                                )}
                             </h1>
                             <div className="flex flex-wrap gap-1.5 mt-1">
                                 {tournament && (
@@ -210,6 +221,18 @@ export default function TournamentDetails() {
                                 <Settings className="mr-2 h-3 w-3" />
                                 Regras
                             </Button>
+
+                            {activeSubTournament && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-[10px] bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                                    onClick={() => setActiveSubTournament(null)}
+                                >
+                                    <ArrowLeft className="mr-2 h-3 w-3" />
+                                    Voltar p/ Etapa
+                                </Button>
+                            )}
 
                             {tournament?.status === 'active' && (
                                 <AlertDialog>
@@ -282,51 +305,24 @@ export default function TournamentDetails() {
                     </Card>
                 )}
 
-                <Tabs defaultValue="tournaments" className="space-y-4">
-                    <TabsList className="bg-muted/50 p-1 rounded-lg">
-                        <TabsTrigger value="tournaments">Torneios / Categorias</TabsTrigger>
-                        <TabsTrigger value="courts">Quadras</TabsTrigger>
-                        <TabsTrigger value="athletes">Atletas</TabsTrigger>
-                        <TabsTrigger value="groups">Fase de Grupos</TabsTrigger>
-                        <TabsTrigger value="matches">Jogos</TabsTrigger>
-                        <TabsTrigger value="brackets">Mata-mata</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="tournaments">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Torneios e Categorias</CardTitle>
-                                    <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-6">
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <Input
-                                            placeholder="Ex: Masculina A, Mista Open, Iniciante..."
-                                            id="new-category-name"
-                                            className="max-w-xs"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    const input = e.currentTarget;
-                                                    const name = input.value.trim().toUpperCase();
-                                                    if (name && id && tournament) {
-                                                        const currentCats = tournament.categories || [];
-                                                        if (!currentCats.includes(name)) {
-                                                            tournamentService.update(id, { categories: [...currentCats, name] });
-                                                            input.value = '';
-                                                            toast.success(`Torneio ${name} adicionado!`);
-                                                        } else {
-                                                            toast.error("Este torneio já existe nesta etapa.");
-                                                        }
-                                                    }
-                                                }
-                                            }}
-                                        />
-                                        <Button
-                                            onClick={() => {
-                                                const input = document.getElementById('new-category-name') as HTMLInputElement;
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Torneios e Categorias</CardTitle>
+                                <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <Input
+                                        placeholder="Ex: Masculina A, Mista Open, Iniciante..."
+                                        id="new-category-name"
+                                        className="max-w-xs"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                const input = e.currentTarget;
                                                 const name = input.value.trim().toUpperCase();
                                                 if (name && id && tournament) {
                                                     const currentCats = tournament.categories || [];
@@ -338,24 +334,51 @@ export default function TournamentDetails() {
                                                         toast.error("Este torneio já existe nesta etapa.");
                                                     }
                                                 }
-                                            }}
-                                        >
-                                            <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
-                                        </Button>
-                                    </div>
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        onClick={() => {
+                                            const input = document.getElementById('new-category-name') as HTMLInputElement;
+                                            const name = input.value.trim().toUpperCase();
+                                            if (name && id && tournament) {
+                                                const currentCats = tournament.categories || [];
+                                                if (!currentCats.includes(name)) {
+                                                    tournamentService.update(id, { categories: [...currentCats, name] });
+                                                    input.value = '';
+                                                    toast.success(`Torneio ${name} adicionado!`);
+                                                } else {
+                                                    toast.error("Este torneio já existe nesta etapa.");
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
+                                    </Button>
+                                </div>
 
-                                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                                        {tournament?.categories?.map(cat => (
-                                            <div key={cat} className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                                    {tournament?.categories?.map(cat => (
+                                        <div
+                                            key={cat}
+                                            className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer group shadow-sm hover:shadow-md ${activeSubTournament === cat ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'bg-card hover:bg-accent/50'}`}
+                                            onClick={() => setActiveSubTournament(cat)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`h-2 w-2 rounded-full ${activeSubTournament === cat ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
                                                 <span className="font-bold text-sm uppercase">{cat}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                                    onClick={() => {
+                                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         if (id && tournament) {
                                                             const updated = (tournament.categories || []).filter(c => c !== cat);
                                                             tournamentService.update(id, { categories: updated });
+                                                            if (activeSubTournament === cat) setActiveSubTournament(null);
                                                             toast.success(`Torneio ${cat} removido.`);
                                                         }
                                                     }}
@@ -363,175 +386,185 @@ export default function TournamentDetails() {
                                                     <Trash2 className="h-3 w-3" />
                                                 </Button>
                                             </div>
-                                        ))}
-                                    </div>
-
-                                    {(!tournament?.categories || tournament.categories.length === 0) && (
-                                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
-                                            Nenhuma categoria/torneio criado para esta etapa.
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="courts">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Quadras</CardTitle>
-                                    <CardDescription>Gerencie o acesso dos árbitros.</CardDescription>
-                                </div>
-                                <Button onClick={() => { setEditingCourt(null); form.reset({ name: "" }); setOpen(true); }}>
-                                    <Plus className="mr-2 h-4 w-4" /> Nova Quadra
-                                </Button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {courts.map((court) => (
-                                        <div key={court.id} className="rounded-lg border p-4 bg-card shadow-sm">
-                                            <div className="flex justify-between items-start font-bold mb-2">
-                                                <div className="flex flex-col">
-                                                    <span>{court.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground uppercase font-normal">{court.status.replace('_', ' ')}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary">{court.pin}</Badge>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => courtService.remove(court.id)}>
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
 
-                    <TabsContent value="athletes">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Participantes</CardTitle>
-                                <CardDescription>Selecione quem participa deste torneio.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {tournament && <TournamentAthleteManager tournament={tournament} />}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="groups">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardDescription>Classificação de todos os grupos do evento.</CardDescription>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-8 text-[10px]">
-                                        Gerar Manual
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={handleGenerateInitialMatches} disabled={isGeneratingAuto} className="h-8 text-[10px]">
-                                        Gerar Automático (Todas Categorias)
-                                    </Button>
-                                    <Button size="sm" onClick={async () => {
-                                        if (!id || !tournament) return;
-                                        try {
-                                            for (const cat of (tournament.categories || [])) {
-                                                await matchService.promoteGroupWinners(id, cat, 2);
-                                            }
-                                            toast.success("Mata-mata gerado para todas categorias!");
-                                        } catch (e: any) { toast.error(e.message); }
-                                    }} disabled={!filteredMatches.some(m => m.status === 'finished')}>
-                                        Promover Vencedores
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-12">
-                                    {(tournament?.categories || availableCategories).map(cat => {
-                                        const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase() && m.group);
-                                        if (catMatches.length === 0) return null;
-                                        const groups = Array.from(new Set(catMatches.map(m => m.group))).sort();
-
-                                        return (
-                                            <div key={cat} className="space-y-6">
-                                                <div className="flex items-center gap-4">
-                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-xs font-black uppercase px-3 py-1">
-                                                        Categoria {cat}
-                                                    </Badge>
-                                                    <div className="h-px bg-border flex-1" />
-                                                </div>
-                                                <div className="grid gap-8 md:grid-cols-2">
-                                                    {groups.map(g => (
-                                                        <GroupStandings
-                                                            key={`${cat}-${g}`}
-                                                            tournamentId={id}
-                                                            category={cat}
-                                                            groupName={g!}
-                                                            matches={catMatches.filter(m => m.group === g)}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-
-                                    {(!filteredMatches.some(m => m.group)) && (
-                                        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
-                                            Nenhum grupo encontrado para esta seleção.
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="matches">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Lista de Jogos</CardTitle>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setOpenResetConfirm(true)}
-                                        className="h-8 text-[10px] text-orange-600 border-orange-200 hover:bg-orange-50"
-                                    >
-                                        <RotateCcw className="mr-2 h-3 w-3" />
-                                        Resetar Quadras
-                                    </Button>
-                                    <Button size="sm" onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}>
-                                        <Plus className="mr-2 h-4 w-4" /> Novo Jogo
-                                    </Button>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {id && <MatchList tournamentId={id} courts={courts} matches={filteredMatches} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} />}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="brackets">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle>Chaves de Eliminatórias</CardTitle>
-                                    <CardDescription>Mata-mata de todas as categorias do evento</CardDescription>
-                                </div>
-                                {tournament?.status === 'finished' && (
-                                    <Badge variant="default" className="bg-yellow-500 text-black gap-1">
-                                        <Trophy className="h-3 w-3" /> Torneio Finalizado
-                                    </Badge>
+                                {(!tournament?.categories || tournament.categories.length === 0) && (
+                                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                                        Nenhuma categoria/torneio criado para esta etapa.
+                                    </div>
                                 )}
-                            </CardHeader>
-                            <CardContent>
-                                {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type as any} matches={filteredMatches} courts={courts} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} activeCategory={tournament.categories?.[0]} />}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {activeSubTournament && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Tabs defaultValue="athletes" className="space-y-4">
+                                <TabsList className="bg-muted/50 p-1 rounded-lg">
+                                    <TabsTrigger value="courts">Quadras</TabsTrigger>
+                                    <TabsTrigger value="athletes">Atletas</TabsTrigger>
+                                    <TabsTrigger value="groups">Fase de Grupos</TabsTrigger>
+                                    <TabsTrigger value="matches">Jogos</TabsTrigger>
+                                    <TabsTrigger value="brackets">Mata-mata</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="courts">
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between">
+                                            <div>
+                                                <CardTitle>Quadras Disponíveis</CardTitle>
+                                                <CardDescription>Gerencie as quadras para {activeSubTournament}.</CardDescription>
+                                            </div>
+                                            <Button onClick={() => { setEditingCourt(null); form.reset({ name: "" }); setOpen(true); }}>
+                                                <Plus className="mr-2 h-4 w-4" /> Nova Quadra
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                                {courts.map((court) => (
+                                                    <div key={court.id} className="rounded-lg border p-4 bg-card shadow-sm">
+                                                        <div className="flex justify-between items-start font-bold mb-2">
+                                                            <div className="flex flex-col">
+                                                                <span>{court.name}</span>
+                                                                <span className="text-[10px] text-muted-foreground uppercase font-normal">{court.status.replace('_', ' ')}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="secondary">{court.pin}</Badge>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => courtService.remove(court.id)}>
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="athletes">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Inscritos em {activeSubTournament}</CardTitle>
+                                            <CardDescription>Gerencie os atletas desta categoria.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {tournament && <TournamentAthleteManager tournament={tournament} activeCategory={activeSubTournament} />}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="groups">
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between">
+                                            <div>
+                                                <CardTitle>Fase de Grupos - {activeSubTournament}</CardTitle>
+                                                <CardDescription>Classificação e placares.</CardDescription>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-8 text-[10px]">
+                                                    Gerar Manual
+                                                </Button>
+                                                <Button variant="outline" size="sm" onClick={async () => {
+                                                    if (!id || !tournament) return;
+                                                    setIsGeneratingAuto(true);
+                                                    try {
+                                                        const catAthletes = athletes.filter(a => a.category.toUpperCase() === activeSubTournament.toUpperCase());
+                                                        if (catAthletes.length >= 2) {
+                                                            await matchService.generateGroupMatches(id, catAthletes, tournament.type);
+                                                            toast.success("Fase de Grupos gerada!");
+                                                        } else {
+                                                            toast.error("Atletas insuficientes nesta categoria.");
+                                                        }
+                                                    } catch (e: any) { toast.error(e.message); }
+                                                    finally { setIsGeneratingAuto(false); }
+                                                }} disabled={isGeneratingAuto} className="h-8 text-[10px]">
+                                                    Gerar Automático
+                                                </Button>
+                                                <Button size="sm" onClick={async () => {
+                                                    if (!id || !tournament) return;
+                                                    try {
+                                                        await matchService.promoteGroupWinners(id, activeSubTournament, 2);
+                                                        toast.success("Mata-mata gerado!");
+                                                    } catch (e: any) { toast.error(e.message); }
+                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')}>
+                                                    Promover Vencedores
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-12">
+                                                {(() => {
+                                                    const groups = Array.from(new Set(filteredMatches.filter(m => m.group).map(m => m.group))).sort();
+                                                    if (groups.length === 0) return (
+                                                        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                                                            Nenhum grupo encontrado para {activeSubTournament}.
+                                                        </div>
+                                                    );
+
+                                                    return (
+                                                        <div className="grid gap-8 md:grid-cols-2">
+                                                            {groups.map(g => (
+                                                                <GroupStandings
+                                                                    key={`${activeSubTournament}-${g}`}
+                                                                    tournamentId={id}
+                                                                    category={activeSubTournament}
+                                                                    groupName={g!}
+                                                                    matches={filteredMatches.filter(m => m.group === g)}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="matches">
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between">
+                                            <CardTitle>Jogos - {activeSubTournament}</CardTitle>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setOpenResetConfirm(true)}
+                                                    className="h-8 text-[10px] text-orange-600 border-orange-200 hover:bg-orange-50"
+                                                >
+                                                    <RotateCcw className="mr-2 h-3 w-3" />
+                                                    Resetar Quadras
+                                                </Button>
+                                                <Button size="sm" onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}>
+                                                    <Plus className="mr-2 h-4 w-4" /> Novo Jogo
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {id && <MatchList tournamentId={id} courts={courts} matches={filteredMatches} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} />}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="brackets">
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between">
+                                            <div>
+                                                <CardTitle>Mata-mata - {activeSubTournament}</CardTitle>
+                                                <CardDescription>Chaves eliminatórias.</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type as any} matches={filteredMatches} courts={courts} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} activeCategory={activeSubTournament} />}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* Modals */}
