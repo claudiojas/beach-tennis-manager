@@ -53,15 +53,19 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
     };
 
     const filteredAthletes = globalAthletes.filter(a => {
-        // Essential: Only show athletes that belong to the categories defined for this tournament
-        const isInCategory = tournament.categories?.includes(a.category.toUpperCase()) ||
-            tournament.categories?.includes(a.category);
+        // Essential: Check both the new 'categories' array and the legacy 'category' string
+        const athleteCategories = a.categories || (a.category ? [a.category] : []);
+
+        const isInCategory = tournament.categories?.some(cat =>
+            athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase())
+        );
 
         if (!isInCategory) return false;
 
         const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            a.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !activeCategory || a.category.toUpperCase() === activeCategory.toUpperCase();
+            athleteCategories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesCategory = !activeCategory || athleteCategories.some(cat => cat.toUpperCase() === activeCategory.toUpperCase());
         return matchesSearch && matchesCategory;
     });
 
@@ -106,7 +110,11 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                                         </TableCell>
                                         <TableCell className="font-semibold">{athlete.name}</TableCell>
                                         <TableCell>
-                                            <Badge variant="outline">{athlete.category}</Badge>
+                                            <div className="flex flex-wrap gap-1">
+                                                {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
+                                                    <Badge key={cat} variant="outline" className="text-[10px] whitespace-nowrap">{cat}</Badge>
+                                                ))}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button

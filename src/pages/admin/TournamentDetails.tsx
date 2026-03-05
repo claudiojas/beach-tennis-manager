@@ -117,7 +117,10 @@ export default function TournamentDetails() {
             }
 
             for (const cat of tournamentCategories) {
-                const catAthletes = athletes.filter(a => a.category.toUpperCase() === cat.toUpperCase());
+                const catAthletes = athletes.filter(a => {
+                    const athleteCategories = a.categories || (a.category ? [a.category] : []);
+                    return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
+                });
                 if (catAthletes.length >= 2) {
                     await matchService.generateGroupMatches(id, catAthletes, tournament.type);
                 }
@@ -162,6 +165,22 @@ export default function TournamentDetails() {
     const filteredMatches = activeSubTournament
         ? matches.filter(m => m.category.toUpperCase() === activeSubTournament.toUpperCase())
         : matches;
+
+    const [newCategoryName, setNewCategoryName] = useState("");
+
+    const handleAddCategory = () => {
+        const name = newCategoryName.trim().toUpperCase();
+        if (name && id && tournament) {
+            const currentCats = tournament.categories || [];
+            if (!currentCats.includes(name)) {
+                tournamentService.update(id, { categories: [...currentCats, name] });
+                setNewCategoryName("");
+                toast.success(`Torneio ${name} adicionado!`);
+            } else {
+                toast.error("Este torneio já existe nesta etapa.");
+            }
+        }
+    };
 
     const matchingArena = arenas.find(a => a.name === tournament?.location);
     const availableCourtsFromTemplate = matchingArena?.courts || [];
@@ -247,40 +266,18 @@ export default function TournamentDetails() {
                                 <div className="flex flex-col sm:flex-row gap-3">
                                     <Input
                                         placeholder="Ex: Masculina A, Mista Open, Iniciante..."
-                                        id="new-category-name"
-                                        className="max-w-xs"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.currentTarget.value)}
+                                        className="max-w-xs rounded-xl"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
-                                                const input = e.currentTarget;
-                                                const name = input.value.trim().toUpperCase();
-                                                if (name && id && tournament) {
-                                                    const currentCats = tournament.categories || [];
-                                                    if (!currentCats.includes(name)) {
-                                                        tournamentService.update(id, { categories: [...currentCats, name] });
-                                                        input.value = '';
-                                                        toast.success(`Torneio ${name} adicionado!`);
-                                                    } else {
-                                                        toast.error("Este torneio já existe nesta etapa.");
-                                                    }
-                                                }
+                                                handleAddCategory();
                                             }
                                         }}
                                     />
                                     <Button
-                                        onClick={() => {
-                                            const input = document.getElementById('new-category-name') as HTMLInputElement;
-                                            const name = input.value.trim().toUpperCase();
-                                            if (name && id && tournament) {
-                                                const currentCats = tournament.categories || [];
-                                                if (!currentCats.includes(name)) {
-                                                    tournamentService.update(id, { categories: [...currentCats, name] });
-                                                    input.value = '';
-                                                    toast.success(`Torneio ${name} adicionado!`);
-                                                } else {
-                                                    toast.error("Este torneio já existe nesta etapa.");
-                                                }
-                                            }
-                                        }}
+                                        onClick={handleAddCategory}
+                                        className="rounded-xl shadow-lg shadow-primary/10"
                                     >
                                         <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
                                     </Button>

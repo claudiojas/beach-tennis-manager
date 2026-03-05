@@ -10,6 +10,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -75,7 +76,13 @@ export function AthleteList() {
                                     {athlete.registrationNumber || "--"}
                                 </TableCell>
                                 <TableCell className="font-medium">{athlete.name}</TableCell>
-                                <TableCell>{athlete.category}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                        {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
+                                            <Badge key={cat} variant="outline" className="text-[10px] whitespace-nowrap">{cat}</Badge>
+                                        ))}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="hidden md:table-cell">{athlete.phone || "-"}</TableCell>
                                 <TableCell className="text-right flex justify-end gap-2">
                                     <Dialog

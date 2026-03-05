@@ -124,7 +124,7 @@ export function ManualGroupGenerator({
                     for (let j = i + 1; j < groupTeams.length; j++) {
                         const matchData = {
                             tournamentId,
-                            category: groupTeams[i].player1.category,
+                            category: groupTeams[i].player1.category, // Kept primary category as fallback
                             teamA: groupTeams[i],
                             teamB: groupTeams[j],
                             group: group.name,

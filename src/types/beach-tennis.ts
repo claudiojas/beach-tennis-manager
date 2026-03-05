@@ -21,7 +21,8 @@ export interface Player {
   id: string;
   name: string;
   phone?: string;
-  category: Category;
+  category: Category; // Keep for backward compatibility
+  categories?: Category[]; // NEW: Support for multiple categories
   email?: string; // Optional for now
   photoUrl?: string;
   registrationNumber?: string;
