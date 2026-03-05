@@ -539,13 +539,13 @@ export default function TournamentDetails() {
                                 </div>
 
                                 <TabsContent value="courts">
-                                    <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between">
-                                            <div>
-                                                <CardTitle>Quadras Disponíveis</CardTitle>
-                                                <CardDescription>Gerencie as quadras para {activeSubTournament}.</CardDescription>
+                                    <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Quadras</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Localização e pin de controle de placar.</CardDescription>
                                             </div>
-                                            <Button onClick={() => { setEditingCourt(null); form.reset({ name: "" }); setOpen(true); }}>
+                                            <Button size="sm" onClick={() => { setEditingCourt(null); form.reset({ name: "" }); setOpen(true); }} className="w-full md:w-auto h-10 md:h-8 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20">
                                                 <Plus className="mr-2 h-4 w-4" /> Nova Quadra
                                             </Button>
                                         </CardHeader>
@@ -573,10 +573,12 @@ export default function TournamentDetails() {
                                 </TabsContent>
 
                                 <TabsContent value="athletes">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle>Inscritos em {activeSubTournament}</CardTitle>
-                                            <CardDescription>Gerencie os atletas desta categoria.</CardDescription>
+                                    <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Atletas - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Inscritos nesta categoria.</CardDescription>
+                                            </div>
                                         </CardHeader>
                                         <CardContent>
                                             {tournament && <TournamentAthleteManager tournament={tournament} activeCategory={activeSubTournament} />}
@@ -586,14 +588,14 @@ export default function TournamentDetails() {
 
                                 <TabsContent value="groups">
                                     <Card>
-                                        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div>
-                                                <CardTitle className="text-xl font-black">Fase de Grupos - {activeSubTournament}</CardTitle>
-                                                <CardDescription className="text-xs">Classificação e placares em tempo real.</CardDescription>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Grupos - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Classificação e chaves da fase de grupos.</CardDescription>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
-                                                    Gerar Manual
+                                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                                                <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="flex-1 md:flex-none h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border-primary/20 hover:bg-primary/5">
+                                                    Manual
                                                 </Button>
                                                 <Button variant="outline" size="sm" onClick={async () => {
                                                     if (!id || !tournament || !activeSubTournament) return;
@@ -623,8 +625,8 @@ export default function TournamentDetails() {
                                                         }
                                                     } catch (e: any) { toast.error(e.message); }
                                                     finally { setIsGeneratingAuto(false); }
-                                                }} disabled={isGeneratingAuto} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
-                                                    Gerar Automático
+                                                }} disabled={isGeneratingAuto} className="flex-1 md:flex-none h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
+                                                    Auto
                                                 </Button>
                                                 <Button size="sm" onClick={async () => {
                                                     if (!id || !tournament) return;
@@ -632,8 +634,8 @@ export default function TournamentDetails() {
                                                         await matchService.promoteGroupWinners(id, activeSubTournament, 2);
                                                         toast.success("Mata-mata gerado!");
                                                     } catch (e: any) { toast.error(e.message); }
-                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
-                                                    Promover Vencedores
+                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')} className="flex-1 md:flex-none h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border-none">
+                                                    Mata-Mata
                                                 </Button>
                                             </div>
                                         </CardHeader>
@@ -667,20 +669,27 @@ export default function TournamentDetails() {
                                 </TabsContent>
 
                                 <TabsContent value="matches">
-                                    <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between">
-                                            <CardTitle>Jogos - {activeSubTournament}</CardTitle>
-                                            <div className="flex gap-2">
+                                    <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Jogos - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Gerenciamento de partidas e resultados.</CardDescription>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => setOpenResetConfirm(true)}
-                                                    className="h-8 text-[10px] text-orange-600 border-orange-200 hover:bg-orange-50"
+                                                    className="flex-1 md:flex-none h-10 md:h-8 text-[10px] font-black uppercase tracking-widest text-orange-600 border-orange-200 hover:bg-orange-50 rounded-xl"
                                                 >
                                                     <RotateCcw className="mr-2 h-3 w-3" />
                                                     Resetar Quadras
                                                 </Button>
-                                                <Button size="sm" onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => { setEditingMatch(null); setOpenMatchDialog(true); }}
+                                                    className="flex-1 md:flex-none h-10 md:h-8 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20"
+                                                >
                                                     <Plus className="mr-2 h-4 w-4" /> Novo Jogo
                                                 </Button>
                                             </div>
@@ -692,11 +701,11 @@ export default function TournamentDetails() {
                                 </TabsContent>
 
                                 <TabsContent value="brackets">
-                                    <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between">
-                                            <div>
-                                                <CardTitle>Mata-mata - {activeSubTournament}</CardTitle>
-                                                <CardDescription>Chaves eliminatórias.</CardDescription>
+                                    <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Mata-Mata - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Chaves eliminatórias e finais.</CardDescription>
                                             </div>
                                         </CardHeader>
                                         <CardContent>
@@ -706,13 +715,12 @@ export default function TournamentDetails() {
                                 </TabsContent>
 
                                 <TabsContent value="rules">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle>Regras de Inscrição - {activeSubTournament}</CardTitle>
-                                            <CardDescription>
-                                                Quais atletas têm permissão para jogar este torneio?
-                                                Se nenhuma opção for marcada, o sistema exigirá que o atleta tenha a categoria exata "{activeSubTournament}".
-                                            </CardDescription>
+                                    <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+                                        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Regras - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Permissões de atleta por categoria.</CardDescription>
+                                            </div>
                                         </CardHeader>
                                         <CardContent>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

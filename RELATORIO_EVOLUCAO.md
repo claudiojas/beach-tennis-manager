@@ -1,5 +1,5 @@
 # 🎾 Relatório de Evolução: Beach Tennis Manager
-**Data:** 12 de Fevereiro de 2026
+**Data:** 05 de Março de 2026
 **Cliente:** Gustavo
 **Desenvolvimento:** Módulo Web
 
@@ -58,6 +58,20 @@ O sistema atingiu o nível de maturação **Professional Grade**. A tríade Admi
 - **Escalabilidade:** Preparação para suporte a múltiplos torneios simultâneos (Multi-tenancy).
 - **Relatórios:** Geração automática de súmulas em PDF para arquivo histórico.
 - **Analytics:** Estatísticas de tempo médio de jogo por quadra e categoria.
+- **Offline Mode:** Estudo de persistência local para garantir operatividade em arenas com instabilidade de rede.
+
+---
+
+## 📱 7. Refinamento UX Mobile (Native Feel)
+
+Nesta sprint, transformamos a experiência administrativa para dispositivos móveis, focando em usabilidade "on-the-go" e estética de aplicativo nativo (Premium UX).
+
+**Destaques:**
+- **Navegação FAB (Floating Action Button):** Substituição de abas superiores apertadas por um menu circular dinâmico e `Sheet` lateral, liberando espaço vertical e melhorando a ergonomia em uso com uma mão.
+- **Fluxo de Trabalho por Etapas:** Implementação de navegação por abas internas no Gerador de Grupos Manual, permitindo uma montagem de chaves guiada e sem excesso de rolagem.
+- **Gestão de Jogos Mobile-First:** Redesign completo dos cards de partida com foco absoluto no placar, inputs táteis otimizados para edição rápida e badges de status compactos.
+- **Cabeçalhos Adaptativos:** Todos os painéis administrativos (Grupos, Jogos, Quadras) agora possuem cabeçalhos inteligentes que se ajustam para evitar quebras de layout, mantendo a sobriedade e o profissionalismo.
+- **Tabelas Responsivas:** Otimização das tabelas de classificação (Standings) com fontes dinâmicas e remoção de scrolls horizontais desnecessários.
 
 ---
 © 2026 **Módulo Web**. *A estética encontra a performance.*

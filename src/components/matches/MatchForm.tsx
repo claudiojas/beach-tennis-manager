@@ -196,7 +196,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-muted/30 rounded-lg border">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 p-5 bg-muted/20 rounded-[24px] border border-muted-foreground/10 shadow-inner">
                     <FormField
                         control={form.control}
                         name="courtId"
@@ -257,17 +257,17 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                         )}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <FormField
                             control={form.control}
                             name="scheduledDate"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="flex items-center gap-2">
-                                        <CalendarClock className="h-4 w-4" /> Data
+                                    <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-70">
+                                        <CalendarClock className="h-3.5 w-3.5 text-primary" /> Data
                                     </FormLabel>
                                     <FormControl>
-                                        <Input type="date" {...field} />
+                                        <Input type="date" {...field} className="h-10 rounded-xl border-muted-foreground/20 focus:ring-primary/20" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -278,11 +278,11 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                             name="scheduledTime"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4" /> Hora
+                                    <FormLabel className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-70">
+                                        <Clock className="h-3.5 w-3.5 text-primary" /> Hora
                                     </FormLabel>
                                     <FormControl>
-                                        <Input type="time" {...field} />
+                                        <Input type="time" {...field} className="h-10 rounded-xl border-muted-foreground/20 focus:ring-primary/20" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -328,8 +328,12 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Team A */}
-                    <div className="space-y-4 p-4 border rounded-lg bg-red-50/50 dark:bg-red-950/20">
-                        <h4 className="font-semibold text-red-600 dark:text-red-400">{matchType === 'doubles' ? 'Dupla A' : 'Jogador A'}</h4>
+                    <div className="space-y-4 p-5 border-none rounded-[28px] bg-red-500/[0.03] dark:bg-red-950/20 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500/20" />
+                        <h4 className="font-black text-[10px] uppercase tracking-[0.2em] text-red-600/70 dark:text-red-400 flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5" />
+                            {matchType === 'doubles' ? 'Dupla A' : 'Jogador A'}
+                        </h4>
                         <FormField
                             control={form.control}
                             name="player1A"
@@ -379,8 +383,12 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                     </div>
 
                     {/* Team B */}
-                    <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-                        <h4 className="font-semibold text-blue-600 dark:text-blue-400">{matchType === 'doubles' ? 'Dupla B' : 'Jogador B'}</h4>
+                    <div className="space-y-4 p-5 border-none rounded-[28px] bg-blue-500/[0.03] dark:bg-blue-950/20 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-1.5 h-full bg-blue-500/20" />
+                        <h4 className="font-black text-[10px] uppercase tracking-[0.3em] text-blue-600/70 dark:text-blue-400 flex items-center justify-end gap-2 text-right">
+                            {matchType === 'doubles' ? 'Dupla B' : 'Jogador B'}
+                            <Users className="h-3.5 w-3.5" />
+                        </h4>
                         <FormField
                             control={form.control}
                             name="player1B"
@@ -430,8 +438,18 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                     </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Criando Partida..." : initialData ? "Salvar Alterações" : "Criar Partida"}
+                <Button type="submit" className="w-full h-14 md:h-12 rounded-[20px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="animate-spin h-5 w-5" />
+                            <span>Salvando...</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <Trophy className="h-5 w-5" />
+                            <span>{initialData ? "Atualizar Partida" : "Confirmar Partida"}</span>
+                        </div>
+                    )}
                 </Button>
             </form>
         </Form>
