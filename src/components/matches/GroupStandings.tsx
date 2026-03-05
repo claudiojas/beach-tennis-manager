@@ -118,37 +118,39 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
                 </div>
             </CardHeader>
             <CardContent className="px-0">
-                <div className="rounded-xl border bg-card overflow-hidden">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead className="w-[40px] text-center">#</TableHead>
-                                <TableHead>Dupla / Atleta</TableHead>
-                                <TableHead className="text-center">V</TableHead>
-                                <TableHead className="text-center">D</TableHead>
-                                <TableHead className="text-center">SG</TableHead>
-                                <TableHead className="text-right">PTS</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedStandings.map((team, index) => (
-                                <TableRow key={team.teamId} className={index < 2 ? "bg-primary/5" : ""}>
-                                    <TableCell className="text-center font-bold">
-                                        {index + 1}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="font-semibold uppercase text-xs">{team.teamName}</div>
-                                    </TableCell>
-                                    <TableCell className="text-center font-medium text-green-600">{team.won}</TableCell>
-                                    <TableCell className="text-center text-muted-foreground">{team.lost}</TableCell>
-                                    <TableCell className="text-center font-mono text-[10px]">
-                                        {team.gamesWon - team.gamesLost > 0 ? '+' : ''}{team.gamesWon - team.gamesLost}
-                                    </TableCell>
-                                    <TableCell className="text-right font-black text-primary">{team.points}</TableCell>
+                <div className="rounded-xl border bg-card overflow-x-auto no-scrollbar">
+                    <div className="min-w-[400px]">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="w-[40px] text-center">#</TableHead>
+                                    <TableHead>Dupla / Atleta</TableHead>
+                                    <TableHead className="text-center">V</TableHead>
+                                    <TableHead className="text-center">D</TableHead>
+                                    <TableHead className="text-center">SG</TableHead>
+                                    <TableHead className="text-right">PTS</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedStandings.map((team, index) => (
+                                    <TableRow key={team.teamId} className={index < 2 ? "bg-primary/5" : ""}>
+                                        <TableCell className="text-center font-bold">
+                                            {index + 1}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="font-semibold uppercase text-xs">{team.teamName}</div>
+                                        </TableCell>
+                                        <TableCell className="text-center font-medium text-green-600">{team.won}</TableCell>
+                                        <TableCell className="text-center text-muted-foreground">{team.lost}</TableCell>
+                                        <TableCell className="text-center font-mono text-[10px]">
+                                            {team.gamesWon - team.gamesLost > 0 ? '+' : ''}{team.gamesWon - team.gamesLost}
+                                        </TableCell>
+                                        <TableCell className="text-right font-black text-primary">{team.points}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </CardContent>
 

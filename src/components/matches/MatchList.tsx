@@ -4,7 +4,7 @@ import { matchService } from "@/services/matchService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Unlock, Check, X, Trophy } from "lucide-react";
+import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Unlock, Check, X, Trophy, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,6 +20,12 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MatchListProps {
     tournamentId: string;
@@ -138,7 +144,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
 
     return (
         <>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
                 {matches.map((match) => {
                     const status = getStatusInfo(match.status);
                     const StatusIcon = status.icon;
@@ -164,7 +170,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                         )}
                                     </div>
 
-                                    <div className="flex gap-1">
+                                    <div className="flex gap-1 items-center">
                                         {editingScoreId === match.id ? (
                                             <>
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleSaveScore(match.id)}>
@@ -175,25 +181,14 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                 </Button>
                                             </>
                                         ) : (
-                                            <>
-                                                {match.status === 'ongoing' && match.controlledBy && (
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
-                                                        onClick={() => setMatchToRelease(match)}
-                                                        title="Forçar Liberação de Dispositivo"
-                                                    >
-                                                        <Unlock className="h-4 w-4" />
-                                                    </Button>
-                                                )}
+                                            <div className="flex items-center gap-1">
+                                                {/* Common quick action based on status */}
                                                 {match.status === 'planned' && (
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                        className="h-8 w-8 text-blue-500 hover:text-blue-600"
                                                         onClick={() => handleQuickStart(match.id)}
-                                                        title="Iniciar Partida"
                                                     >
                                                         <PlayCircle className="h-4 w-4" />
                                                     </Button>
@@ -202,29 +197,47 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
-                                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                                        className="h-8 w-8 text-green-600"
                                                         onClick={() => handleQuickFinish(match.id)}
-                                                        title="Finalizar Partida"
                                                     >
                                                         <CheckCircle2 className="h-4 w-4" />
                                                     </Button>
                                                 )}
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 text-primary"
-                                                    onClick={() => handleStartEditScore(match)}
-                                                    title="Editar Placar"
-                                                >
-                                                    <Trophy className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(match)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setMatchToDelete(match.id)}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </>
+
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuItem onClick={() => handleStartEditScore(match)}>
+                                                            <Trophy className="mr-2 h-4 w-4 text-primary" /> Editar Placar
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => onEdit(match)}>
+                                                            <Pencil className="mr-2 h-4 w-4" /> Editar Jogo
+                                                        </DropdownMenuItem>
+                                                        {match.status === 'ongoing' && match.controlledBy && (
+                                                            <DropdownMenuItem onClick={() => setMatchToRelease(match)}>
+                                                                <Unlock className="mr-2 h-4 w-4 text-orange-500" /> Liberar Dispositivo
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {match.status === 'planned' && (
+                                                            <DropdownMenuItem onClick={() => handleQuickStart(match.id)}>
+                                                                <PlayCircle className="mr-2 h-4 w-4 text-blue-500" /> Iniciar Agora
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {match.status === 'ongoing' && (
+                                                            <DropdownMenuItem onClick={() => handleQuickFinish(match.id)}>
+                                                                <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Finalizar Agora
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        <DropdownMenuItem onClick={() => setMatchToDelete(match.id)} className="text-destructive focus:text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Excluir Partida
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -290,10 +303,10 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                     <div className="flex justify-between items-center bg-secondary/10 p-4 rounded-xl border border-secondary/20">
                                         {/* Team A */}
                                         <div className="text-right flex-1 min-w-0">
-                                            <p className="font-bold text-sm truncate uppercase">{shortenName(match.teamA.player1.name)}</p>
-                                            {match.teamA.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase">{shortenName(match.teamA.player2.name)}</p>}
+                                            <p className="font-black text-xs md:text-sm truncate uppercase tracking-tight">{shortenName(match.teamA.player1.name)}</p>
+                                            {match.teamA.player2 && <p className="text-[9px] md:text-[10px] text-muted-foreground truncate uppercase font-medium">{shortenName(match.teamA.player2.name)}</p>}
                                             <div className="mt-1 flex justify-end items-center gap-1.5">
-                                                {match.serving === 'teamA' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
+                                                {match.serving === 'teamA' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)]" />}
                                                 {editingScoreId === match.id ? (
                                                     <input
                                                         type="text"
@@ -339,8 +352,8 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
 
                                         {/* Team B */}
                                         <div className="text-left flex-1 min-w-0">
-                                            <p className="font-bold text-sm truncate uppercase">{shortenName(match.teamB.player1.name)}</p>
-                                            {match.teamB.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase">{shortenName(match.teamB.player2.name)}</p>}
+                                            <p className="font-black text-xs md:text-sm truncate uppercase tracking-tight">{shortenName(match.teamB.player1.name)}</p>
+                                            {match.teamB.player2 && <p className="text-[9px] md:text-[10px] text-muted-foreground truncate uppercase font-medium">{shortenName(match.teamB.player2.name)}</p>}
                                             <div className="mt-1 flex justify-start items-center gap-1.5">
                                                 {editingScoreId === match.id ? (
                                                     <input
@@ -352,7 +365,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                 ) : (
                                                     <span className="text-2xl font-black text-primary tabular-nums">{match.pointsB}</span>
                                                 )}
-                                                {match.serving === 'teamB' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
+                                                {match.serving === 'teamB' && !editingScoreId && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)]" />}
                                             </div>
                                         </div>
                                     </div>

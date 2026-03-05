@@ -100,19 +100,20 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <Input
                     placeholder="Buscar atletas por nome ou categoria..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-md"
+                    className="flex-1"
                 />
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground whitespace-nowrap bg-muted/30 px-3 py-2 rounded-lg border border-dashed text-center">
                     Total: <span className="font-bold text-foreground">{participatingIds.length}</span> atletas inscritos.
                 </div>
             </div>
 
-            <div className="rounded-md border">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border overflow-hidden">
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
@@ -165,6 +166,47 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card List View */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+                {filteredAthletes.length === 0 ? (
+                    <div className="h-32 flex items-center justify-center border-2 border-dashed rounded-xl text-muted-foreground italic">
+                        Nenhum atleta encontrado.
+                    </div>
+                ) : (
+                    filteredAthletes.map((athlete) => {
+                        const isParticipating = participatingIds.includes(athlete.id);
+                        return (
+                            <div key={athlete.id} className={`p-4 rounded-2xl border transition-all ${isParticipating ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20 shadow-sm' : 'bg-card'}`}>
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="min-w-0">
+                                        <p className="font-black uppercase text-sm truncate">{athlete.name}</p>
+                                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5">#{athlete.registrationNumber || "---"}</p>
+                                    </div>
+                                    <Button
+                                        variant={isParticipating ? "destructive" : "outline"}
+                                        size="icon"
+                                        onClick={() => handleToggleParticipation(athlete.id)}
+                                        className={`h-10 w-10 rounded-xl shadow-sm ${!isParticipating ? 'border-primary text-primary hover:bg-primary/5' : ''}`}
+                                    >
+                                        {isParticipating ? <UserMinus className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
+                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat}</Badge>
+                                    ))}
+                                </div>
+                                {isParticipating && (
+                                    <div className="mt-3 flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-widest bg-primary/10 w-fit px-2 py-1 rounded-md">
+                                        <CheckCircle2 className="h-3 w-3" /> Inscrito
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
             </div>
         </div>
     );

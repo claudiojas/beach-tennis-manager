@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon, Check, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon, Check, X, LayoutGrid, GitBranch, ListFilter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -63,6 +64,8 @@ export default function TournamentDetails() {
     const [openManualGroups, setOpenManualGroups] = useState(false);
     const [openResetConfirm, setOpenResetConfirm] = useState(false);
     const [activeSubTournament, setActiveSubTournament] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState("rules");
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -313,163 +316,225 @@ export default function TournamentDetails() {
 
                 <div className="space-y-4">
                     {!activeSubTournament && (
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
+                        <div className="space-y-6">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                                 <div>
-                                    <CardTitle>Torneios e Categorias</CardTitle>
-                                    <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
+                                    <h2 className="text-2xl font-black tracking-tight">Torneios e Categorias</h2>
+                                    <p className="text-sm text-muted-foreground">Selecione uma categoria para gerenciar chaves e jogos.</p>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-6">
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <Input
-                                            placeholder="Ex: Masculina A, Mista Open, Iniciante..."
-                                            value={newCategoryName}
-                                            onChange={(e) => setNewCategoryName(e.target.value)}
-                                            className="max-w-xs rounded-xl"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleAddCategory();
-                                                }
-                                            }}
-                                        />
-                                        <Button
-                                            type="button"
-                                            onClick={handleAddCategory}
-                                            className="rounded-xl shadow-lg shadow-primary/10"
-                                        >
-                                            <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
-                                        </Button>
-                                    </div>
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Nova categoria..."
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        className="h-11 rounded-xl bg-card border-muted-foreground/20 shadow-sm focus-visible:ring-primary/30"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                                    />
+                                    <Button
+                                        onClick={handleAddCategory}
+                                        className="h-11 px-6 rounded-xl shadow-lg shadow-primary/20 font-bold"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            </div>
 
-                                    <div className="flex flex-col gap-3">
-                                        {tournament?.categories?.map(cat => (
-                                            <div
-                                                key={cat}
-                                                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group shadow-sm hover:shadow-md ${activeSubTournament === cat ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'bg-card hover:bg-accent/50'} ${editingCategory === cat ? 'ring-2 ring-primary border-primary bg-background' : ''}`}
-                                                onClick={() => {
-                                                    if (editingCategory !== cat) {
-                                                        setActiveSubTournament(cat);
-                                                    }
-                                                }}
-                                            >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {tournament?.categories?.map(cat => {
+                                    const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase());
+                                    const finishedMatches = catMatches.filter(m => m.status === 'finished').length;
+                                    const totalMatches = catMatches.length;
+                                    const progress = totalMatches > 0 ? (finishedMatches / totalMatches) * 100 : 0;
+
+                                    return (
+                                        <Card
+                                            key={cat}
+                                            className={`relative group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-muted/40 rounded-2xl ${activeSubTournament === cat ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'}`}
+                                            onClick={() => editingCategory !== cat && setActiveSubTournament(cat)}
+                                        >
+                                            <div className="absolute top-0 right-0 p-2 z-10">
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingCategory(cat);
+                                                            setEditCategoryName(cat);
+                                                        }}
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Logic for deletion as before
+                                                            if (id && tournament) {
+                                                                const updated = (tournament.categories || []).filter(c => c !== cat);
+                                                                const updatedRules = { ...(tournament.categoryRules || {}) };
+                                                                delete updatedRules[cat];
+                                                                const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
+                                                                delete updatedCategoryAthletes[cat];
+                                                                tournamentService.update(id, {
+                                                                    categories: updated,
+                                                                    categoryRules: updatedRules,
+                                                                    categoryAthletes: updatedCategoryAthletes
+                                                                });
+                                                                if (activeSubTournament === cat) setActiveSubTournament(null);
+                                                                toast.success(`Torneio ${cat} removido.`);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <CardHeader className="pb-2">
                                                 {editingCategory === cat ? (
-                                                    <div className="flex items-center gap-3 w-full" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex items-center gap-2 w-full pt-4" onClick={(e) => e.stopPropagation()}>
                                                         <Input
                                                             value={editCategoryName}
                                                             onChange={(e) => setEditCategoryName(e.target.value)}
-                                                            className="h-10 text-sm md:text-base font-bold uppercase flex-1 rounded-lg"
+                                                            className="h-9 text-sm font-bold uppercase rounded-lg"
                                                             autoFocus
-                                                            placeholder="NOME DO TORNEIO"
                                                             onKeyDown={(e) => {
                                                                 if (e.key === 'Enter') handleSaveCategoryEdit(cat);
                                                                 if (e.key === 'Escape') setEditingCategory(null);
                                                             }}
                                                         />
-                                                        <div className="flex items-center gap-2">
-                                                            <Button size="icon" variant="default" className="h-10 w-10 shrink-0 shadow-sm rounded-lg" onClick={() => handleSaveCategoryEdit(cat)}>
-                                                                <Check className="h-5 w-5" />
-                                                            </Button>
-                                                            <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setEditingCategory(null)}>
-                                                                <X className="h-5 w-5" />
-                                                            </Button>
-                                                        </div>
+                                                        <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => handleSaveCategoryEdit(cat)}>
+                                                            <Check className="h-4 w-4" />
+                                                        </Button>
                                                     </div>
                                                 ) : (
-                                                    <>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`h-2 w-2 rounded-full ${activeSubTournament === cat ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
-                                                            <span className="font-bold text-sm uppercase">{cat}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setEditingCategory(cat);
-                                                                    setEditCategoryName(cat);
-                                                                }}
-                                                            >
-                                                                <Pencil className="h-3 w-3" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (id && tournament) {
-                                                                        const updated = (tournament.categories || []).filter(c => c !== cat);
-
-                                                                        // Cleanup rules and athletes when a category is deleted
-                                                                        const updatedRules = { ...(tournament.categoryRules || {}) };
-                                                                        delete updatedRules[cat];
-
-                                                                        const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
-                                                                        delete updatedCategoryAthletes[cat];
-
-                                                                        tournamentService.update(id, {
-                                                                            categories: updated,
-                                                                            categoryRules: updatedRules,
-                                                                            categoryAthletes: updatedCategoryAthletes
-                                                                        });
-                                                                        if (activeSubTournament === cat) setActiveSubTournament(null);
-                                                                        toast.success(`Torneio ${cat} removido.`);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <Trash2 className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                    </>
+                                                    <CardTitle className="text-lg font-black tracking-tight uppercase group-hover:text-primary transition-colors pr-12">
+                                                        {cat}
+                                                    </CardTitle>
                                                 )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                            </CardHeader>
+                                            <CardContent className="pt-0">
+                                                <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase mb-2">
+                                                    <span>Progresso</span>
+                                                    <span>{finishedMatches}/{totalMatches} Jogos</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mb-4">
+                                                    <div
+                                                        className="h-full bg-primary transition-all duration-500"
+                                                        style={{ width: `${progress}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex -space-x-2">
+                                                        {/* Visual placeholder for athletes count or status */}
+                                                        <div className="h-7 w-7 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center">
+                                                            <Users className="h-3 w-3 text-primary" />
+                                                        </div>
+                                                        <div className="h-7 w-7 rounded-full bg-secondary/10 border-2 border-background flex items-center justify-center">
+                                                            <PlayCircle className="h-3 w-3 text-secondary-foreground" />
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-primary flex items-center gap-1 uppercase tracking-widest">
+                                                        Gerenciar <ArrowLeft className="h-3 w-3 rotate-180" />
+                                                    </span>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
 
-                                    {(!tournament?.categories || tournament.categories.length === 0) && (
-                                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
-                                            Nenhuma categoria/torneio criado para esta etapa.
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                {(!tournament?.categories || tournament.categories.length === 0) && (
+                                    <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 text-muted-foreground border-2 border-dashed rounded-3xl bg-muted/5">
+                                        <Trophy className="h-12 w-12 mb-4 opacity-20" />
+                                        <p className="font-medium italic">Nenhuma categoria criada para esta etapa.</p>
+                                        <p className="text-xs">Use o campo acima para adicionar novas categorias.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
 
                     {activeSubTournament && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-6">
                             {/* Drill-down Header/Back for sub-tournaments */}
-                            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-xl border border-primary/10">
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-primary p-1.5 rounded-lg shadow-lg shadow-primary/20">
-                                        <Trophy className="h-4 w-4 text-primary-foreground" />
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 p-4 rounded-2xl border border-primary/10 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-primary h-10 w-10 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center">
+                                        <Trophy className="h-5 w-5 text-primary-foreground" />
                                     </div>
-                                    <span className="font-black uppercase text-xs tracking-tight">{activeSubTournament}</span>
+                                    <div>
+                                        <span className="font-black uppercase text-lg leading-none tracking-tight block">{activeSubTournament}</span>
+                                        <span className="text-[10px] text-primary uppercase font-black tracking-widest mt-1 block opacity-70">Gerenciando Categoria</span>
+                                    </div>
                                 </div>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => setActiveSubTournament(null)}
-                                    className="text-xs font-bold uppercase h-8 px-4 bg-background border rounded-lg shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                                    className="text-xs font-black uppercase h-10 px-6 bg-background border-primary/20 rounded-xl shadow-sm hover:bg-primary/5 hover:text-primary transition-all flex items-center gap-2 group"
                                 >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Voltar
+                                    <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                                    Voltar para Etapa
                                 </Button>
                             </div>
 
-                            <Tabs defaultValue="rules" className="space-y-4">
-                                <div className="sticky top-[60px] z-40 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b md:relative md:top-0 md:bg-transparent md:border-none md:p-0 md:m-0 overflow-x-auto no-scrollbar">
-                                    <TabsList className="bg-muted/50 p-1 rounded-lg inline-flex min-w-full md:w-auto">
-                                        <TabsTrigger value="rules" className="text-[10px] md:text-sm uppercase font-bold">Regras</TabsTrigger>
-                                        <TabsTrigger value="courts" className="text-[10px] md:text-sm uppercase font-bold">Quadras</TabsTrigger>
-                                        <TabsTrigger value="athletes" className="text-[10px] md:text-sm uppercase font-bold">Atletas</TabsTrigger>
-                                        <TabsTrigger value="groups" className="text-[10px] md:text-sm uppercase font-bold">Grupos</TabsTrigger>
-                                        <TabsTrigger value="matches" className="text-[10px] md:text-sm uppercase font-bold">Jogos</TabsTrigger>
-                                        <TabsTrigger value="brackets" className="text-[10px] md:text-sm uppercase font-bold">Chaves</TabsTrigger>
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+                                {/* Mobile Active Tab Indicator */}
+                                <div className="md:hidden flex items-center justify-between bg-card border rounded-2xl p-4 shadow-sm animate-in fade-in slide-in-from-left-2 duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                                            {activeTab === 'rules' && <ListFilter className="h-5 w-5" />}
+                                            {activeTab === 'courts' && <MapPin className="h-5 w-5" />}
+                                            {activeTab === 'athletes' && <Users className="h-5 w-5" />}
+                                            {activeTab === 'groups' && <LayoutGrid className="h-5 w-5" />}
+                                            {activeTab === 'matches' && <PlayCircle className="h-5 w-5" />}
+                                            {activeTab === 'brackets' && <GitBranch className="h-5 w-5" />}
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest block opacity-70">Visualizando</span>
+                                            <span className="font-black uppercase text-base leading-none tracking-tight block">
+                                                {activeTab === 'rules' && 'Regras'}
+                                                {activeTab === 'courts' && 'Quadras'}
+                                                {activeTab === 'athletes' && 'Atletas'}
+                                                {activeTab === 'groups' && 'Grupos'}
+                                                {activeTab === 'matches' && 'Jogos'}
+                                                {activeTab === 'brackets' && 'Chaves'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className="text-[8px] uppercase border-primary/20 text-primary">Ativo</Badge>
+                                </div>
+
+                                <div className="hidden md:block sticky top-[70px] z-40 bg-background/95 backdrop-blur-md -mx-4 px-4 py-3 border-b border-muted/20 md:relative md:top-0 md:bg-transparent md:border-none md:p-0 md:m-0 overflow-x-auto no-scrollbar">
+                                    <TabsList className="bg-muted/30 p-1.5 rounded-2xl inline-flex min-w-full md:w-auto h-auto gap-1.5 border border-muted-foreground/5 shadow-inner">
+                                        <TabsTrigger value="rules" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <ListFilter className="h-4 w-4" />
+                                            <span>Regras</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="courts" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <MapPin className="h-4 w-4" />
+                                            <span>Quadras</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="athletes" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <Users className="h-4 w-4" />
+                                            <span>Atletas</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="groups" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <LayoutGrid className="h-4 w-4" />
+                                            <span>Grupos</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="matches" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <PlayCircle className="h-4 w-4" />
+                                            <span>Jogos</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="brackets" className="flex flex-col md:flex-row items-center gap-2 px-5 py-3 text-[10px] md:text-xs uppercase font-black tracking-widest data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg rounded-xl transition-all duration-300">
+                                            <GitBranch className="h-4 w-4" />
+                                            <span>Chaves</span>
+                                        </TabsTrigger>
                                     </TabsList>
                                 </div>
 
@@ -693,6 +758,78 @@ export default function TournamentDetails() {
                     )}
                 </div>
             </main>
+
+            {/* Mobile Floating Action Menu (FAB) */}
+            <div className="fixed bottom-24 right-6 z-40 md:hidden">
+                {activeSubTournament && (
+                    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button
+                                size="icon"
+                                className="h-16 w-16 rounded-full shadow-2xl shadow-primary/40 bg-primary animate-in zoom-in-50 duration-300 flex flex-col items-center justify-center gap-1"
+                            >
+                                <LayoutGrid className="h-6 w-6" />
+                                <span className="text-[8px] font-black uppercase tracking-tighter">Menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="rounded-t-[32px] px-6 pb-12 pt-8">
+                            <SheetHeader className="mb-8">
+                                <SheetTitle className="text-left flex items-center gap-3">
+                                    <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                                        <Settings className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-xl font-black uppercase tracking-tight">Gerenciamento</span>
+                                        <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{activeSubTournament}</span>
+                                    </div>
+                                </SheetTitle>
+                            </SheetHeader>
+                            <div className="grid grid-cols-2 gap-4">
+                                {[
+                                    { id: 'rules', label: 'Regras', icon: ListFilter, color: 'text-blue-500' },
+                                    { id: 'courts', label: 'Quadras', icon: MapPin, color: 'text-orange-500' },
+                                    { id: 'athletes', label: 'Atletas', icon: Users, color: 'text-purple-500' },
+                                    { id: 'groups', label: 'Grupos', icon: LayoutGrid, color: 'text-green-500' },
+                                    { id: 'matches', label: 'Jogos', icon: PlayCircle, color: 'text-red-500' },
+                                    { id: 'brackets', label: 'Chaves', icon: GitBranch, color: 'text-indigo-500' },
+                                ].map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = activeTab === item.id;
+                                    return (
+                                        <Button
+                                            key={item.id}
+                                            variant={isActive ? "default" : "outline"}
+                                            className={`h-auto flex-col items-start gap-4 p-5 rounded-2xl transition-all duration-300 ${isActive ? 'shadow-xl shadow-primary/20 -translate-y-1' : 'hover:bg-primary/5'}`}
+                                            onClick={() => {
+                                                setActiveTab(item.id);
+                                                setIsMenuOpen(false);
+                                            }}
+                                        >
+                                            <div className={`${isActive ? 'bg-primary-foreground/20' : 'bg-muted'} p-2 rounded-xl`}>
+                                                <Icon className={`h-6 w-6 ${isActive ? 'text-primary-foreground' : item.color}`} />
+                                            </div>
+                                            <span className="font-black uppercase text-xs tracking-widest">{item.label}</span>
+                                        </Button>
+                                    );
+                                })}
+
+                                <div className="col-span-2 pt-4 mt-4 border-t border-dashed">
+                                    <Button
+                                        className="w-full h-14 rounded-2xl gap-3 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            setOpenMatchDialog(true);
+                                        }}
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        Novo Jogo
+                                    </Button>
+                                </div>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+                )}
+            </div>
 
             {/* Modals */}
             <Dialog open={open} onOpenChange={setOpen}>

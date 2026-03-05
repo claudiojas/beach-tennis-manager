@@ -347,7 +347,7 @@ export default function AdminDashboard() {
             {/* Floating Action Button for Mobile */}
             <Button
               onClick={() => { handleOpenCreate(); setOpen(true); }}
-              className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 z-[60] p-0"
+              className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 z-40 p-0"
             >
               <Plus className="h-7 w-7" />
             </Button>
