@@ -56,9 +56,23 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         // Essential: Check both the new 'categories' array and the legacy 'category' string
         const athleteCategories = a.categories || (a.category ? [a.category] : []);
 
-        const isInCategory = tournament.categories?.some(cat =>
-            athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase())
-        );
+        const rules = activeCategory && tournament.categoryRules ? tournament.categoryRules[activeCategory] || [] : [];
+        let isInCategory = false;
+
+        if (activeCategory && rules.length > 0) {
+            // Se houver regra para a categoria ativa, o atleta pode entrar se tiver qualquer uma das permitidas
+            isInCategory = athleteCategories.some(c => rules.includes(c));
+        } else {
+            // Caso não tenha regra ou estejamos na visão global do torneio sem uma aba selecionada
+            isInCategory = tournament.categories?.some(cat =>
+                athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase())
+            ) || false;
+
+            if (activeCategory && isInCategory) {
+                // Filtra especificamente para o activeCategory exigindo match exato (comportamento antigo)
+                isInCategory = athleteCategories.some(c => c.toUpperCase() === activeCategory.toUpperCase());
+            }
+        }
 
         if (!isInCategory) return false;
 

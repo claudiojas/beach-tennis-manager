@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon, Check, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -28,7 +28,7 @@ import { matchService } from "@/services/matchService";
 import { athleteService } from "@/services/athleteService";
 import { tournamentService } from "@/services/tournamentService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Court, Match, Tournament, Player } from "@/types/beach-tennis";
+import { Court, Match, Tournament, Player, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 import { toast } from "sonner";
 import { AthleteForm } from "@/components/athletes/AthleteForm";
 import { MatchList } from "@/components/matches/MatchList";
@@ -117,8 +117,14 @@ export default function TournamentDetails() {
             }
 
             for (const cat of tournamentCategories) {
+                const rules = tournament.categoryRules?.[cat] || [];
                 const catAthletes = athletes.filter(a => {
                     const athleteCategories = a.categories || (a.category ? [a.category] : []);
+                    if (rules.length > 0) {
+                        // Se houver regras, o atleta pode jogar se tiver QUALQUER UMA das categorias permitidas
+                        return athleteCategories.some(c => rules.includes(c));
+                    }
+                    // Se não houver regras, checagem exata pra trás-compatibilidade
                     return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
                 });
                 if (catAthletes.length >= 2) {
@@ -167,10 +173,45 @@ export default function TournamentDetails() {
         : matches;
 
     const [newCategoryName, setNewCategoryName] = useState("");
+    const [editingCategory, setEditingCategory] = useState<string | null>(null);
+    const [editCategoryName, setEditCategoryName] = useState("");
+
+    const handleSaveCategoryEdit = (oldCat: string) => {
+        const name = editCategoryName.trim().toUpperCase();
+        if (name && id && tournament && name !== oldCat) {
+            const currentCats = tournament.categories || [];
+            if (!currentCats.includes(name)) {
+                // We need to update both the categories array AND the categoryRules if any exists for this category
+                const updatedCats = currentCats.map(c => c === oldCat ? name : c);
+                const updatedRules = { ...(tournament.categoryRules || {}) };
+                if (updatedRules[oldCat]) {
+                    updatedRules[name] = updatedRules[oldCat];
+                    delete updatedRules[oldCat];
+                }
+
+                tournamentService.update(id, {
+                    categories: updatedCats,
+                    categoryRules: updatedRules
+                });
+
+                if (activeSubTournament === oldCat) setActiveSubTournament(name);
+                setEditingCategory(null);
+                toast.success(`Torneio renomeado para ${name}!`);
+            } else {
+                toast.error("Este torneio já existe nesta etapa.");
+            }
+        } else {
+            setEditingCategory(null);
+        }
+    };
 
     const handleAddCategory = () => {
         const name = newCategoryName.trim().toUpperCase();
-        if (name && id && tournament) {
+        if (!name) {
+            toast.error("Digite um nome para o torneio");
+            return;
+        }
+        if (id && tournament) {
             const currentCats = tournament.categories || [];
             if (!currentCats.includes(name)) {
                 tournamentService.update(id, { categories: [...currentCats, name] });
@@ -254,76 +295,121 @@ export default function TournamentDetails() {
                 )}
 
                 <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Torneios e Categorias</CardTitle>
-                                <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-6">
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <Input
-                                        placeholder="Ex: Masculina A, Mista Open, Iniciante..."
-                                        value={newCategoryName}
-                                        onChange={(e) => setNewCategoryName(e.currentTarget.value)}
-                                        className="max-w-xs rounded-xl"
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                handleAddCategory();
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        onClick={handleAddCategory}
-                                        className="rounded-xl shadow-lg shadow-primary/10"
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
-                                    </Button>
+                    {!activeSubTournament && (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>Torneios e Categorias</CardTitle>
+                                    <CardDescription>Adicione as categorias que serão disputadas nesta etapa.</CardDescription>
                                 </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                                    {tournament?.categories?.map(cat => (
-                                        <div
-                                            key={cat}
-                                            className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer group shadow-sm hover:shadow-md ${activeSubTournament === cat ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'bg-card hover:bg-accent/50'}`}
-                                            onClick={() => setActiveSubTournament(cat)}
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-6">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <Input
+                                            placeholder="Ex: Masculina A, Mista Open, Iniciante..."
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            className="max-w-xs rounded-xl"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleAddCategory();
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            onClick={handleAddCategory}
+                                            className="rounded-xl shadow-lg shadow-primary/10"
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`h-2 w-2 rounded-full ${activeSubTournament === cat ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
-                                                <span className="font-bold text-sm uppercase">{cat}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (id && tournament) {
-                                                            const updated = (tournament.categories || []).filter(c => c !== cat);
-                                                            tournamentService.update(id, { categories: updated });
-                                                            if (activeSubTournament === cat) setActiveSubTournament(null);
-                                                            toast.success(`Torneio ${cat} removido.`);
-                                                        }
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {(!tournament?.categories || tournament.categories.length === 0) && (
-                                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
-                                        Nenhuma categoria/torneio criado para esta etapa.
+                                            <Plus className="mr-2 h-4 w-4" /> Adicionar Torneio
+                                        </Button>
                                     </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+
+                                    <div className="flex flex-col gap-3">
+                                        {tournament?.categories?.map(cat => (
+                                            <div
+                                                key={cat}
+                                                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border transition-all cursor-pointer group shadow-sm hover:shadow-md ${activeSubTournament === cat ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'bg-card hover:bg-accent/50'} ${editingCategory === cat ? 'ring-2 ring-primary border-primary bg-background' : ''}`}
+                                                onClick={() => {
+                                                    if (editingCategory !== cat) {
+                                                        setActiveSubTournament(cat);
+                                                    }
+                                                }}
+                                            >
+                                                {editingCategory === cat ? (
+                                                    <div className="flex items-center gap-3 w-full" onClick={(e) => e.stopPropagation()}>
+                                                        <Input
+                                                            value={editCategoryName}
+                                                            onChange={(e) => setEditCategoryName(e.target.value)}
+                                                            className="h-10 text-sm md:text-base font-bold uppercase flex-1 rounded-lg"
+                                                            autoFocus
+                                                            placeholder="NOME DO TORNEIO"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleSaveCategoryEdit(cat);
+                                                                if (e.key === 'Escape') setEditingCategory(null);
+                                                            }}
+                                                        />
+                                                        <div className="flex items-center gap-2">
+                                                            <Button size="icon" variant="default" className="h-10 w-10 shrink-0 shadow-sm rounded-lg" onClick={() => handleSaveCategoryEdit(cat)}>
+                                                                <Check className="h-5 w-5" />
+                                                            </Button>
+                                                            <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0 rounded-lg text-muted-foreground hover:text-destructive" onClick={() => setEditingCategory(null)}>
+                                                                <X className="h-5 w-5" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`h-2 w-2 rounded-full ${activeSubTournament === cat ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
+                                                            <span className="font-bold text-sm uppercase">{cat}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingCategory(cat);
+                                                                    setEditCategoryName(cat);
+                                                                }}
+                                                            >
+                                                                <Pencil className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (id && tournament) {
+                                                                        const updated = (tournament.categories || []).filter(c => c !== cat);
+                                                                        tournamentService.update(id, { categories: updated });
+                                                                        if (activeSubTournament === cat) setActiveSubTournament(null);
+                                                                        toast.success(`Torneio ${cat} removido.`);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {(!tournament?.categories || tournament.categories.length === 0) && (
+                                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                                            Nenhuma categoria/torneio criado para esta etapa.
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {activeSubTournament && (
                         <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
@@ -339,15 +425,17 @@ export default function TournamentDetails() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setActiveSubTournament(null)}
-                                    className="text-[10px] font-bold uppercase h-7 px-3 bg-background border"
+                                    className="text-xs font-bold uppercase h-8 px-4 bg-background border rounded-lg shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
                                 >
-                                    Trocar Torneio
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Voltar
                                 </Button>
                             </div>
 
-                            <Tabs defaultValue="athletes" className="space-y-4">
+                            <Tabs defaultValue="rules" className="space-y-4">
                                 <div className="sticky top-[60px] z-40 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-2 border-b md:relative md:top-0 md:bg-transparent md:border-none md:p-0 md:m-0 overflow-x-auto no-scrollbar">
                                     <TabsList className="bg-muted/50 p-1 rounded-lg inline-flex min-w-full md:w-auto">
+                                        <TabsTrigger value="rules" className="text-[10px] md:text-sm uppercase font-bold">Regras</TabsTrigger>
                                         <TabsTrigger value="courts" className="text-[10px] md:text-sm uppercase font-bold">Quadras</TabsTrigger>
                                         <TabsTrigger value="athletes" className="text-[10px] md:text-sm uppercase font-bold">Atletas</TabsTrigger>
                                         <TabsTrigger value="groups" className="text-[10px] md:text-sm uppercase font-bold">Grupos</TabsTrigger>
@@ -504,6 +592,55 @@ export default function TournamentDetails() {
                                         </CardHeader>
                                         <CardContent>
                                             {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type as any} matches={filteredMatches} courts={courts} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} activeCategory={activeSubTournament} />}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="rules">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Regras de Inscrição - {activeSubTournament}</CardTitle>
+                                            <CardDescription>
+                                                Quais atletas têm permissão para jogar este torneio?
+                                                Se nenhuma opção for marcada, o sistema exigirá que o atleta tenha a categoria exata "{activeSubTournament}".
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {TOURNAMENT_CATEGORIES.map((cat) => {
+                                                    const rules = tournament?.categoryRules?.[activeSubTournament] || [];
+                                                    const isChecked = rules.includes(cat);
+
+                                                    return (
+                                                        <div key={cat} className="flex items-center space-x-2 p-2 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer"
+                                                            onClick={async () => {
+                                                                if (!id || !tournament) return;
+                                                                const currentRules = { ...(tournament.categoryRules || {}) };
+                                                                const activeRules = currentRules[activeSubTournament] || [];
+
+                                                                if (isChecked) {
+                                                                    currentRules[activeSubTournament] = activeRules.filter(c => c !== cat);
+                                                                } else {
+                                                                    currentRules[activeSubTournament] = [...activeRules, cat];
+                                                                }
+
+                                                                // Se ficou vazio, remove a chave para limpar o banco
+                                                                if (currentRules[activeSubTournament].length === 0) {
+                                                                    delete currentRules[activeSubTournament];
+                                                                }
+
+                                                                await tournamentService.update(id, { categoryRules: currentRules });
+                                                                toast.success(`Regra ${isChecked ? 'removida' : 'adicionada'}!`);
+                                                            }}
+                                                        >
+                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center border-primary ${isChecked ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+                                                                {isChecked && <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>}
+                                                            </div>
+                                                            <Label className="cursor-pointer flex-1 font-bold text-sm uppercase">{cat}</Label>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
