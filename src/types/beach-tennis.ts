@@ -118,6 +118,7 @@ export interface Tournament {
   participatingAthleteIds?: string[]; // IDs of athletes in this tournament
   categories?: string[]; // Categories active in this tournament
   categoryRules?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["A", "PRO"] de atletas que podem jogar nele
+  categoryAthletes?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["id1", "id2"] de atletas inscritos nele
   settings?: TournamentSettings;
 }
 export interface ArenaCourt {

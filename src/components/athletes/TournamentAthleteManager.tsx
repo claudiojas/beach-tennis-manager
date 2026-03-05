@@ -30,7 +30,14 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         return () => unsubscribe();
     }, []);
 
-    const participatingIds = tournament.participatingAthleteIds || [];
+    const getParticipatingIds = () => {
+        if (activeCategory) {
+            return tournament.categoryAthletes?.[activeCategory] || [];
+        }
+        return tournament.participatingAthleteIds || [];
+    };
+
+    const participatingIds = getParticipatingIds();
 
     const handleToggleParticipation = async (athleteId: string) => {
         const isParticipating = participatingIds.includes(athleteId);
@@ -43,9 +50,20 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         }
 
         try {
-            await tournamentService.update(tournament.id, {
-                participatingAthleteIds: newIds
-            });
+            if (activeCategory) {
+                const currentCategoryAthletes = tournament.categoryAthletes || {};
+                await tournamentService.update(tournament.id, {
+                    categoryAthletes: {
+                        ...currentCategoryAthletes,
+                        [activeCategory]: newIds
+                    }
+                });
+            } else {
+                // Backward compatibility / Global Etapa view
+                await tournamentService.update(tournament.id, {
+                    participatingAthleteIds: newIds
+                });
+            }
             toast.success(isParticipating ? "Atleta removido do torneio." : "Atleta adicionado ao torneio!");
         } catch (error) {
             toast.error("Erro ao atualizar participação.");

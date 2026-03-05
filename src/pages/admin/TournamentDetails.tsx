@@ -117,18 +117,27 @@ export default function TournamentDetails() {
             }
 
             for (const cat of tournamentCategories) {
-                const rules = tournament.categoryRules?.[cat] || [];
-                const catAthletes = athletes.filter(a => {
-                    const athleteCategories = a.categories || (a.category ? [a.category] : []);
-                    if (rules.length > 0) {
-                        // Se houver regras, o atleta pode jogar se tiver QUALQUER UMA das categorias permitidas
-                        return athleteCategories.some(c => rules.includes(c));
-                    }
-                    // Se não houver regras, checagem exata pra trás-compatibilidade
-                    return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
-                });
-                if (catAthletes.length >= 2) {
-                    await matchService.generateGroupMatches(id, catAthletes, tournament.type);
+                // Determine which athletes are eligible for this specific category
+                let eligibleAthletes: typeof athletes = [];
+
+                // If there are specific athletes enrolled for this category, use them
+                const specificCategoryAthletes = tournament.categoryAthletes?.[cat];
+                if (specificCategoryAthletes && specificCategoryAthletes.length > 0) {
+                    eligibleAthletes = athletes.filter(a => specificCategoryAthletes.includes(a.id));
+                } else {
+                    // Fallback to global behavior
+                    const rules = tournament.categoryRules?.[cat] || [];
+                    eligibleAthletes = athletes.filter(a => {
+                        const athleteCategories = a.categories || (a.category ? [a.category] : []);
+                        if (rules.length > 0) {
+                            return athleteCategories.some(c => rules.includes(c));
+                        }
+                        return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
+                    });
+                }
+
+                if (eligibleAthletes.length >= 2) {
+                    await matchService.generateGroupMatches(id, eligibleAthletes, tournament.type);
                 }
             }
 
@@ -181,17 +190,25 @@ export default function TournamentDetails() {
         if (name && id && tournament && name !== oldCat) {
             const currentCats = tournament.categories || [];
             if (!currentCats.includes(name)) {
-                // We need to update both the categories array AND the categoryRules if any exists for this category
+                // We need to update the categories array, the categoryRules AND categoryAthletes if any exists for this category
                 const updatedCats = currentCats.map(c => c === oldCat ? name : c);
+
                 const updatedRules = { ...(tournament.categoryRules || {}) };
                 if (updatedRules[oldCat]) {
                     updatedRules[name] = updatedRules[oldCat];
                     delete updatedRules[oldCat];
                 }
 
+                const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
+                if (updatedCategoryAthletes[oldCat]) {
+                    updatedCategoryAthletes[name] = updatedCategoryAthletes[oldCat];
+                    delete updatedCategoryAthletes[oldCat];
+                }
+
                 tournamentService.update(id, {
                     categories: updatedCats,
-                    categoryRules: updatedRules
+                    categoryRules: updatedRules,
+                    categoryAthletes: updatedCategoryAthletes
                 });
 
                 if (activeSubTournament === oldCat) setActiveSubTournament(name);
@@ -386,7 +403,19 @@ export default function TournamentDetails() {
                                                                     e.stopPropagation();
                                                                     if (id && tournament) {
                                                                         const updated = (tournament.categories || []).filter(c => c !== cat);
-                                                                        tournamentService.update(id, { categories: updated });
+
+                                                                        // Cleanup rules and athletes when a category is deleted
+                                                                        const updatedRules = { ...(tournament.categoryRules || {}) };
+                                                                        delete updatedRules[cat];
+
+                                                                        const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
+                                                                        delete updatedCategoryAthletes[cat];
+
+                                                                        tournamentService.update(id, {
+                                                                            categories: updated,
+                                                                            categoryRules: updatedRules,
+                                                                            categoryAthletes: updatedCategoryAthletes
+                                                                        });
                                                                         if (activeSubTournament === cat) setActiveSubTournament(null);
                                                                         toast.success(`Torneio ${cat} removido.`);
                                                                     }
