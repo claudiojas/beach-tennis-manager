@@ -76,11 +76,8 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
 
         if (!isInCategory) return false;
 
-        const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        return a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             athleteCategories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        const matchesCategory = !activeCategory || athleteCategories.some(cat => cat.toUpperCase() === activeCategory.toUpperCase());
-        return matchesSearch && matchesCategory;
     });
 
     return (
