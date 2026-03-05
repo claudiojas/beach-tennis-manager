@@ -586,13 +586,13 @@ export default function TournamentDetails() {
 
                                 <TabsContent value="groups">
                                     <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between">
+                                        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div>
-                                                <CardTitle>Fase de Grupos - {activeSubTournament}</CardTitle>
-                                                <CardDescription>Classificação e placares.</CardDescription>
+                                                <CardTitle className="text-xl font-black">Fase de Grupos - {activeSubTournament}</CardTitle>
+                                                <CardDescription className="text-xs">Classificação e placares em tempo real.</CardDescription>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-8 text-[10px]">
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => setOpenManualGroups(true)} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
                                                     Gerar Manual
                                                 </Button>
                                                 <Button variant="outline" size="sm" onClick={async () => {
@@ -623,7 +623,7 @@ export default function TournamentDetails() {
                                                         }
                                                     } catch (e: any) { toast.error(e.message); }
                                                     finally { setIsGeneratingAuto(false); }
-                                                }} disabled={isGeneratingAuto} className="h-8 text-[10px]">
+                                                }} disabled={isGeneratingAuto} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
                                                     Gerar Automático
                                                 </Button>
                                                 <Button size="sm" onClick={async () => {
@@ -632,13 +632,13 @@ export default function TournamentDetails() {
                                                         await matchService.promoteGroupWinners(id, activeSubTournament, 2);
                                                         toast.success("Mata-mata gerado!");
                                                     } catch (e: any) { toast.error(e.message); }
-                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')}>
+                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')} className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
                                                     Promover Vencedores
                                                 </Button>
                                             </div>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="space-y-12">
+                                            <div className="space-y-8 md:space-y-12">
                                                 {(() => {
                                                     const groups = Array.from(new Set(filteredMatches.filter(m => m.group).map(m => m.group))).sort();
                                                     if (groups.length === 0) return (
@@ -648,7 +648,7 @@ export default function TournamentDetails() {
                                                     );
 
                                                     return (
-                                                        <div className="grid gap-8 md:grid-cols-2">
+                                                        <div className="grid gap-6 md:gap-8 md:grid-cols-2">
                                                             {groups.map(g => (
                                                                 <GroupStandings
                                                                     key={`${activeSubTournament}-${g}`}

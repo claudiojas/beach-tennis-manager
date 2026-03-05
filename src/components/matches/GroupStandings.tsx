@@ -104,7 +104,7 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
         <Card className="border-none shadow-none bg-transparent">
             <CardHeader className="px-0 pt-0">
                 <div className="flex items-center justify-between gap-2">
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-lg px-3 py-1">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-base md:text-lg px-3 py-1">
                         Grupo {groupName}
                     </Badge>
                     <Button
@@ -118,34 +118,36 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
                 </div>
             </CardHeader>
             <CardContent className="px-0">
-                <div className="rounded-xl border bg-card overflow-x-auto no-scrollbar">
-                    <div className="min-w-[400px]">
+                <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto no-scrollbar">
                         <Table>
-                            <TableHeader className="bg-muted/50">
-                                <TableRow>
-                                    <TableHead className="w-[40px] text-center">#</TableHead>
-                                    <TableHead>Dupla / Atleta</TableHead>
-                                    <TableHead className="text-center">V</TableHead>
-                                    <TableHead className="text-center">D</TableHead>
-                                    <TableHead className="text-center">SG</TableHead>
-                                    <TableHead className="text-right">PTS</TableHead>
+                            <TableHeader className="bg-muted/30">
+                                <TableRow className="hover:bg-transparent border-b-muted/20">
+                                    <TableHead className="w-[30px] md:w-[40px] text-center px-1 md:px-4 text-[10px] md:text-xs uppercase font-black">#</TableHead>
+                                    <TableHead className="px-2 md:px-4 text-[10px] md:text-xs uppercase font-black">Dupla / Atleta</TableHead>
+                                    <TableHead className="text-center px-1 md:px-4 text-[10px] md:text-xs uppercase font-black">V</TableHead>
+                                    <TableHead className="text-center px-1 md:px-4 text-[10px] md:text-xs uppercase font-black">D</TableHead>
+                                    <TableHead className="text-center px-1 md:px-4 text-[10px] md:text-xs uppercase font-black">SG</TableHead>
+                                    <TableHead className="text-right px-2 md:px-4 text-[10px] md:text-xs uppercase font-black">PTS</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {sortedStandings.map((team, index) => (
-                                    <TableRow key={team.teamId} className={index < 2 ? "bg-primary/5" : ""}>
-                                        <TableCell className="text-center font-bold">
+                                    <TableRow key={team.teamId} className={`${index < 2 ? "bg-primary/5" : ""} border-b-muted/10 last:border-0`}>
+                                        <TableCell className="text-center font-black text-xs md:text-sm py-3 md:py-4 px-1 md:px-4">
                                             {index + 1}
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="font-semibold uppercase text-xs">{team.teamName}</div>
+                                        <TableCell className="py-3 md:py-4 px-2 md:px-4">
+                                            <div className="font-bold uppercase text-[10px] md:text-xs leading-tight line-clamp-2 md:line-clamp-1">{team.teamName}</div>
                                         </TableCell>
-                                        <TableCell className="text-center font-medium text-green-600">{team.won}</TableCell>
-                                        <TableCell className="text-center text-muted-foreground">{team.lost}</TableCell>
-                                        <TableCell className="text-center font-mono text-[10px]">
-                                            {team.gamesWon - team.gamesLost > 0 ? '+' : ''}{team.gamesWon - team.gamesLost}
+                                        <TableCell className="text-center font-bold text-xs md:text-sm text-green-600 py-3 md:py-4 px-1 md:px-4">{team.won}</TableCell>
+                                        <TableCell className="text-center text-xs md:text-sm text-muted-foreground py-3 md:py-4 px-1 md:px-4">{team.lost}</TableCell>
+                                        <TableCell className="text-center font-mono text-[9px] md:text-[10px] py-3 md:py-4 px-1 md:px-4">
+                                            <Badge variant="outline" className={`h-5 px-1.5 border-none font-bold ${team.gamesWon - team.gamesLost >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                                                {team.gamesWon - team.gamesLost > 0 ? '+' : ''}{team.gamesWon - team.gamesLost}
+                                            </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right font-black text-primary">{team.points}</TableCell>
+                                        <TableCell className="text-right font-black text-primary text-xs md:text-sm py-3 md:py-4 px-2 md:px-4">{team.points}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
