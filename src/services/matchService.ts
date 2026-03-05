@@ -137,7 +137,7 @@ export const matchService = {
         await set(newResultRef, result);
     },
 
-    generateInitialMatches: async (tournamentId: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
+    generateInitialMatches: async (tournamentId: string, category: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
         if (athletes.length < 2) throw new Error("Atletas insuficientes.");
 
         // Fetch available courts
@@ -158,7 +158,7 @@ export const matchService = {
                 const court = availableCourts.shift();
                 const matchData = {
                     tournamentId,
-                    category: shuffled[i].category,
+                    category,
                     teamA: { player1: shuffled[i] },
                     teamB: { player1: shuffled[i + 1] },
                     courtId: court?.id || null
@@ -172,7 +172,7 @@ export const matchService = {
                 const court = availableCourts.shift();
                 const matchData = {
                     tournamentId,
-                    category: shuffled[i].category,
+                    category,
                     teamA: { player1: shuffled[i], player2: shuffled[i + 1] },
                     teamB: { player1: shuffled[i + 2], player2: shuffled[i + 3] },
                     courtId: court?.id || null
@@ -186,7 +186,7 @@ export const matchService = {
      * NEW: Generates Group Phase (Round Robin)
      * Groups of 3 or 4 based on total teams.
      */
-    generateGroupMatches: async (tournamentId: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
+    generateGroupMatches: async (tournamentId: string, category: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
         const teams: Team[] = [];
         if (type === 'Simples') {
             athletes.forEach(p => teams.push({ player1: p }));
@@ -246,7 +246,7 @@ export const matchService = {
                     const court = availableCourts.shift();
                     await matchService.create({
                         tournamentId,
-                        category: groupTeams[i].player1.category,
+                        category,
                         teamA: groupTeams[i],
                         teamB: groupTeams[j],
                         group: groupName,

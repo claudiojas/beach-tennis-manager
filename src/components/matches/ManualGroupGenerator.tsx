@@ -19,6 +19,7 @@ interface ManualGroupGeneratorProps {
     tournamentType: 'Simples' | 'Duplas';
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    activeCategory: string;
     onSuccess?: () => void;
 }
 
@@ -28,6 +29,7 @@ export function ManualGroupGenerator({
     tournamentType,
     open,
     onOpenChange,
+    activeCategory,
     onSuccess
 }: ManualGroupGeneratorProps) {
     const [formedTeams, setFormedTeams] = useState<Team[]>([]);
@@ -124,7 +126,7 @@ export function ManualGroupGenerator({
                     for (let j = i + 1; j < groupTeams.length; j++) {
                         const matchData = {
                             tournamentId,
-                            category: groupTeams[i].player1.category, // Kept primary category as fallback
+                            category: activeCategory,
                             teamA: groupTeams[i],
                             teamB: groupTeams[j],
                             group: group.name,

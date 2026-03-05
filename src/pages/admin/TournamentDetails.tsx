@@ -137,7 +137,7 @@ export default function TournamentDetails() {
                 }
 
                 if (eligibleAthletes.length >= 2) {
-                    await matchService.generateGroupMatches(id, eligibleAthletes, tournament.type);
+                    await matchService.generateGroupMatches(id, cat, eligibleAthletes, tournament.type);
                 }
             }
 
@@ -531,15 +531,30 @@ export default function TournamentDetails() {
                                                     Gerar Manual
                                                 </Button>
                                                 <Button variant="outline" size="sm" onClick={async () => {
-                                                    if (!id || !tournament) return;
+                                                    if (!id || !tournament || !activeSubTournament) return;
                                                     setIsGeneratingAuto(true);
                                                     try {
-                                                        const catAthletes = athletes.filter(a => a.category.toUpperCase() === activeSubTournament.toUpperCase());
-                                                        if (catAthletes.length >= 2) {
-                                                            await matchService.generateGroupMatches(id, catAthletes, tournament.type);
+                                                        let eligibleAthletes: typeof athletes = [];
+                                                        const specificCategoryAthletes = tournament.categoryAthletes?.[activeSubTournament];
+
+                                                        if (specificCategoryAthletes && specificCategoryAthletes.length > 0) {
+                                                            eligibleAthletes = athletes.filter(a => specificCategoryAthletes.includes(a.id));
+                                                        } else {
+                                                            const rules = tournament.categoryRules?.[activeSubTournament] || [];
+                                                            eligibleAthletes = athletes.filter(a => {
+                                                                const athleteCategories = a.categories || (a.category ? [a.category] : []);
+                                                                if (rules.length > 0) {
+                                                                    return athleteCategories.some(c => rules.includes(c));
+                                                                }
+                                                                return athleteCategories.map(c => c.toUpperCase()).includes(activeSubTournament.toUpperCase());
+                                                            });
+                                                        }
+
+                                                        if (eligibleAthletes.length >= 2) {
+                                                            await matchService.generateGroupMatches(id, activeSubTournament, eligibleAthletes, tournament.type);
                                                             toast.success("Fase de Grupos gerada!");
                                                         } else {
-                                                            toast.error("Atletas insuficientes nesta categoria.");
+                                                            toast.error("Atletas insuficientes nesta categoria (mínimo 2).");
                                                         }
                                                     } catch (e: any) { toast.error(e.message); }
                                                     finally { setIsGeneratingAuto(false); }
@@ -870,6 +885,7 @@ export default function TournamentDetails() {
                     tournamentType={tournament.type as any}
                     open={openManualGroups}
                     onOpenChange={setOpenManualGroups}
+                    activeCategory={activeSubTournament!}
                     onSuccess={() => {
                         toast.success("Grupos manuais gerados!");
                     }}
