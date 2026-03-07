@@ -176,16 +176,21 @@
 
   /* Arena ticker */
   .ticker-animation {
-    animation: ticker 30s linear infinite;
+    animation: ticker 25s linear infinite;
+    display: flex;
+    width: fit-content;
+    backface-visibility: hidden;
+    perspective: 1000px;
+    transform: translate3d(0, 0, 0);
   }
 
   @keyframes ticker {
     0% {
-      transform: translateX(0);
+      transform: translate3d(0, 0, 0);
     }
 
     100% {
-      transform: translateX(-50%);
+      transform: translate3d(-50%, 0, 0);
     }
   }
 
