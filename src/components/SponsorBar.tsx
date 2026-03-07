@@ -33,6 +33,9 @@ export const SponsorBar = () => {
                 <div className="flex items-center">
                     {sponsors.map((sponsor) => <SponsorLogo key={`${sponsor.id}-2`} idPrefix="g2" sponsor={sponsor} />)}
                 </div>
+                <div className="flex items-center">
+                    {sponsors.map((sponsor) => <SponsorLogo key={`${sponsor.id}-3`} idPrefix="g3" sponsor={sponsor} />)}
+                </div>
             </div>
         );
     }, [sponsors]);
