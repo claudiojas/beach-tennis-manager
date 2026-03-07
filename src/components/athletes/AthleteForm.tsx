@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { athleteService } from "@/services/athleteService";
-import { useState } from "react";
+import { categoryService } from "@/services/categoryService";
+import { useState, useEffect } from "react";
 import { Category, Player, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
@@ -43,6 +44,19 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCustomCategory, setIsCustomCategory] = useState(false);
     const [customCatInput, setCustomCatInput] = useState("");
+    const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+
+    useEffect(() => {
+        const unsubscribe = categoryService.subscribe((cats) => {
+            setDynamicCategories(cats.map(c => c.name));
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const allCategories = Array.from(new Set([
+        ...TOURNAMENT_CATEGORIES,
+        ...dynamicCategories
+    ])).sort();
 
     // 1. Define your form.
     const form = useForm<z.infer<typeof formSchema>>({
@@ -93,10 +107,13 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
         }
     }
 
-    const handleAddCategory = (cat: string) => {
+    const handleAddCategory = async (cat: string) => {
         const current = form.getValues("categories");
-        if (cat && !current.includes(cat.toUpperCase())) {
-            form.setValue("categories", [...current, cat.toUpperCase()], { shouldValidate: true });
+        const catUpper = cat.toUpperCase();
+        if (cat && !current.includes(catUpper)) {
+            form.setValue("categories", [...current, catUpper], { shouldValidate: true });
+            // Always ensure it exists globally in background
+            categoryService.ensureExists(catUpper);
         }
         setIsCustomCategory(false);
         setCustomCatInput("");
@@ -185,7 +202,7 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {TOURNAMENT_CATEGORIES.filter(cat => !field.value.includes(cat)).map((cat) => (
+                                        {allCategories.filter(cat => !field.value.includes(cat)).map((cat) => (
                                             <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                         ))}
                                         <SelectItem value="CUSTOM">+ Nova Categoria Personalizada</SelectItem>

@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { AthleteList } from "@/components/athletes/AthleteList";
 import { AthleteForm } from "@/components/athletes/AthleteForm";
+import { CategoryForm } from "@/components/athletes/CategoryForm";
 import { useState } from "react";
 
 export default function GlobalAthletes() {
-    const [open, setOpen] = useState(false);
+    const [openAthlete, setOpenAthlete] = useState(false);
+    const [openCategory, setOpenCategory] = useState(false);
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-20 md:pb-0">
@@ -41,23 +43,43 @@ export default function GlobalAthletes() {
                             </CardDescription>
                         </div>
 
-                        <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger asChild>
-                                <Button>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Novo Atleta
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Novo Atleta</DialogTitle>
-                                    <DialogDescription>
-                                        Adicione um novo jogador à base global.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <AthleteForm onSuccess={() => setOpen(false)} />
-                            </DialogContent>
-                        </Dialog>
+                        <div className="flex gap-2">
+                            <Dialog open={openCategory} onOpenChange={setOpenCategory}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Categorias
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Gerenciar Categorias</DialogTitle>
+                                        <DialogDescription>
+                                            Adicione ou remova categorias que poderão ser selecionadas por qualquer atleta.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <CategoryForm onSuccess={() => setOpenCategory(false)} />
+                                </DialogContent>
+                            </Dialog>
+
+                            <Dialog open={openAthlete} onOpenChange={setOpenAthlete}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Novo Atleta
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Novo Atleta</DialogTitle>
+                                        <DialogDescription>
+                                            Adicione um novo jogador à base global.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <AthleteForm onSuccess={() => setOpenAthlete(false)} />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <AthleteList />

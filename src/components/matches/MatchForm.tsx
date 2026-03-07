@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { matchService } from "@/services/matchService";
 import { athleteService } from "@/services/athleteService";
+import { categoryService } from "@/services/categoryService";
 import { Player, Court, Match, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
 import { Loader2, Users, User, CalendarClock, Clock, MapPin, Trophy } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -61,17 +62,26 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     const [players, setPlayers] = useState<Player[]>([]);
     const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // No longer filtering occupied courts to allow total admin flexibility
-    const availableCourts = courts;
+    const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
 
     useEffect(() => {
-        const unsubscribe = athleteService.subscribe((data) => {
+        const unsubscribePlayers = athleteService.subscribe((data) => {
             setPlayers(data);
             setIsLoadingPlayers(false);
         });
-        return () => unsubscribe();
+        const unsubscribeCats = categoryService.subscribe((cats) => {
+            setDynamicCategories(cats.map(c => c.name));
+        });
+
+        return () => {
+            unsubscribePlayers();
+            unsubscribeCats();
+        };
     }, []);
+
+    const allCategories = (categories && categories.length > 0)
+        ? categories
+        : Array.from(new Set([...TOURNAMENT_CATEGORIES, ...dynamicCategories])).sort();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -212,7 +222,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableCourts.map((court) => (
+                                        {courts.map((court) => (
                                             <SelectItem key={court.id} value={court.id}>
                                                 {court.name}
                                             </SelectItem>
@@ -239,17 +249,9 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {(categories && categories.length > 0) ? (
-                                            categories.map(cat => (
-                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                            ))
-                                        ) : (
-                                            <>
-                                                {TOURNAMENT_CATEGORIES.map((cat) => (
-                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                                ))}
-                                            </>
-                                        )}
+                                        {allCategories.map(cat => (
+                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />

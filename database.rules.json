@@ -28,6 +28,9 @@
         },
         "sponsors": {
             ".write": "auth != null"
+        },
+        "categories": {
+            ".write": "auth != null"
         }
     }
 }
