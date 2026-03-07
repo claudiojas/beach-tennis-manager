@@ -176,7 +176,7 @@
 
   /* Arena ticker */
   .ticker-animation {
-    animation: ticker 15s linear infinite;
+    animation: ticker 40s linear infinite;
     display: flex;
     width: fit-content;
     backface-visibility: hidden;
