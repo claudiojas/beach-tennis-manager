@@ -341,7 +341,7 @@ export default function AdminDashboard() {
             <DialogTrigger asChild>
               <Button onClick={handleOpenCreate} className="hidden md:flex rounded-full px-6 shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-4 w-4" />
-                Nova Etapa
+                Novo Torneio (Etapa)
               </Button>
             </DialogTrigger>
             {/* Floating Action Button for Mobile */}
@@ -353,7 +353,7 @@ export default function AdminDashboard() {
             </Button>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
+                <DialogTitle>{isEditing ? "Editar Etapa" : "Novo Torneio (Etapa)"}</DialogTitle>
                 <DialogDescription>
                   {isEditing ? "Atualize as informações da etapa." : "Crie uma nova etapa selecionando a Arena."}
                 </DialogDescription>
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
                   <Card className="hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 border-muted/40 overflow-hidden rounded-2xl">
                     <div className="bg-primary/5 h-1.5 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
                     <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex justify-between items-start mb-2 pr-12">
                         <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
                           <Trophy className="h-4 w-4 text-primary" />
                         </div>

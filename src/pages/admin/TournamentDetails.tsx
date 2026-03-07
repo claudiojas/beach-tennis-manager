@@ -106,8 +106,13 @@ export default function TournamentDetails() {
                 if (current) {
                     setTournament(current);
                     const unsubAthletes = athleteService.subscribe((allAthletes) => {
-                        const participIds = current.participatingAthleteIds || [];
-                        const filtered = allAthletes.filter(a => participIds.includes(a.id));
+                        // Get unique IDs from global participation AND all category-specific lists
+                        const allParticipIds = Array.from(new Set([
+                            ...(current.participatingAthleteIds || []),
+                            ...Object.values(current.categoryAthletes || {}).flat()
+                        ]));
+
+                        const filtered = allAthletes.filter(a => allParticipIds.includes(a.id));
                         setAthletes(filtered);
                     });
                     return () => unsubAthletes();
@@ -340,22 +345,25 @@ export default function TournamentDetails() {
                             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                                 <div>
                                     <h2 className="text-2xl font-black tracking-tight">Torneios e Categorias</h2>
-                                    <p className="text-sm text-muted-foreground">Selecione uma categoria para gerenciar chaves e jogos.</p>
+                                    <p className="text-sm text-muted-foreground">Adicione e gerencie os torneios desta etapa.</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Nova categoria..."
-                                        value={newCategoryName}
-                                        onChange={(e) => setNewCategoryName(e.target.value)}
-                                        className="h-11 rounded-xl bg-card border-muted-foreground/20 shadow-sm focus-visible:ring-primary/30"
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                                    />
-                                    <Button
-                                        onClick={handleAddCategory}
-                                        className="h-11 px-6 rounded-xl shadow-lg shadow-primary/20 font-bold"
-                                    >
-                                        <Plus className="h-5 w-5" />
-                                    </Button>
+                                <div className="flex flex-col gap-2 w-full md:w-auto min-w-[300px]">
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Nome do Torneio (ex: MASC A)"
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            className="h-11 rounded-xl bg-card border-primary/20 shadow-sm focus-visible:ring-primary/30 font-bold uppercase"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                                        />
+                                        <Button
+                                            onClick={handleAddCategory}
+                                            className="h-11 px-6 rounded-xl shadow-lg shadow-primary/20 font-black uppercase text-xs"
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Adicionar
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1043,14 +1051,23 @@ export default function TournamentDetails() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            {id && tournament && (
+            {id && tournament && activeSubTournament && (
                 <ManualGroupGenerator
                     tournamentId={id}
-                    athletes={athletes}
+                    athletes={athletes.filter(a => {
+                        const specificIds = tournament.categoryAthletes?.[activeSubTournament] || [];
+                        if (specificIds.length > 0) return specificIds.includes(a.id);
+
+                        // Fallback to rule matching if no specific IDs are set
+                        const rules = tournament.categoryRules?.[activeSubTournament] || [];
+                        const athleteCategories = a.categories || (a.category ? [a.category] : []);
+                        if (rules.length > 0) return athleteCategories.some(c => rules.includes(c));
+                        return athleteCategories.map(c => c.toUpperCase()).includes(activeSubTournament.toUpperCase());
+                    })}
                     tournamentType={tournament.type as any}
                     open={openManualGroups}
                     onOpenChange={setOpenManualGroups}
-                    activeCategory={activeSubTournament!}
+                    activeCategory={activeSubTournament}
                     onSuccess={() => {
                         toast.success("Grupos manuais gerados!");
                     }}
