@@ -12,14 +12,24 @@ export const SponsorBar = () => {
         return () => unsubscribe();
     }, []);
 
+    const repeatedSponsors = useMemo(() => {
+        if (sponsors.length === 0) return [];
+        let list = [...sponsors];
+        // Ensure at least 15 items to cover most screens without gaps
+        while (list.length > 0 && list.length < 15) {
+            list = [...list, ...sponsors];
+        }
+        return list;
+    }, [sponsors]);
+
     const logoList = useMemo(() => {
-        const SponsorLogo = ({ sponsor, idPrefix }: { sponsor: Sponsor, idPrefix: string }) => (
-            <div className="inline-flex items-center justify-center w-[140px] h-11 mx-8 shrink-0">
+        const SponsorLogo = ({ sponsor }: { sponsor: Sponsor }) => (
+            <div className="inline-flex items-center justify-center w-[140px] h-11 mx-12 shrink-0">
                 <img
                     src={sponsor.logoUrl}
                     alt={sponsor.name}
                     loading="eager"
-                    className="max-w-full max-h-full object-contain brightness-0 invert opacity-70 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    className="max-w-full max-h-full object-contain brightness-0 invert opacity-60 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                     style={{ backfaceVisibility: 'hidden' }}
                 />
             </div>
@@ -28,17 +38,18 @@ export const SponsorBar = () => {
         return (
             <div className="ticker-animation whitespace-nowrap flex items-center will-change-transform">
                 <div className="flex items-center">
-                    {sponsors.map((sponsor) => <SponsorLogo key={`${sponsor.id}-1`} idPrefix="g1" sponsor={sponsor} />)}
+                    {repeatedSponsors.map((sponsor, i) => (
+                        <SponsorLogo key={`g1-${sponsor.id}-${i}`} sponsor={sponsor} />
+                    ))}
                 </div>
                 <div className="flex items-center">
-                    {sponsors.map((sponsor) => <SponsorLogo key={`${sponsor.id}-2`} idPrefix="g2" sponsor={sponsor} />)}
-                </div>
-                <div className="flex items-center">
-                    {sponsors.map((sponsor) => <SponsorLogo key={`${sponsor.id}-3`} idPrefix="g3" sponsor={sponsor} />)}
+                    {repeatedSponsors.map((sponsor, i) => (
+                        <SponsorLogo key={`g2-${sponsor.id}-${i}`} sponsor={sponsor} />
+                    ))}
                 </div>
             </div>
         );
-    }, [sponsors]);
+    }, [repeatedSponsors]);
 
     if (sponsors.length === 0) return null;
 
