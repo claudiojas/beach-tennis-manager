@@ -279,12 +279,12 @@ export default function AdminDashboard() {
       {/* App Bar - Native Feel */}
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md px-4 py-3 md:px-6">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
               <Trophy className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight">AgilizAI</h1>
-          </div>
+            <h1 className="text-lg font-bold tracking-tight">Beach Tennis</h1>
+          </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
               <LogOut className="h-5 w-5" />

@@ -118,7 +118,13 @@ export default function SponsorsManager() {
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                     </Button>
-                    <h1 className="text-lg font-bold tracking-tight">Anúncios & Ads</h1>
+                    <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-2">
+                        <div className="bg-primary/10 p-1 rounded-md">
+                            <Trophy className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-bold tracking-tighter hidden sm:inline">Beach Tennis</span>
+                    </Link>
+                    <h1 className="text-lg font-bold tracking-tight border-l pl-4">Anúncios & Ads</h1>
                 </div>
             </header>
 
