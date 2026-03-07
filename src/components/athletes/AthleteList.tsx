@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Player } from "@/types/beach-tennis";
 import { athleteService } from "@/services/athleteService";
+import { categoryService, GlobalCategory } from "@/services/categoryService";
 import {
     Table,
     TableBody,
@@ -11,7 +12,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+    Trash2,
+    Pencil,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+    Search,
+    Filter,
+    SortAsc
+} from "lucide-react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -26,20 +37,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AthleteForm } from "./AthleteForm";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function AthleteList() {
     const [athletes, setAthletes] = useState<Player[]>([]);
+    const [globalCategories, setGlobalCategories] = useState<GlobalCategory[]>([]);
     const [editingAthleteId, setEditingAthleteId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
     useEffect(() => {
         const unsubscribe = athleteService.subscribe((data) => {
             setAthletes(data);
-            // Reset to first page when data changes (e.g. after search or seed)
-            setCurrentPage(1);
         });
 
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = categoryService.subscribe((cats) => {
+            setGlobalCategories(cats);
+        });
         return () => unsubscribe();
     }, []);
 
@@ -53,10 +83,64 @@ export function AthleteList() {
         }
     };
 
-    // Pagination Logic
-    const totalPages = Math.ceil(athletes.length / itemsPerPage);
+    // Extract all unique categories for the filter
+    const allCategories = useMemo(() => {
+        const cats = new Set<string>();
+        // Add categories found in athletes
+        athletes.forEach(a => {
+            const athleteCats = a.categories || (a.category ? [a.category] : []);
+            athleteCats.forEach(c => cats.add(c));
+        });
+        // Add global categories
+        globalCategories.forEach(gc => cats.add(gc.name));
+
+        return Array.from(cats).sort();
+    }, [athletes, globalCategories]);
+
+    // Filtering & Sorting Logic
+    const filteredAndSortedAthletes = useMemo(() => {
+        let result = [...athletes];
+
+        // 1. Search filter
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter(a =>
+                a.name.toLowerCase().includes(term) ||
+                a.registrationNumber?.includes(term)
+            );
+        }
+
+        // 2. Category filter
+        if (selectedCategory !== "all") {
+            result = result.filter(a => {
+                const athleteCats = a.categories || (a.category ? [a.category] : []);
+                return athleteCats.includes(selectedCategory);
+            });
+        }
+
+        // 3. Sorting (Alphabetical)
+        result.sort((a, b) => {
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+            if (sortOrder === "asc") {
+                return nameA.localeCompare(nameB);
+            } else {
+                return nameB.localeCompare(nameA);
+            }
+        });
+
+        return result;
+    }, [athletes, searchTerm, selectedCategory, sortOrder]);
+
+    const totalPages = Math.ceil(filteredAndSortedAthletes.length / itemsPerPage);
+
+    // Reset to first page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedCategory]);
+
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentAthletes = athletes.slice(startIndex, startIndex + itemsPerPage);
+    const currentAthletes = filteredAndSortedAthletes.slice(startIndex, startIndex + itemsPerPage);
 
     const goToPage = (page: number) => {
         const pageNumber = Math.max(1, Math.min(page, totalPages));
@@ -65,6 +149,50 @@ export function AthleteList() {
 
     return (
         <div className="space-y-4">
+            {/* Filters Header */}
+            <div className="flex flex-col md:flex-row gap-3 items-end md:items-center justify-between bg-muted/20 p-4 rounded-2xl border border-muted/20">
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto flex-1">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar por nome ou ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-11 rounded-xl bg-background border-muted/40 focus:border-primary/40 focus:ring-primary/10 transition-all font-medium text-sm"
+                        />
+                    </div>
+
+                    <div className="w-full md:w-48">
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <SelectTrigger className="h-11 rounded-xl bg-background border-muted/40 font-bold uppercase text-[10px] tracking-widest">
+                                <div className="flex items-center gap-2">
+                                    <Filter className="h-3 w-3 text-muted-foreground" />
+                                    <SelectValue placeholder="Categoria" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                                <SelectItem value="all" className="font-bold uppercase text-[10px]">Todas</SelectItem>
+                                {allCategories.map(cat => (
+                                    <SelectItem key={cat} value={cat} className="font-bold uppercase text-[10px]">{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                        className="h-11 px-4 rounded-xl border border-muted/40 bg-background hover:bg-muted/50 transition-all font-bold uppercase text-[10px] tracking-widest gap-2"
+                    >
+                        <SortAsc className={`h-4 w-4 transition-transform duration-300 ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+                        {sortOrder === "asc" ? "A-Z" : "Z-A"}
+                    </Button>
+                </div>
+            </div>
+
             <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader className="bg-muted/50">
@@ -79,8 +207,20 @@ export function AthleteList() {
                     <TableBody>
                         {currentAthletes.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic font-medium uppercase text-[10px] tracking-widest opacity-40">
-                                    Nenhum atleta cadastrado.
+                                <TableCell colSpan={5} className="h-48 text-center text-muted-foreground p-12">
+                                    <div className="flex flex-col items-center gap-3 opacity-40">
+                                        <Search className="h-12 w-12" />
+                                        <p className="font-black uppercase text-xs tracking-[0.2em]">Nenhum atleta encontrado</p>
+                                        <p className="normal-case font-medium text-[10px] tracking-normal mb-4">Tente ajustar seus filtros de pesquisa.</p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => { setSearchTerm(""); setSelectedCategory("all"); }}
+                                            className="rounded-full font-bold uppercase text-[9px] tracking-widest"
+                                        >
+                                            Limpar Filtros
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -157,7 +297,7 @@ export function AthleteList() {
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-2">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">
-                        Mostrando {startIndex + 1}-{Math.min(startIndex + itemsPerPage, athletes.length)} de {athletes.length} atletas
+                        Mostrando {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedAthletes.length)} de {filteredAndSortedAthletes.length} atletas
                     </p>
                     <div className="flex items-center gap-1">
                         <Button
