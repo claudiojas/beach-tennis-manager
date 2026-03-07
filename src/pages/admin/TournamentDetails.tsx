@@ -40,6 +40,7 @@ import { TournamentAthleteManager } from "@/components/athletes/TournamentAthlet
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ManualGroupGenerator } from "@/components/matches/ManualGroupGenerator";
+import { categoryService } from "@/services/categoryService";
 
 const courtSchema = z.object({
     name: z.string().min(2, "Nome da quadra deve ter pelo menos 2 caracteres"),
@@ -66,6 +67,19 @@ export default function TournamentDetails() {
     const [activeSubTournament, setActiveSubTournament] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("rules");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+
+    useEffect(() => {
+        const unsubscribe = categoryService.subscribe((cats) => {
+            setDynamicCategories(cats.map(c => c.name));
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const allGlobalCategories = Array.from(new Set([
+        ...TOURNAMENT_CATEGORIES,
+        ...dynamicCategories
+    ])).sort();
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -724,7 +738,7 @@ export default function TournamentDetails() {
                                         </CardHeader>
                                         <CardContent>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                                {TOURNAMENT_CATEGORIES.map((cat) => {
+                                                {allGlobalCategories.map((cat) => {
                                                     const rules = tournament?.categoryRules?.[activeSubTournament] || [];
                                                     const isChecked = rules.includes(cat);
 
