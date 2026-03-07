@@ -43,6 +43,7 @@ export const imageProcessor = {
 
     /**
      * Detecta pixels não transparentes e corta as bordas vazias
+     * Adicionado threshold de alpha para ignorar "sujeira" deixada pela remoção de fundo
      */
     trimImage: async (blob: Blob): Promise<Blob> => {
         return new Promise((resolve) => {
@@ -68,8 +69,11 @@ export const imageProcessor = {
                     bottom: 0
                 };
 
+                // Threshold de alpha: Ignora pixels com opacidade menor que 15 (aprox 6%)
+                const ALPHA_THRESHOLD = 15;
+
                 for (let i = 0; i < l; i += 4) {
-                    if (pixels.data[i + 3] > 0) { // Se o pixel não é transparente
+                    if (pixels.data[i + 3] >= ALPHA_THRESHOLD) {
                         const x = (i / 4) % img.width;
                         const y = Math.floor((i / 4) / img.width);
 
@@ -80,14 +84,27 @@ export const imageProcessor = {
                     }
                 }
 
+                console.log(`📏 Dimensões originais: ${img.width}x${img.height}`);
+                console.log(`📍 Bounds detectados:`, bound);
+
                 // Se não encontrou pixel (imagem vazia), retorna original
-                if (bound.top >= bound.bottom || bound.left >= bound.right) {
+                if (bound.top >= img.height || bound.left >= img.width || bound.right === 0) {
+                    console.log('⚠️ Nenhum conteúdo detectado para cortar.');
                     resolve(blob);
                     return;
                 }
 
-                const trimHeight = bound.bottom - bound.top + 1;
-                const trimWidth = bound.right - bound.left + 1;
+                // Adiciona um pequeno padding de 2px para não encostar na borda (opcional)
+                const padding = 2;
+                const startX = Math.max(0, bound.left - padding);
+                const startY = Math.max(0, bound.top - padding);
+                const endX = Math.min(img.width, bound.right + padding);
+                const endY = Math.min(img.height, bound.bottom + padding);
+
+                const trimHeight = endY - startY + 1;
+                const trimWidth = endX - startX + 1;
+
+                console.log(`✂️ Dimensões finais: ${trimWidth}x${trimHeight}`);
 
                 // Cria novo canvas com tamanho exato do logo
                 const trimmedCanvas = document.createElement('canvas');
@@ -97,7 +114,7 @@ export const imageProcessor = {
 
                 trimmedCtx?.drawImage(
                     canvas,
-                    bound.left, bound.top, trimWidth, trimHeight,
+                    startX, startY, trimWidth, trimHeight,
                     0, 0, trimWidth, trimHeight
                 );
 

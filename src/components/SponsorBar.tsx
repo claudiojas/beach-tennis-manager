@@ -12,12 +12,9 @@ export const SponsorBar = () => {
         return () => unsubscribe();
     }, []);
 
-    if (sponsors.length === 0) return null;
-
-    // Memoize the logo lists to prevent unnecessary re-renders during parent updates
     const logoList = useMemo(() => {
         const SponsorLogo = ({ sponsor, idPrefix }: { sponsor: Sponsor, idPrefix: string }) => (
-            <div className="inline-flex items-center justify-center w-[240px] h-[110px] mx-10 shrink-0">
+            <div className="inline-flex items-center justify-center w-[140px] h-11 mx-8 shrink-0">
                 <img
                     src={sponsor.logoUrl}
                     alt={sponsor.name}
@@ -40,9 +37,11 @@ export const SponsorBar = () => {
         );
     }, [sponsors]);
 
+    if (sponsors.length === 0) return null;
+
     return (
         <div className="w-full bg-slate-900/60 backdrop-blur-md border-t border-white/5 py-1 overflow-hidden relative shadow-2xl shrink-0 z-50">
-            <div className="flex items-center h-[110px]">
+            <div className="flex items-center h-[50px]">
                 {/* Visual Fading Gradients */}
                 <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-slate-900 via-slate-900/60 to-transparent z-10" />
                 <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-slate-900 via-slate-900/60 to-transparent z-10" />
