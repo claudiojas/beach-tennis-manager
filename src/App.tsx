@@ -18,42 +18,57 @@ import SponsorsManager from "./pages/admin/SponsorsManager";
 import PublicView from "./pages/PublicView";
 import NotFound from "./pages/NotFound";
 
+import { seedService } from "./services/seedService";
+import { useEffect } from "react";
+
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+const App = () => {
+  useEffect(() => {
+    const hasSeeded = localStorage.getItem("temp_seed_80_v1");
+    if (!hasSeeded) {
+      seedService.seedAthletes().then(() => {
+        localStorage.setItem("temp_seed_80_v1", "true");
+        console.log("✅ Database seeded with 80 athletes!");
+      });
+    }
+  }, []);
 
-          {/* Rotas Protegidas do Admin */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/tournament/:id" element={<TournamentDetails />} />
-            <Route path="/admin/athletes" element={<GlobalAthletes />} />
-            <Route path="/admin/arenas" element={<GlobalArenas />} />
-            <Route path="/admin/sponsors" element={<SponsorsManager />} />
-          </Route>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/" element={<Index />} />
+            {/* Rotas Protegidas do Admin */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/tournament/:id" element={<TournamentDetails />} />
+              <Route path="/admin/athletes" element={<GlobalAthletes />} />
+              <Route path="/admin/arenas" element={<GlobalArenas />} />
+              <Route path="/admin/sponsors" element={<SponsorsManager />} />
+            </Route>
 
-          {/* Rotas de Arbitragem */}
-          <Route path="/arbitro" element={<RefereeLogin />} />
-          <Route element={<RefereeRoute />}>
-            <Route path="/arbitro/painel" element={<RefereeDashboard />} />
-          </Route>
+            <Route path="/" element={<Index />} />
 
-          <Route path="/arena" element={<ArenaPanel />} />
-          <Route path="/torneio/:id" element={<PublicView />} />
+            {/* Rotas de Arbitragem */}
+            <Route path="/arbitro" element={<RefereeLogin />} />
+            <Route element={<RefereeRoute />}>
+              <Route path="/arbitro/painel" element={<RefereeDashboard />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            <Route path="/arena" element={<ArenaPanel />} />
+            <Route path="/torneio/:id" element={<PublicView />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

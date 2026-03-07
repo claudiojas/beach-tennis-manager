@@ -50,6 +50,7 @@ export default function GlobalAthletes() {
                         </div>
 
                         <div className="flex gap-2">
+
                             <Dialog open={openCategory} onOpenChange={setOpenCategory}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline">
