@@ -297,24 +297,105 @@ export const matchService = {
                         (m.teamB?.player1.id + (m.teamB?.player2?.id || '') === id)
                     );
 
-                    const won = tMatches.filter(m => {
-                        if (m.status !== 'finished' || !m.teamA || !m.teamB) return false;
-                        const isA = (m.teamA.player1.id + (m.teamA.player2?.id || '') === id);
-                        return isA ? m.setsA > m.setsB : m.setsB > m.setsA;
-                    }).length;
+                    let won = 0;
+                    let setsWon = 0;
+                    let setsLost = 0;
+                    let gamesWon = 0;
+                    let gamesLost = 0;
 
-                    let balance = 0;
                     tMatches.forEach(m => {
                         if (m.status !== 'finished' || !m.teamA || !m.teamB) return;
                         const isA = (m.teamA.player1.id + (m.teamA.player2?.id || '') === id);
+
+                        if (isA) {
+                            if (m.setsA > m.setsB) won++;
+                            setsWon += m.setsA;
+                            setsLost += m.setsB;
+                        } else {
+                            if (m.setsB > m.setsA) won++;
+                            setsWon += m.setsB;
+                            setsLost += m.setsA;
+                        }
+
                         const history = Array.isArray(m.historySets) ? m.historySets : [];
                         history.forEach(s => {
-                            balance += isA ? (s.scoreA - s.scoreB) : (s.scoreB - s.scoreA);
+                            if (isA) {
+                                gamesWon += s.scoreA;
+                                gamesLost += s.scoreB;
+                            } else {
+                                gamesWon += s.scoreB;
+                                gamesLost += s.scoreA;
+                            }
                         });
                     });
 
-                    return { id, team: info.team, won, balance };
-                }).sort((a, b) => b.won - a.won || b.balance - a.balance);
+                    return { id, team: info.team, won, setsWon, setsLost, gamesWon, gamesLost, matches: tMatches };
+                }).sort((a, b) => {
+                    // 1. Number of Victories
+                    if (b.won !== a.won) return b.won - a.won;
+
+                    // 2. Head-to-head (Confronto Direto) - ONLY if Exactly 2 teams are tied in wins
+                    // According to CBT: "Empate entre duas duplas: O confronto direto entre elas determina a posição."
+                    const tiedTeams = groupMatches.filter(m => m.status === 'finished').reduce((acc, match) => {
+                        // This is a bit complex in a map, let's simplify: 
+                        // Search for all teams with the same number of wins in this group
+                        return acc; // Placeholder for logic inside the sort
+                    }, [] as any[]);
+
+                    // Re-calculating tied count for the specific 'won' level
+                    // (This is handled by looking at the whole group later or simple comparison)
+
+                    // 3. Sets Balance
+                    const balanceSetsA = a.setsWon - a.setsLost;
+                    const balanceSetsB = b.setsWon - b.setsLost;
+                    if (balanceSetsB !== balanceSetsA) return balanceSetsB - balanceSetsA;
+
+                    // 4. Games Balance
+                    const balanceGamesA = a.gamesWon - a.gamesLost;
+                    const balanceGamesB = b.gamesWon - b.gamesLost;
+                    if (balanceGamesB !== balanceGamesA) return balanceGamesB - balanceGamesA;
+
+                    // 5. Game Average
+                    const avgA = a.gamesWon / (a.gamesWon + a.gamesLost || 1);
+                    const avgB = b.gamesWon / (b.gamesWon + b.gamesLost || 1);
+                    if (avgB !== avgA) return avgB - avgA;
+
+                    return 0;
+                });
+
+                // Special handling for 2-way tie (Confronto Direto)
+                // If two teams are tied in EVERY criterion above OR specifically just wins, 
+                // the match between them is the absolute tie-breaker.
+                // But usually CBT says: 2 teams -> direct; 3+ teams -> set balance -> game balance.
+
+                // Refined Sorting for 2-way ties specifically
+                for (let i = 0; i < stats.length - 1; i++) {
+                    for (let j = i + 1; j < stats.length; j++) {
+                        const teamA = stats[i];
+                        const teamB = stats[j];
+
+                        if (teamA.won === teamB.won) {
+                            // Check if it's ONLY these two tied in wins
+                            const othersWithSameWins = stats.filter(s => s.won === teamA.won).length;
+                            if (othersWithSameWins === 2) {
+                                const directMatch = groupMatches.find(m =>
+                                    (m.teamA?.player1.id + (m.teamA?.player2?.id || '') === teamA.id && m.teamB?.player1.id + (m.teamB?.player2?.id || '') === teamB.id) ||
+                                    (m.teamB?.player1.id + (m.teamB?.player2?.id || '') === teamA.id && m.teamA?.player1.id + (m.teamA?.player2?.id || '') === teamB.id)
+                                );
+
+                                if (directMatch && directMatch.status === 'finished') {
+                                    const aIsA = directMatch.teamA?.player1.id + (directMatch.teamA?.player2?.id || '') === teamA.id;
+                                    const aWon = aIsA ? directMatch.setsA > directMatch.setsB : directMatch.setsB > directMatch.setsA;
+
+                                    if (!aWon) {
+                                        // Swap them
+                                        [stats[i], stats[j]] = [stats[j], stats[i]];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Take TOP N
                 for (let i = 0; i < Math.min(topCount, stats.length); i++) {
