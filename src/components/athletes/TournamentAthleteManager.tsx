@@ -195,7 +195,7 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                     {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
-                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat}</Badge>
+                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat.toUpperCase()}</Badge>
                                     ))}
                                 </div>
                                 {isParticipating && (

@@ -28,8 +28,8 @@ const kidsNames = [
     "Duda Borba", "Lili Viana", "Soso Neto", "Tutu Cruz", "Guga Medeiros"
 ];
 
-const adultCategories = ["A", "B", "C", "D", "Iniciante", "40+", "50+"];
-const kidsCategories = ["Sub-12", "Sub-14", "Sub-16", "Kids Iniciante"];
+const adultCategories = ["A", "B", "C", "D", "INICIANTE", "40+", "50+"];
+const kidsCategories = ["SUB-12", "SUB-14", "SUB-16", "KIDS INICIANTE"];
 
 export const seedService = {
     seedAthletes: async () => {
@@ -47,7 +47,7 @@ export const seedService = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
-                categories: [cat, "Mista"],
+                categories: [cat, "MISTA"],
                 createdAt: Date.now()
             };
         });
