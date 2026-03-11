@@ -114,7 +114,8 @@ const ArenaPanel = () => {
               initial={{ y: 0 }}
               animate={{ y: '-100%' }}
               transition={{
-                duration: 85,
+                duration: 30,
+                delay: 3,
                 ease: 'linear',
               }}
               onAnimationComplete={() => {

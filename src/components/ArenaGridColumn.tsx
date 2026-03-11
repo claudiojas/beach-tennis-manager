@@ -72,7 +72,7 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
             if (!containerRef.current || !contentRef.current) return;
 
             // Wait for DOM to settle
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 3000));
             if (!isMounted.current) return;
 
             const cHeight = containerRef.current.offsetHeight;
@@ -86,20 +86,20 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
 
                     // Reset
                     await controls.set({ y: 0 });
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 3000));
                     if (!isMounted.current) return;
 
                     // Scroll
                     await controls.start({
                         y: -distance,
                         transition: {
-                            duration: distance / 20,
+                            duration: distance / 90,
                             ease: "linear"
                         }
                     });
 
                     if (!isMounted.current) return;
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 3000));
 
                     // Jump back
                     await controls.set({ y: 0 });
