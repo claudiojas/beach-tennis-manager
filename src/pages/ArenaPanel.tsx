@@ -130,7 +130,7 @@ const ArenaPanel = () => {
               {rows.map((row, rowIdx) => (
                 <div
                   key={`row-${rowIdx}`}
-                  className="grid grid-cols-3 divide-x divide-white/5"
+                  className="grid grid-cols-3"
                 >
                   {row.map((catPage, idx) => (
                     <div key={`${catPage.category}-${idx}`} className="h-full">
@@ -142,7 +142,7 @@ const ArenaPanel = () => {
                     </div>
                   ))}
                   {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
-                    <div key={`empty-${rowIdx}-${i}`} className="bg-slate-900/10 flex items-center justify-center border-l border-white/5 opacity-5">
+                    <div key={`empty-${rowIdx}-${i}`} className="bg-slate-900/10 flex items-center justify-center opacity-5">
                       <Trophy size={60} />
                     </div>
                   ))}

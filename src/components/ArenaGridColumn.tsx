@@ -119,7 +119,7 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
     }, [matchesStabilityIdx, categoryProp, controls]);
 
     return (
-        <div className="flex flex-col h-full bg-[#0f172a]/40 border-x border-white/5 relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#0f172a]/40 relative overflow-hidden">
             <div className="p-6 border-b border-white/10 bg-[#020617] z-30 shadow-xl">
                 <p className="text-[10px] font-black text-[#0088cc] uppercase tracking-[0.5em] mb-1 italic">
                     Etapa: {etapa}
