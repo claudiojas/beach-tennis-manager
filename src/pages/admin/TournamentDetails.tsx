@@ -372,6 +372,8 @@ export default function TournamentDetails() {
                                     const finishedMatches = catMatches.filter(m => m.status === 'finished').length;
                                     const totalMatches = catMatches.length;
                                     const progress = totalMatches > 0 ? (finishedMatches / totalMatches) * 100 : 0;
+                                    const isStarted = totalMatches > 0 && catMatches.some(m => m.status === 'ongoing' || m.status === 'finished');
+                                    const isFinished = catMatches.some(m => m.round?.toLowerCase() === 'final' && m.status === 'finished');
 
                                     return (
                                         <Card
@@ -379,7 +381,16 @@ export default function TournamentDetails() {
                                             className={`relative group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-muted/40 rounded-2xl ${activeSubTournament === cat ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'}`}
                                             onClick={() => editingCategory !== cat && setActiveSubTournament(cat)}
                                         >
-                                            <div className="absolute top-0 right-0 p-2 z-10">
+                                            <div className="absolute top-0 right-0 p-2 z-10 flex flex-col items-end gap-1">
+                                                {isFinished ? (
+                                                    <Badge className="bg-green-500 hover:bg-green-600 text-[8px] uppercase font-black px-2 py-0.5 shadow-lg shadow-green-500/20 animate-in zoom-in-50 duration-300">
+                                                        Etapa Finalizada
+                                                    </Badge>
+                                                ) : isStarted ? (
+                                                    <Badge className="bg-green-600 hover:bg-green-700 text-[8px] uppercase font-black px-2 py-0.5 shadow-lg shadow-green-600/20 animate-pulse">
+                                                        Etapa Iniciada
+                                                    </Badge>
+                                                ) : null}
                                                 <div className="flex gap-1">
                                                     <Button
                                                         variant="ghost"
