@@ -42,16 +42,11 @@ export const matchService = {
         const actualStartTime = Date.now();
         const ongoingStatus = 'ongoing';
 
-        // Get device ID if available for locking
-        const controlledBy = localStorage.getItem("bt-manager-device-id") || null;
-
-        // 1. Update the match entry in /matches
         const matchRef = ref(db, `${MATCHES_PATH}/${match.id}`);
         const matchUpdate = {
             status: ongoingStatus,
             courtId,
             actualStartTime,
-            controlledBy
         };
         await update(matchRef, matchUpdate);
 
@@ -70,14 +65,23 @@ export const matchService = {
         const matchRef = ref(db, `${MATCHES_PATH}/${matchId}`);
         await update(matchRef, updates);
 
-        // SYNC WITH COURT: Ensure real-time views (Public/Arena) get the update
-        // We get the current match data to find which court it's on
+        // Use a single get() to ensure we have the latest courtId and full match data
         const snapshot = await get(matchRef);
         const fullMatch = snapshot.val() as Match;
 
-        if (fullMatch && fullMatch.courtId && fullMatch.status === 'ongoing') {
+        if (fullMatch && fullMatch.courtId) {
             const courtMatchRef = ref(db, `courts/${fullMatch.courtId}/currentMatch`);
-            await update(courtMatchRef, updates);
+
+            if (updates.status === 'finished') {
+                // If finishing, clear the court too
+                await update(ref(db, `courts/${fullMatch.courtId}`), {
+                    status: 'livre',
+                    currentMatch: null
+                });
+            } else {
+                // Otherwise just sync the current match data
+                await update(courtMatchRef, updates);
+            }
         }
 
         // --- NEW: Automatic Winner Progression ---
@@ -187,6 +191,16 @@ export const matchService = {
      * Groups of 3 or 4 based on total teams.
      */
     generateGroupMatches: async (tournamentId: string, category: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
+        // --- SAFEGUARD: Prevent Duplicate Groups ---
+        const existingSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
+        if (existingSnapshot.exists()) {
+            const existingMatches = Object.values(existingSnapshot.val()) as Match[];
+            const alreadyHasGroups = existingMatches.some(m => m.category === category && m.round === 'Grupos');
+            if (alreadyHasGroups) {
+                throw new Error(`Partidas de grupo para a categoria ${category} já foram geradas.`);
+            }
+        }
+
         const teams: Team[] = [];
         if (type === 'Simples') {
             athletes.forEach(p => teams.push({ player1: p }));
@@ -318,15 +332,26 @@ export const matchService = {
                         }
 
                         const history = Array.isArray(m.historySets) ? m.historySets : [];
-                        history.forEach(s => {
+                        if (history.length > 0) {
+                            history.forEach(s => {
+                                if (isA) {
+                                    gamesWon += s.scoreA;
+                                    gamesLost += s.scoreB;
+                                } else {
+                                    gamesWon += s.scoreB;
+                                    gamesLost += s.scoreA;
+                                }
+                            });
+                        } else {
+                            // FALLBACK: Use setsA/setsB if historySets is empty
                             if (isA) {
-                                gamesWon += s.scoreA;
-                                gamesLost += s.scoreB;
+                                gamesWon += m.setsA;
+                                gamesLost += m.setsB;
                             } else {
-                                gamesWon += s.scoreB;
-                                gamesLost += s.scoreA;
+                                gamesWon += m.setsB;
+                                gamesLost += m.setsA;
                             }
-                        });
+                        }
                     });
 
                     return { id, team: info.team, won, setsWon, setsLost, gamesWon, gamesLost, matches: tMatches };
@@ -441,19 +466,8 @@ export const matchService = {
      */
     releaseMatch: async (matchId: string) => {
         const matchRef = ref(db, `${MATCHES_PATH}/${matchId}`);
-        const snapshot = await get(matchRef);
-        const match = snapshot.val() as Match;
-
-        if (match) {
-            // 1. Remove control lock from match
-            await update(matchRef, { controlledBy: null });
-
-            // 2. If it's on a court, update the court's currentMatch too
-            if (match.courtId && match.status === 'ongoing') {
-                const courtMatchRef = ref(db, `courts/${match.courtId}/currentMatch`);
-                await update(courtMatchRef, { controlledBy: null });
-            }
-        }
+        // This is now redundant since we removed controlledBy
+        await update(matchRef, { controlledBy: null });
     },
 
     resetCourtsByTournament: async (tournamentId: string) => {

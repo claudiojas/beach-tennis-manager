@@ -14,6 +14,16 @@ export const bracketService = {
         const N = teams.length;
         if (N < 2) throw new Error("Mínimo de 2 duplas para gerar chave.");
 
+        // --- SAFEGUARD: Prevent Duplicate Brackets ---
+        const existingSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
+        if (existingSnapshot.exists()) {
+            const existingMatches = Object.values(existingSnapshot.val()) as Match[];
+            const alreadyHasBracket = existingMatches.some(m => m.category === category && m.round && m.round !== 'Grupos');
+            if (alreadyHasBracket) {
+                throw new Error(`As chaves (mata-mata) para a categoria ${category} já foram geradas.`);
+            }
+        }
+
         // 1. Find the target power of 2 (P) such that P <= N < 2P
         // P will be the number of slots in the "Base Round" (e.g., Quartas = 8)
         let P = 2;

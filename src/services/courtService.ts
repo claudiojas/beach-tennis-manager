@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { Court, MatchResult } from "@/types/beach-tennis";
-import { ref, onValue, update, set, push, query, orderByChild, equalTo } from "firebase/database";
+import { ref, onValue, update, set, push, query, orderByChild, equalTo, get } from "firebase/database";
 
 const COURTS_PATH = "courts";
 const RESULTS_PATH = "results";
@@ -58,8 +58,16 @@ export const courtService = {
 
     updateScore: async (courtId: string, updates: Partial<Court['currentMatch']>) => {
         if (!updates) return;
-        const matchRef = ref(db, `${COURTS_PATH}/${courtId}/currentMatch`);
-        await update(matchRef, updates);
+        const courtMatchRef = ref(db, `${COURTS_PATH}/${courtId}/currentMatch`);
+        await update(courtMatchRef, updates);
+
+        // CRITICAL SYNC: Also update the main /matches branch so the Arena Panel (and other views) see it
+        const snapshot = await get(courtMatchRef);
+        const currentMatch = snapshot.val();
+        if (currentMatch && currentMatch.id) {
+            const mainMatchRef = ref(db, `matches/${currentMatch.id}`);
+            await update(mainMatchRef, updates);
+        }
     },
 
     updateStatus: async (courtId: string, status: Court['status']) => {

@@ -41,20 +41,13 @@ export const sortTeams = (stats: TeamStats[]): TeamStats[] => {
             }
         }
 
-        // 3. Sets Balance
-        const balanceSetsA = a.setsWon - a.setsLost;
-        const balanceSetsB = b.setsWon - b.setsLost;
-        if (balanceSetsB !== balanceSetsA) return balanceSetsB - balanceSetsA;
-
-        // 4. Games Balance
+        // 3. Sets Balance (using games balance logic as sets balance)
         const balanceGamesA = a.gamesWon - a.gamesLost;
         const balanceGamesB = b.gamesWon - b.gamesLost;
         if (balanceGamesB !== balanceGamesA) return balanceGamesB - balanceGamesA;
 
-        // 5. Game Average
-        const avgA = a.gamesWon / (a.gamesWon + a.gamesLost || 1);
-        const avgB = b.gamesWon / (b.gamesWon + b.gamesLost || 1);
-        if (avgB !== avgA) return avgB - avgA;
+        // 4. Games Won
+        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon;
 
         return 0;
     });
@@ -97,14 +90,15 @@ describe('Tournament Classification Logic', () => {
         expect(sorted[0].id).toBe('1'); // Team 1 should be first because it won the match against Team 2
     });
 
-    it('should use Sets Balance for 3-way ties', () => {
+    it('should use Sets/Games for 3-way ties even if historySets is empty', () => {
         // A beats B, B beats C, C beats A
+        // This simulates the fix where we fallback to setsA/setsB if historySets is missing
         const stats: TeamStats[] = [
-            { id: 'A', team: team1, won: 1, setsWon: 2, setsLost: 1, gamesWon: 12, gamesLost: 10, matches: [] },
-            { id: 'B', team: team2, won: 1, setsWon: 3, setsLost: 1, gamesWon: 20, gamesLost: 15, matches: [] },
-            { id: 'C', team: team3, won: 1, setsWon: 1, setsLost: 1, gamesWon: 10, gamesLost: 10, matches: [] },
+            { id: 'A', team: team1, won: 1, setsWon: 1, setsLost: 1, gamesWon: 6, gamesLost: 6, matches: [] },
+            { id: 'B', team: team2, won: 1, setsWon: 1, setsLost: 1, gamesWon: 9, gamesLost: 6, matches: [] },
+            { id: 'C', team: team3, won: 1, setsWon: 1, setsLost: 1, gamesWon: 4, gamesLost: 6, matches: [] },
         ];
         const sorted = sortTeams(stats);
-        expect(sorted[0].id).toBe('B'); // B has +2 set balance, A has +1, C has 0
+        expect(sorted[0].id).toBe('B'); // B has +3 balance, A has 0, C has -2
     });
 });

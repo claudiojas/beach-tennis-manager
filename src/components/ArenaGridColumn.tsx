@@ -60,6 +60,11 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
         return { groups: groupSections, knockouts: knockoutSections };
     }, [matches]);
 
+    // Create a stable dependency for the animation effect
+    const matchesStabilityIdx = useMemo(() => {
+        return matches.map(m => `${m.id}-${m.status}`).join('|');
+    }, [matches]);
+
     useEffect(() => {
         isMounted.current = true;
 
@@ -111,7 +116,7 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
             isMounted.current = false;
             controls.stop();
         };
-    }, [matches, categoryProp, controls]);
+    }, [matchesStabilityIdx, categoryProp, controls]);
 
     return (
         <div className="flex flex-col h-full bg-[#0f172a]/40 border-x border-white/5 relative overflow-hidden">

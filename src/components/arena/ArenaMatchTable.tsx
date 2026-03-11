@@ -81,10 +81,19 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
 
                                 {/* Placar */}
                                 <td className="bg-black/40 px-2 py-1.5 border-y border-white/5 group-hover:bg-black/60">
-                                    <div className="flex items-center justify-center gap-1 md:gap-1.5 font-mono text-lg md:text-xl font-black text-primary italic">
-                                        <span>{m.setsA}</span>
-                                        <span className="text-white/10 text-[10px] md:text-xs">x</span>
-                                        <span>{m.setsB}</span>
+                                    <div className="flex flex-col items-center justify-center gap-0.5">
+                                        <div className="flex items-center justify-center gap-1 md:gap-1.5 font-mono text-lg md:text-xl font-black text-primary italic">
+                                            <span>{m.setsA}</span>
+                                            <span className="text-white/10 text-[10px] md:text-xs font-sans">x</span>
+                                            <span>{m.setsB}</span>
+                                        </div>
+                                        {m.status === 'ongoing' && (
+                                            <div className="flex items-center justify-center gap-2 text-[10px] font-black text-white/40 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+                                                <span className={m.pointsA === '40' || m.pointsA === 'AD' ? 'text-primary' : ''}>{m.pointsA}</span>
+                                                <span className="opacity-20">:</span>
+                                                <span className={m.pointsB === '40' || m.pointsB === 'AD' ? 'text-primary' : ''}>{m.pointsB}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </td>
 

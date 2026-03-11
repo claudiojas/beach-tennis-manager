@@ -1,77 +1,41 @@
-# 🎾 Relatório de Evolução: Beach Tennis Manager
-**Data:** 05 de Março de 2026
-**Cliente:** Gustavo
-**Desenvolvimento:** Módulo Web
+# Relatório de Evolução - Arena Panel
+
+Este documento resume as principais atualizações e melhorias implementadas no Painel da Arena para o Beach Tennis Manager.
+
+## 1. Redesign do Layout
+- **Estrutura em Grade**: Substituição do modelo de slide único por uma grade panorâmica de 3 colunas.
+- **Visualização Simultânea**: Agora é possível visualizar até 3 categorias ou etapas ao mesmo tempo.
+- **Cabeçalho Fixo**: O `ArenaHeader` foi simplificado para manter o nome do torneio e o relógio sempre visíveis no topo.
+- **Rodapé de Patrocinadores**: O `SponsorBar` foi fixado na base para garantir visibilidade contínua das marcas parceiras.
+
+## 2. Sistema de Animação (Framer Motion)
+- **Integração de Biblioteca**: Adição da biblioteca `framer-motion` para animações fluidas e aceleradas por hardware.
+- **Scroll "Créditos de Cinema"**: 
+  - Movimento vertical ascendente (de baixo para cima) automático para conteúdos longos.
+  - Pausa inteligente de 2 segundos no topo para facilitar a leitura inicial.
+  - Reset instantâneo para o topo após exibir todas as informações.
+- **Transições de Página**: Troca suave entre conjuntos de categorias e torneios usando `AnimatePresence`.
+
+## 3. Otimização e Limpeza de Código
+- **Correção de CSS**:
+  - Eliminação de avisos de `@apply` desconhecidos através da conversão para CSS padrão.
+  - Correção da ordem de `@import` para compatibilidade total com o Vite.
+- **Sincronização em Tempo Real**: Refatoração da lógica de assinatura do Firebase para garantir que resultados de múltiplos torneios ativos sejam atualizados instantaneamente sem recarregar a página.
+- **Robustez no Mapeamento**: Melhoria na separação automática entre "Etapa" e "Categoria" nos títulos das colunas.
+
+## 4. Centralização no Admin e Remoção de Árbitro
+- **Remoção do Módulo Árbitro**: Eliminação completa das rotas `/arbitro`, telas de login e painéis de arbitragem externa.
+- **Simplificação de Controle**: Removida a lógica de travamento de dispositivos (`controlledBy`), permitindo que o Admin tenha controle imediato sobre todos os placares.
+- **Independência de Quadras**: O Admin agora permite salvar placares e finalizar jogos sem a obrigatoriedade de vincular uma quadra (ideal para jogos históricos ou em quadras externas).
+- **Sincronização Aprimorada**: 
+  - Ao finalizar um jogo no Admin, a quadra vinculada é liberada automaticamente (`status: livre`).
+  - Fallback automático para `setsA`/`setsB` no cálculo de classificação quando não houver histórico ponto a ponto.
+
+## 5. Próximos Passos
+- [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
+- [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
+- [x] Travas de segurança contra geração duplicada de chaves e grupos.
+- [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-
-## 🚀 1. Visão Geral da Entrega (Estado Atual)
-
-Nesta etapa, o **Beach Tennis Manager** consolidou-se como um ecossistema completo e profissional. O foco saiu do backoffice e entrou na quadra, conectando Árbitro, Atletas e Público em tempo real com segurança e estética de alto nível.
-
-**Destaques:**
-- **Sincronização Master (Real-time):** Implementação de técnica de sincronização de múltiplos caminhos no Firebase, garantindo latência próxima de zero entre o clique do árbitro e a TV da Arena.
-- **Segurança de Arbitragem:** Sistema de trava por dispositivo (Device Lock), impedindo interferência externa nas partidas em andamento.
-- **Arena TV 2.0 (Carousel Mode):** Painel dinâmico que alterna automaticamente entre os jogos "Ao Vivo", otimizado para visibilidade em grandes telas.
-- **Gestão de Contingência:** Ferramenta administrativa para forçar a liberação de partidas travadas sem perda de placar.
-
----
-
-## 🏛️ 2. Arquitetura de Sincronização (Sprint 5-8)
-
-O grande salto técnico desta fase foi a infraestrutura de dados em tempo real. O sistema agora opera de forma reativa:
-- **Service Layer Inteligente:** O `matchService` agora orquestra a atualização da partida e da quadra simultaneamente.
-- **Ticker de Resultados:** Rodapé dinâmico (ticker) com auto-scroll para exibição de resultados históricos no estilo "Rolling News".
-
----
-
-## 🛡️ 3. Segurança e Robustez Operacional
-
-Implementamos travas para garantir a integridade do torneio:
-- **Prevenção de Conflito:** Uma quadra ocupada não pode ser iniciada por outro árbitro até que a partida atual termine ou seja liberada pelo Admin.
-- **Auth de Quadra (PIN):** Refinamento no sistema de PIN para acesso rápido e seguro dos árbitros às quadras físicas.
-- **Unlock Remoto:** Botão de liberação no painel administrativo para resolver problemas técnicos (queda de bateria/perda de celular do árbitro) instantaneamente.
-
----
-
-## 📺 4. Experiência do Espectador (UX Premium)
-
-Aprimoramos a visibilidade dos resultados para o público e para a Arena:
-- **Contraste Dinâmico:** Reestilização completa do `ArenaCourtCard` com fundos sólidos (`slate-950`) e cores neon (`#CEFD03`) para máxima legibilidade sob qualquer iluminação.
-- **Foco no Jogo:** A TV da Arena agora prioriza os confrontos reais, removendo ruído visual de tabelas estáticas quando há jogos em andamento.
-- **Public View Mobile:** Interface otimizada para o espectador que acompanha pelo celular via QR Code.
-
----
-
-## 💾 5. Organização do Repositório (Dev Ops)
-
-- **Git Cleanup:** Limpeza de arquivos de documentação sensíveis e correção do rastreamento da pasta `docs`.
-- **Documentação Técnica:** Criação do manual `TECNICA_SINCRONIZACAO.md` detalhando a estratégia de WebSockets para futuros desenvolvedores.
-
----
-
-## ✅ 6. Conclusão e Próximos Passos
-
-O sistema atingiu o nível de maturação **Professional Grade**. A tríade Admin-Árbitro-Arena está totalmente sincronizada e blindada contra falhas operacionais comuns em torneios ao vivo.
-
-**Próximos Passos:**
-- **Escalabilidade:** Preparação para suporte a múltiplos torneios simultâneos (Multi-tenancy).
-- **Relatórios:** Geração automática de súmulas em PDF para arquivo histórico.
-- **Analytics:** Estatísticas de tempo médio de jogo por quadra e categoria.
-- **Offline Mode:** Estudo de persistência local para garantir operatividade em arenas com instabilidade de rede.
-
----
-
-## 📱 7. Refinamento UX Mobile (Native Feel)
-
-Nesta sprint, transformamos a experiência administrativa para dispositivos móveis, focando em usabilidade "on-the-go" e estética de aplicativo nativo (Premium UX).
-
-**Destaques:**
-- **Navegação FAB (Floating Action Button):** Substituição de abas superiores apertadas por um menu circular dinâmico e `Sheet` lateral, liberando espaço vertical e melhorando a ergonomia em uso com uma mão.
-- **Fluxo de Trabalho por Etapas:** Implementação de navegação por abas internas no Gerador de Grupos Manual, permitindo uma montagem de chaves guiada e sem excesso de rolagem.
-- **Gestão de Jogos Mobile-First:** Redesign completo dos cards de partida com foco absoluto no placar, inputs táteis otimizados para edição rápida e badges de status compactos.
-- **Cabeçalhos Adaptativos:** Todos os painéis administrativos (Grupos, Jogos, Quadras) agora possuem cabeçalhos inteligentes que se ajustam para evitar quebras de layout, mantendo a sobriedade e o profissionalismo.
-- **Tabelas Responsivas:** Otimização das tabelas de classificação (Standings) com fontes dinâmicas e remoção de scrolls horizontais desnecessários.
-
----
-© 2026 **Módulo Web**. *A estética encontra a performance.*
+*Relatório atualizado em 11 de Março de 2026 - Centralização de Scoring.*

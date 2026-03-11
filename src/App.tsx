@@ -6,9 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
-import RefereeLogin from "./pages/referee/RefereeLogin";
-import RefereeDashboard from "./pages/referee/RefereeDashboard";
-import { RefereeRoute } from "./routes/RefereeRoute";
 import ArenaPanel from "./pages/ArenaPanel";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TournamentDetails from "./pages/admin/TournamentDetails";
@@ -54,11 +51,6 @@ const App = () => {
 
             <Route path="/" element={<Index />} />
 
-            {/* Rotas de Arbitragem */}
-            <Route path="/arbitro" element={<RefereeLogin />} />
-            <Route element={<RefereeRoute />}>
-              <Route path="/arbitro/painel" element={<RefereeDashboard />} />
-            </Route>
 
             <Route path="/arena" element={<ArenaPanel />} />
             <Route path="/torneio/:id" element={<PublicView />} />

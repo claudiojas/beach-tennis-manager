@@ -66,13 +66,20 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
 
             const won = teamSets > oppSets;
 
-            // Calculate games (from historySets)
+            // Calculate games (from historySets OR setsA/B for single-set matches)
             let gWon = 0;
             let gLost = 0;
-            (m.historySets || []).forEach(s => {
-                gWon += isTeamA ? s.scoreA : s.scoreB;
-                gLost += isTeamA ? s.scoreB : s.scoreA;
-            });
+
+            if (m.historySets && m.historySets.length > 0) {
+                m.historySets.forEach(s => {
+                    gWon += isTeamA ? s.scoreA : s.scoreB;
+                    gLost += isTeamA ? s.scoreB : s.scoreA;
+                });
+            } else {
+                // If no history, assume setsA/B are the final game scores (common for single set pro-sets)
+                gWon = isTeamA ? m.setsA : m.setsB;
+                gLost = isTeamA ? m.setsB : m.setsA;
+            }
 
             return {
                 played: acc.played + 1,

@@ -4,7 +4,7 @@ import { matchService } from "@/services/matchService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Unlock, Check, X, Trophy, MoreVertical } from "lucide-react";
+import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Check, X, Trophy, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,7 +36,6 @@ interface MatchListProps {
 
 export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListProps) {
     const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
-    const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
     const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
     const [tempScore, setTempScore] = useState<{
         setsA: number;
@@ -62,11 +61,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
     const handleSaveScore = async (matchId: string) => {
         if (!tempScore) return;
 
-        // Validação explícita para feedback claro ao usuário
-        if (!tempScore.courtId) {
-            toast.warning("Selecione uma quadra para o jogo antes de salvar.");
-            return;
-        }
+        /* Removed strict courtId check for Admin */
 
         try {
             await matchService.update(matchId, {
@@ -217,11 +212,6 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                                         <DropdownMenuItem onClick={() => onEdit(match)}>
                                                             <Pencil className="mr-2 h-4 w-4" /> Editar Jogo
                                                         </DropdownMenuItem>
-                                                        {match.status === 'ongoing' && match.controlledBy && (
-                                                            <DropdownMenuItem onClick={() => setMatchToRelease(match)}>
-                                                                <Unlock className="mr-2 h-4 w-4 text-orange-500" /> Liberar Dispositivo
-                                                            </DropdownMenuItem>
-                                                        )}
                                                         {match.status === 'planned' && (
                                                             <DropdownMenuItem onClick={() => handleQuickStart(match.id)}>
                                                                 <PlayCircle className="mr-2 h-4 w-4 text-blue-500" /> Iniciar Agora
@@ -406,31 +396,6 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={!!matchToRelease} onOpenChange={() => setMatchToRelease(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Forçar Liberação de Dispositivo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Isso irá remover a trava de segurança do celular do árbitro sem encerrar a partida e sem perder o placar atual. Utilize apenas se o dispositivo original estiver inacessível.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={async () => {
-                                if (matchToRelease) {
-                                    await matchService.releaseMatch(matchToRelease.id);
-                                    toast.success("Partida liberada para novos dispositivos!");
-                                    setMatchToRelease(null);
-                                }
-                            }}
-                            className="bg-orange-500 text-white hover:bg-orange-600"
-                        >
-                            Liberar Controle
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </>
     );
 }

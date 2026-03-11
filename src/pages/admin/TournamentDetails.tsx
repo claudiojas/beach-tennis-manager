@@ -61,7 +61,6 @@ export default function TournamentDetails() {
     const [openQR, setOpenQR] = useState(false);
     const [arenas, setArenas] = useState<any[]>([]);
     const [isCustomCourt, setIsCustomCourt] = useState(false);
-    const [matchToRelease, setMatchToRelease] = useState<Match | null>(null);
     const [openManualGroups, setOpenManualGroups] = useState(false);
     const [openResetConfirm, setOpenResetConfirm] = useState(false);
     const [activeSubTournament, setActiveSubTournament] = useState<string | null>(null);
@@ -1025,32 +1024,6 @@ export default function TournamentDetails() {
                     </div>
                 </DialogContent>
             </Dialog>
-            {/* Force Release Dialog */}
-            <AlertDialog open={!!matchToRelease} onOpenChange={() => setMatchToRelease(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Forçar Liberação de Dispositivo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Isso irá remover a trava de segurança do celular do árbitro sem encerrar a partida e sem perder o placar atual. Utilize apenas se o dispositivo original estiver inacessível.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Voltar</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={async () => {
-                                if (matchToRelease) {
-                                    await matchService.releaseMatch(matchToRelease.id);
-                                    toast.success("Partida liberada para novos dispositivos!");
-                                    setMatchToRelease(null);
-                                }
-                            }}
-                            className="bg-orange-500 text-white hover:bg-orange-600"
-                        >
-                            Liberar Controle
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
             {id && tournament && activeSubTournament && (
                 <ManualGroupGenerator
                     tournamentId={id}

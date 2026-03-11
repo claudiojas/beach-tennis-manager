@@ -45,9 +45,11 @@ const ArenaPanel = () => {
     return () => unsubTournament();
   }, [forcedTournamentId]);
 
+  const activeIdsStr = useMemo(() => activeTournaments.map(t => t.id).sort().join(','), [activeTournaments]);
+
   useEffect(() => {
-    if (activeTournaments.length > 0) {
-      const activeIds = activeTournaments.map(t => t.id);
+    if (activeIdsStr) {
+      const activeIds = activeIdsStr.split(',');
       const matchesRef = ref(db, 'matches');
       const unsubscribe = onValue(matchesRef, (snapshot) => {
         const data = snapshot.val();
@@ -59,7 +61,7 @@ const ArenaPanel = () => {
     } else {
       setAllMatches([]);
     }
-  }, [activeTournaments]);
+  }, [activeIdsStr]);
 
   const currentTournament = activeTournaments[currentTournamentIndex];
 
