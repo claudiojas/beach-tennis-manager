@@ -256,3 +256,49 @@
     mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
   }
 }
+
+@keyframes vertical-marquee {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-vertical-marquee {
+  animation: vertical-marquee 60s linear infinite;
+}
+
+@keyframes slide-down-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-down-in {
+  animation: slide-down-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-down-out {
+  animation: slide-down-out 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
