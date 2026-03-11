@@ -43,7 +43,7 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
                 <h3 className="text-base font-black uppercase tracking-tight text-white italic">{section.name}</h3>
             </div>
 
-            <div className="w-full px-2 md:px-3 pb-3 overflow-x-auto scrollbar-none">
+            <div className="w-full px-2 md:px-3 pb-3 overflow-x-auto scrollbar-hide">
                 <table className="w-full min-w-[320px] text-left border-separate border-spacing-y-1">
                     <thead className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
                         <tr>
