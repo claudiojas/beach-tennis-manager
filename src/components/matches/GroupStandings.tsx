@@ -31,9 +31,10 @@ interface GroupStandingsProps {
     category: string;
     groupName: string;
     matches: Match[];
+    readOnly?: boolean;
 }
 
-export function GroupStandings({ tournamentId, category, groupName, matches }: GroupStandingsProps) {
+export function GroupStandings({ tournamentId, category, groupName, matches, readOnly }: GroupStandingsProps) {
     const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
     // 1. Identify all unique teams in this group
     const teamMap = new Map<string, { name: string; team: Team }>();
@@ -114,14 +115,16 @@ export function GroupStandings({ tournamentId, category, groupName, matches }: G
                     <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-base md:text-lg px-3 py-1">
                         Grupo {groupName}
                     </Badge>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setOpenDeleteConfirm(true)}
-                        className="h-8 w-8 p-0 text-slate-500 hover:text-red-500 hover:bg-red-50"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setOpenDeleteConfirm(true)}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-red-500 hover:bg-red-50"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="px-0">

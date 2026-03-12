@@ -14,9 +14,10 @@ interface TournamentBracketsProps {
     courts: Court[];
     onEdit: (match: Match) => void;
     activeCategory?: string; // Adicionado para saber qual categoria estamos gerando
+    readOnly?: boolean;
 }
 
-export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit, activeCategory }: TournamentBracketsProps) {
+export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit, activeCategory, readOnly }: TournamentBracketsProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [bracketMatches, setBracketMatches] = useState<Match[]>([]);
 
@@ -80,17 +81,19 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
         return (
             <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
                 <GitBranch className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-                <p className="text-muted-foreground font-medium mb-4">Nenhuma chave de mata-mata gerada.</p>
-                <div className="flex gap-4">
-                    <Button onClick={() => handleGenerate(4)} disabled={isGenerating}>
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                        Gerar Semi (4 Vagas)
-                    </Button>
-                    <Button onClick={() => handleGenerate(8)} disabled={isGenerating} variant="outline">
-                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                        Gerar Quartas (8 Vagas)
-                    </Button>
-                </div>
+                <p className="text-muted-foreground font-medium mb-4 text-center">Nenhuma chave de mata-mata gerada para esta categoria.</p>
+                {!readOnly && (
+                    <div className="flex gap-4">
+                        <Button onClick={() => handleGenerate(4)} disabled={isGenerating}>
+                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                            Gerar Semi (4 Vagas)
+                        </Button>
+                        <Button onClick={() => handleGenerate(8)} disabled={isGenerating} variant="outline">
+                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                            Gerar Quartas (8 Vagas)
+                        </Button>
+                    </div>
+                )}
             </div>
         );
     }

@@ -1062,7 +1062,6 @@ export default function TournamentDetails() {
                             />
                         </div>
                         <div className="text-center">
-                            <p className="text-sm font-bold uppercase tracking-widest text-primary">{tournament?.name}</p>
                             <p className="text-[10px] text-muted-foreground break-all px-4">{window.location.origin}/torneio/{id}</p>
                         </div>
                         <Button
