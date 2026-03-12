@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArenaHeader } from '@/components/ArenaHeader';
 import { SponsorBar } from '@/components/SponsorBar';
@@ -36,7 +36,12 @@ const ArenaPanel = () => {
         if (found) selected = [found];
       }
       if (selected.length === 0) {
-        selected = tournaments.filter(t => t.status === 'active');
+        // Show both active and planning tournaments in the rotation
+        selected = tournaments.filter(t => t.status === 'active' || t.status === 'planning');
+
+        // Ensure oldest first (ascending)
+        selected.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
         if (selected.length === 0 && tournaments.length > 0) {
           selected = [tournaments[0]];
         }
@@ -126,6 +131,36 @@ const ArenaPanel = () => {
     return r;
   }, [categoryData]);
 
+  // Ensure index stays valid if tournaments change
+  useEffect(() => {
+    if (activeTournaments.length > 0 && currentTournamentIndex >= activeTournaments.length) {
+      setCurrentTournamentIndex(0);
+    }
+  }, [activeTournaments.length, currentTournamentIndex]);
+
+  // Calculate dynamic duration based on content height
+  const [scrollDuration, setScrollDuration] = useState(20);
+  const [isCalculating, setIsCalculating] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsCalculating(true);
+    // Small delay to ensure content is fully rendered
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        const height = scrollRef.current.scrollHeight;
+        const velocity = 60; // pixels per second (calibrated for readability)
+
+        // Duration: height / velocity
+        const duration = height / velocity;
+
+        setScrollDuration(Math.max(5, duration));
+        setIsCalculating(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [currentTournament?.id, rows.length, runIndex]);
+
   return (
     <div className="h-screen flex flex-col bg-[#020617] text-white overflow-hidden font-inter arena-theme relative">
       <div className="relative z-[100] shadow-2xl bg-[#020617]">
@@ -142,21 +177,35 @@ const ArenaPanel = () => {
           {rows.length > 0 ? (
             <motion.div
               key={`arena-${currentTournament?.id ?? 'none'}-${runIndex}`}
-              initial={{ y: 0 }}
-              animate={{ y: '-100%' }}
-              transition={{
-                duration: 30,
-                delay: 3,
-                ease: 'linear',
+              initial={{ opacity: 0 }}
+              animate={isCalculating ? { opacity: 0 } : {
+                opacity: 1,
+                y: '-100%',
               }}
-              onAnimationComplete={() => {
-                if (activeTournaments.length > 1) {
-                  setCurrentTournamentIndex(prev => (prev + 1) % activeTournaments.length);
-                } else {
-                  setRunIndex(prev => prev + 1);
+              exit={{ opacity: 0 }}
+              transition={{
+                y: {
+                  duration: scrollDuration,
+                  delay: 1.5,
+                  ease: 'linear',
+                },
+                opacity: { duration: 0.3 }
+              }}
+              onAnimationComplete={(definition) => {
+                // definition normally contains the target object what was just completed
+                // We only want to switch when the vertical scroll (y) is finished.
+                const isScrollFinished = typeof definition === 'object' && 'y' in definition && definition.y === '-100%';
+
+                if (!isCalculating && isScrollFinished) {
+                  if (activeTournaments.length > 1) {
+                    setCurrentTournamentIndex(prev => (prev + 1) % activeTournaments.length);
+                  } else {
+                    setRunIndex(prev => prev + 1);
+                  }
                 }
               }}
               className="w-full flex flex-col"
+              ref={scrollRef}
             >
               {rows.map((row, rowIdx) => (
                 <div

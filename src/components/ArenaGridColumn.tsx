@@ -93,7 +93,7 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
                     await controls.start({
                         y: -distance,
                         transition: {
-                            duration: distance / 90,
+                            duration: distance / 60,
                             ease: "linear"
                         }
                     });

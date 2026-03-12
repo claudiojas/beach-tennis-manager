@@ -201,7 +201,10 @@ export default function AdminDashboard() {
   const selectedArena = arenas.find(a => a.id === selectedArenaId);
 
   useEffect(() => {
-    const unsubscribe = tournamentService.subscribe(setTournaments);
+    const unsubscribe = tournamentService.subscribe((data) => {
+      const sorted = [...data].sort((a, b) => b.createdAt - a.createdAt);
+      setTournaments(sorted);
+    });
     return () => unsubscribe();
   }, []);
 

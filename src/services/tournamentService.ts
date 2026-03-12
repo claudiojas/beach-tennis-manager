@@ -24,7 +24,7 @@ export const tournamentService = {
         return onValue(tournamentsRef, (snapshot) => {
             const data = snapshot.val();
             const tournaments: Tournament[] = data
-                ? (Object.values(data) as Tournament[]).sort((a, b) => b.createdAt - a.createdAt) // Newest first
+                ? (Object.values(data) as Tournament[]).sort((a, b) => a.createdAt - b.createdAt) // Older first
                 : [];
             callback(tournaments);
         });
