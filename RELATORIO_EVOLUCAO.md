@@ -31,11 +31,28 @@ Este documento resume as principais atualizações e melhorias implementadas no 
   - Ao finalizar um jogo no Admin, a quadra vinculada é liberada automaticamente (`status: livre`).
   - Fallback automático para `setsA`/`setsB` no cálculo de classificação quando não houver histórico ponto a ponto.
 
-## 5. Próximos Passos
+## 5. Redesign do Aplicativo Público (Mobile-First)
+- **Interface Estilo App**: Transformação da visualização pública em uma aplicação mobile fluida e moderna.
+- **Cards de Jogo Profissionais**: Novo design para `PublicMatchCard` com nomes completos empilhados, placares em tempo real e visual limpo.
+- **Navegação Simplificada**: Remoção de filtros redundantes e organização por Abas (Ao Vivo, Próximos, Resultados, Grupos e Chaves).
+- **Segurança de Dados**: Implementação de visualização estritamente "Read-Only" para o público, ocultando ferramentas administrativas de geração de chaves.
+
+## 6. Logística Global de Atletas (Admin)
+- **Aba de Logística Centralizada**: Movimentação da logística para o Dashboard principal do Admin.
+- **Prevenção de Duplicatas**: Algoritmo que consolida atletas únicos através de todas as etapas ativas, garantindo que um jogador que participa de múltiplas categorias seja contado apenas uma vez para a compra de kits.
+- **Gestão de Inventário**: Resumo automático de tamanhos de Camisas e Pé (chinelos/tênis).
+- **Exportação Rápida**: Botão "Copiar Resumo" que formata os dados prontos para envio via WhatsApp para fornecedores.
+
+## 7. Refinamentos Técnicos (Arena Panel)
+- **Velocidade Constante**: Padronização da velocidade de scroll vertical (`60px/s`) para legibilidade perfeita em telas grandes.
+- **Sincronização de Transição**: Lógica aprimorada para garantir que o torneio só mude após o scroll vertical atingir o final do conteúdo.
+
+## 8. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
 - [x] Travas de segurança contra geração duplicada de chaves e grupos.
+- [x] Unificação de logística para evitar duplicidade de kits.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 11 de Março de 2026 - Centralização de Scoring.*
+*Relatório atualizado em 12 de Março de 2026 - Logística Global e Mobile UX.*
