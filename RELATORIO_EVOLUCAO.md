@@ -52,13 +52,22 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 - **Edição Manual Preservada**: O fluxo agora abre diretamente o editor de **Recorte (Crop)**, permitindo ajustes precisos em segundos.
 - **Otimização de Ativos**: Manutenção da compressão inteligente e conversão para WebP, garantindo que o carregamento do painel e do app continue extremamente rápido.
 
-## 9. Próximos Passos
+## 9. Eliminatórias e Refinamento de Jogos
+- **Geração Inteligente (Mata-Mata)**: O sistema decide automaticamente o tamanho da chave (Oitavas, Quartas ou Semi) com base nos atletas classificados dos grupos.
+- **Segregação por Abas**:
+    - Aba **"Jogos"**: Exibe exclusivamente partidas da fase de grupos, mantendo a lista limpa.
+    - Aba **"Chaves"**: Exibe as eliminatórias com descrições do propósito de cada jogo (ex: "Vale vaga na Semifinal").
+- **Igualdade Visual em Duplas**: Refatoração do design para que ambos os atletas da dupla tenham a mesma visibilidade (peso e tamanho da fonte), garantindo reconhecimento igual para ambos.
+- **Filtro de Segurança**: O botão de geração só é habilitado após a conclusão de todos os jogos da fase de grupos da categoria.
+
+## 10. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
 - [x] Travas de segurança contra geração duplicada de chaves e grupos.
 - [x] Unificação de logística para evitar duplicidade de kits.
 - [x] Simplificação do fluxo de imagens para maior produtividade do admin.
+- [x] Refatoração completa do sistema de mata-mata automático.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 12 de Março de 2026 - Otimização de Imagens e UX Admin.*
+*Relatório atualizado em 12 de Março de 2026 - Inteligência em Eliminatórias.*

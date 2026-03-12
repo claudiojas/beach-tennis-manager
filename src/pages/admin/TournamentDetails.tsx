@@ -665,15 +665,6 @@ export default function TournamentDetails() {
                                                 }} disabled={isGeneratingAuto} className="flex-1 md:flex-none h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl">
                                                     Auto
                                                 </Button>
-                                                <Button size="sm" onClick={async () => {
-                                                    if (!id || !tournament) return;
-                                                    try {
-                                                        await matchService.promoteGroupWinners(id, activeSubTournament, 2);
-                                                        toast.success("Mata-mata gerado!");
-                                                    } catch (e: any) { toast.error(e.message); }
-                                                }} disabled={!filteredMatches.some(m => m.status === 'finished')} className="flex-1 md:flex-none h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border-none">
-                                                    Mata-Mata
-                                                </Button>
                                             </div>
                                         </CardHeader>
                                         <CardContent>
@@ -732,7 +723,12 @@ export default function TournamentDetails() {
                                             </div>
                                         </CardHeader>
                                         <CardContent>
-                                            {id && <MatchList tournamentId={id} courts={courts} matches={filteredMatches} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} />}
+                                            {id && <MatchList
+                                                tournamentId={id}
+                                                courts={courts}
+                                                matches={filteredMatches.filter(m => !m.round || m.round === 'Grupos')}
+                                                onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }}
+                                            />}
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -746,7 +742,28 @@ export default function TournamentDetails() {
                                             </div>
                                         </CardHeader>
                                         <CardContent>
-                                            {id && tournament && <TournamentBrackets tournamentId={id} tournamentType={tournament.type as any} matches={filteredMatches} courts={courts} onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }} activeCategory={activeSubTournament} />}
+                                            {id && tournament && (
+                                                <TournamentBrackets
+                                                    tournamentId={id}
+                                                    tournamentType={tournament.type as any}
+                                                    matches={filteredMatches}
+                                                    courts={courts}
+                                                    onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }}
+                                                    activeCategory={activeSubTournament}
+                                                    onGenerateEliminatories={async () => {
+                                                        if (!id || !activeSubTournament) return;
+                                                        try {
+                                                            await matchService.promoteGroupWinners(id, activeSubTournament, 2);
+                                                            toast.success("Eliminatórias geradas com sucesso!");
+                                                        } catch (e: any) { toast.error(e.message); }
+                                                    }}
+                                                    isGroupStageFinished={(() => {
+                                                        const groupMatches = filteredMatches.filter(m => m.round === 'Grupos');
+                                                        if (groupMatches.length === 0) return true; // Se não tem grupos, considera ok
+                                                        return groupMatches.every(m => m.status === 'finished');
+                                                    })()}
+                                                />
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -846,10 +863,10 @@ export default function TournamentDetails() {
                         </div>
                     )}
                 </div>
-            </main>
+            </main >
 
             {/* Mobile Floating Action Menu (FAB) */}
-            <div className="fixed bottom-24 right-6 z-40 md:hidden">
+            < div className="fixed bottom-24 right-6 z-40 md:hidden" >
                 {activeSubTournament && (
                     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <SheetTrigger asChild>
@@ -919,7 +936,7 @@ export default function TournamentDetails() {
                     </Sheet>
                 )
                 }
-            </div>
+            </div >
 
             {/* Modals */}
             < Dialog open={open} onOpenChange={setOpen} >
@@ -1139,6 +1156,6 @@ export default function TournamentDetails() {
                     </Link>
                 </div>
             </nav>
-        </div>
+        </div >
     );
 }

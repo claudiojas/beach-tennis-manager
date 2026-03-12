@@ -13,11 +13,13 @@ interface TournamentBracketsProps {
     matches: Match[];
     courts: Court[];
     onEdit: (match: Match) => void;
-    activeCategory?: string; // Adicionado para saber qual categoria estamos gerando
+    activeCategory?: string;
     readOnly?: boolean;
+    onGenerateEliminatories?: () => Promise<void>;
+    isGroupStageFinished?: boolean;
 }
 
-export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit, activeCategory, readOnly }: TournamentBracketsProps) {
+export function TournamentBrackets({ tournamentId, tournamentType, matches, courts, onEdit, activeCategory, readOnly, onGenerateEliminatories, isGroupStageFinished }: TournamentBracketsProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const [bracketMatches, setBracketMatches] = useState<Match[]>([]);
 
@@ -27,46 +29,14 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
         setBracketMatches(filtered);
     }, [matches]);
 
-    const handleGenerate = async (count: 4 | 8) => {
-        setIsGenerating(true);
-        try {
-            const athletes: Player[] = await new Promise((resolve) => {
-                const unsubscribe = athleteService.subscribe((data) => {
-                    resolve(data);
-                    unsubscribe();
-                });
-            });
-
-            if (athletes.length < count * (tournamentType === 'Simples' ? 1 : 2)) {
-                toast.error(`Atletas insuficientes para uma chave de ${count} ${tournamentType === 'Simples' ? 'jogadores' : 'duplas'}.`);
-                return;
+    const handleGenerate = async () => {
+        if (onGenerateEliminatories) {
+            setIsGenerating(true);
+            try {
+                await onGenerateEliminatories();
+            } finally {
+                setIsGenerating(false);
             }
-
-            const shuffled = [...athletes].sort(() => Math.random() - 0.5);
-            const teams: Team[] = [];
-
-            if (tournamentType === 'Simples') {
-                for (let i = 0; i < count; i++) {
-                    teams.push({ player1: shuffled[i] });
-                }
-            } else {
-                for (let i = 0; i < count * 2; i += 2) {
-                    teams.push({ player1: shuffled[i], player2: shuffled[i + 1] });
-                }
-            }
-
-            if (!activeCategory) {
-                toast.error("Selecione uma categoria antes de gerar as chaves.");
-                return;
-            }
-
-            await bracketService.generateBracket(tournamentId, activeCategory, teams);
-            toast.success(`Chave de ${count} para ${activeCategory} gerada com sucesso!`);
-        } catch (error) {
-            console.error(error);
-            toast.error("Erro ao gerar chaves.");
-        } finally {
-            setIsGenerating(false);
         }
     };
 
@@ -79,20 +49,23 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
 
     if (bracketMatches.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl bg-muted/20 px-6 text-center">
                 <GitBranch className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-                <p className="text-muted-foreground font-medium mb-4 text-center">Nenhuma chave de mata-mata gerada para esta categoria.</p>
+                <p className="text-muted-foreground font-medium mb-1">Crie as eliminatórias para {activeCategory}.</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-widest mb-6">
+                    {isGroupStageFinished
+                        ? "A fase de grupos terminou. Você já pode gerar a chave final."
+                        : "Aguardando a finalização de todos os jogos da fase de grupos."}
+                </p>
                 {!readOnly && (
-                    <div className="flex gap-4">
-                        <Button onClick={() => handleGenerate(4)} disabled={isGenerating}>
-                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                            Gerar Semi (4 Vagas)
-                        </Button>
-                        <Button onClick={() => handleGenerate(8)} disabled={isGenerating} variant="outline">
-                            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                            Gerar Quartas (8 Vagas)
-                        </Button>
-                    </div>
+                    <Button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || !isGroupStageFinished}
+                        className="rounded-full px-8 shadow-lg shadow-primary/20"
+                    >
+                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GitBranch className="mr-2 h-4 w-4" />}
+                        Gerar Eliminatórias
+                    </Button>
                 )}
             </div>
         );
@@ -143,6 +116,7 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
                                 courts={courts}
                                 matches={roundMatches}
                                 onEdit={onEdit}
+                                showDescriptions={true}
                             />
                         </div>
                     );

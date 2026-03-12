@@ -30,11 +30,12 @@ import {
 interface MatchListProps {
     tournamentId: string;
     courts: Court[];
-    matches: Match[]; // Added matches prop
+    matches: Match[];
     onEdit: (match: Match) => void;
+    showDescriptions?: boolean;
 }
 
-export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListProps) {
+export function MatchList({ tournamentId, courts, matches, onEdit, showDescriptions }: MatchListProps) {
     const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
     const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
     const [tempScore, setTempScore] = useState<{
@@ -137,6 +138,21 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
         );
     }
 
+    const getMatchPurpose = (match: Match) => {
+        if (!match.round || match.round === 'Grupos') return null;
+
+        const pos = (match.bracketPosition || 0) + 1;
+        const nextPos = Math.floor((match.bracketPosition || 0) / 2) + 1;
+
+        switch (match.round) {
+            case 'final': return "Grande Final - Vale o título!";
+            case 'semi': return `Semifinal ${pos} - Vale vaga na Grande Final`;
+            case 'quartas': return `Quartas ${pos} - Vale vaga na Semifinal ${nextPos}`;
+            case 'oitavas': return `Oitavas ${pos} - Vale vaga nas Quartas ${nextPos}`;
+            default: return null;
+        }
+    };
+
     return (
         <>
             <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
@@ -161,6 +177,11 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                         {match.group && (
                                             <Badge variant="outline" className="font-black border-primary/30 text-primary text-[9px] px-1.5 h-5 bg-primary/5 uppercase">
                                                 Gr {match.group}
+                                            </Badge>
+                                        )}
+                                        {showDescriptions && getMatchPurpose(match) && (
+                                            <Badge variant="outline" className="font-black border-orange-500/30 text-orange-600 text-[9px] px-1.5 h-5 bg-orange-50 uppercase tracking-tight">
+                                                {getMatchPurpose(match)}
                                             </Badge>
                                         )}
                                     </div>
@@ -296,7 +317,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                         {/* Team A */}
                                         <div className="text-right flex-1 min-w-0 pr-2">
                                             <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player1.name)}</p>
-                                            {match.teamA.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase font-bold opacity-70 leading-tight">{shortenName(match.teamA.player2.name)}</p>}
+                                            {match.teamA.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player2.name)}</p>}
                                             <div className="mt-2 flex justify-end items-center gap-2">
                                                 {match.serving === 'teamA' && !editingScoreId && <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_12px_rgba(234,179,8,0.8)] border border-yellow-200" />}
                                                 {editingScoreId === match.id ? (
@@ -345,7 +366,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                         {/* Team B */}
                                         <div className="text-left flex-1 min-w-0 pl-2">
                                             <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player1.name)}</p>
-                                            {match.teamB.player2 && <p className="text-[10px] text-muted-foreground truncate uppercase font-bold opacity-70 leading-tight">{shortenName(match.teamB.player2.name)}</p>}
+                                            {match.teamB.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player2.name)}</p>}
                                             <div className="mt-2 flex justify-start items-center gap-2">
                                                 {editingScoreId === match.id ? (
                                                     <input

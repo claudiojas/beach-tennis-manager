@@ -14,26 +14,16 @@ export const bracketService = {
         const N = teams.length;
         if (N < 2) throw new Error("Mínimo de 2 duplas para gerar chave.");
 
-        // --- SAFEGUARD: Prevent Duplicate Brackets ---
-        const existingSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
-        if (existingSnapshot.exists()) {
-            const existingMatches = Object.values(existingSnapshot.val()) as Match[];
-            const alreadyHasBracket = existingMatches.some(m => m.category === category && m.round && m.round !== 'Grupos');
-            if (alreadyHasBracket) {
-                throw new Error(`As chaves (mata-mata) para a categoria ${category} já foram geradas.`);
-            }
-        }
-
-        // 1. Find the target power of 2 (P) such that P <= N < 2P
-        // P will be the number of slots in the "Base Round" (e.g., Quartas = 8)
+        // 1. Encontrar a potência de 2 (P) tal que P <= N < 2P
+        // P será o número de slots na rodada base (Ex: 8 para quartas, 4 para semi)
         let P = 2;
         while (P * 2 <= N) P *= 2;
 
-        const round1MatchesCount = N - P; // Number of play-in matches
+        const round1MatchesCount = N - P; // Jogos de play-in (oitavas ou preliminares)
         const teamsInRound1 = round1MatchesCount * 2;
         const byeTeamsCount = N - teamsInRound1;
 
-        // Round Mapping
+        // Mapeamento de nomes de rodadas
         const ROUND_NAMES: Record<number, Match['round']> = {
             2: 'final',
             4: 'semi',
