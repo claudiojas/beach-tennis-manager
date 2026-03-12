@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users, Clock, PlayCircle, CheckCircle, XCircle, UserPlus, Image as ImageIcon } from "lucide-react";
+import { Plus, LogOut, Calendar, MapPin, Trophy, MoreVertical, Pencil, Trash2, Users, Clock, PlayCircle, CheckCircle, XCircle, UserPlus, Image as ImageIcon, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -61,6 +61,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { athleteService } from "@/services/athleteService";
+import { Player } from "@/types/beach-tennis";
+import { Shirt, Footprints, ClipboardCopy } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome do evento deve ter pelo menos 3 caracteres"),
@@ -82,6 +86,8 @@ export default function AdminDashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [arenas, setArenas] = useState<Arena[]>([]);
   const [open, setOpen] = useState(false);
+  const [athletes, setAthletes] = useState<Player[]>([]);
+  const [activeTab, setActiveTab] = useState("etapas");
 
   // Edit/Delete State
   const [isEditing, setIsEditing] = useState(false);
@@ -208,6 +214,20 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = athleteService.subscribe(setAthletes);
+    return () => unsubscribe();
+  }, []);
+
+  const participatingUniqueAthletes = athletes.filter(athlete => {
+    return tournaments
+      .filter(t => t.status === 'planning' || t.status === 'active')
+      .some(t => {
+        const catAthletes = Object.values(t.categoryAthletes || {}).flat();
+        return (t.participatingAthleteIds?.includes(athlete.id)) || catAthletes.includes(athlete.id);
+      });
+  });
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const arena = arenas.find(a => a.id === values.arenaId);
@@ -299,304 +319,450 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl p-4 md:p-6">
-        {/* Quick Stats/Links - Desktop Only */}
-        <div className="hidden md:grid grid-cols-3 gap-4 mb-8">
-          <Link to="/admin/athletes">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Atletas</CardTitle>
-                <Users className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-black">Base Global</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/admin/arenas">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Arenas</CardTitle>
-                <MapPin className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-black">Locais</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link to="/admin/sponsors">
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-primary/5">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary">Ads</CardTitle>
-                <ImageIcon className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg font-black text-primary">IA Patrocínio</p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl md:text-2xl font-black">Minhas Etapas</h2>
-            <p className="text-sm text-muted-foreground">Gerencie seus eventos ativos.</p>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <TabsList className="bg-muted/50 p-1 rounded-xl h-12">
+              <TabsTrigger value="etapas" className="px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold uppercase text-[10px] tracking-widest gap-2">
+                <Trophy className="h-4 w-4" />
+                Etapas
+              </TabsTrigger>
+              <TabsTrigger value="logistica" className="px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-bold uppercase text-[10px] tracking-widest gap-2">
+                <Shirt className="h-4 w-4" />
+                Logística
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleOpenCreate} className="hidden md:flex rounded-full px-6 shadow-lg shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Etapa
-              </Button>
-            </DialogTrigger>
-            {/* Floating Action Button for Mobile */}
-            <Button
-              onClick={() => { handleOpenCreate(); setOpen(true); }}
-              className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 z-40 p-0"
-            >
-              <Plus className="h-7 w-7" />
-            </Button>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
-                <DialogDescription>
-                  {isEditing ? "Atualize as informações da etapa." : "Crie uma nova etapa selecionando a Arena."}
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Evento</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Open de Verão 2026" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Data</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="time"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Horário</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tipo</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Tipo" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Simples">Simples (1x1)</SelectItem>
-                              <SelectItem value="Duplas">Duplas (2x2)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="arenaId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Local / Arena</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Arena" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {arenas.map((arena) => (
-                                <SelectItem key={arena.id} value={arena.id}>
-                                  {arena.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {!isEditing && selectedArena && selectedArena.courts.length > 0 && (
-                    <div className="rounded-md border bg-muted/30 p-2 text-[10px]">
-                      <p className="font-bold mb-1 opacity-70">Estrutura: {selectedArena.courts.length} quadras</p>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground italic">
-                        {selectedArena.courts.map((court, i) => (
-                          <span key={i}>• {court.name}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full mt-2 font-bold uppercase tracking-widest">
-                    {isEditing ? "Salvar Alterações" : "Criar Etapa"}
-                  </Button>
-
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {tournaments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center animate-in fade-in-50">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Trophy className="h-6 w-6 text-primary" />
+          <TabsContent value="etapas" className="space-y-6 mt-0">
+            {/* Quick Stats/Links - Desktop Only */}
+            <div className="hidden md:grid grid-cols-3 gap-4 mb-8">
+              <Link to="/admin/athletes">
+                <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Atletas</CardTitle>
+                    <Users className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg font-black">Base Global</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/arenas">
+                <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-card/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Arenas</CardTitle>
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg font-black">Locais</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link to="/admin/sponsors">
+                <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-none bg-primary/5">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary">Ads</CardTitle>
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-lg font-black text-primary">IA Patrocínio</p>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
-            <h3 className="mt-4 text-lg font-semibold">Nenhuma etapa encontrada</h3>
-            <p className="mb-4 text-muted-foreground max-w-sm">
-              Crie sua primeira etapa para começar a gerenciar torneios e partidas.
-            </p>
-            <Button onClick={() => setOpen(true)}>Criar Agora</Button>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tournaments.map((tournament) => (
-              <div key={tournament.id} className="relative group">
-                <Link to={`/admin/tournament/${tournament.id}`} className="block">
-                  <Card className="hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 border-muted/40 overflow-hidden rounded-2xl">
-                    <div className="bg-primary/5 h-1.5 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start mb-2 pr-12">
-                        <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
-                          <Trophy className="h-4 w-4 text-primary" />
-                        </div>
-                        {getStatusBadge(tournament.status)}
-                      </div>
-                      <CardTitle className="text-xl font-black tracking-tight group-hover:text-primary transition-colors">
-                        {tournament.name}
-                      </CardTitle>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase bg-muted/40 px-2 py-0.5 rounded-md">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(tournament.date).toLocaleDateString('pt-BR')}
-                        </div>
-                        {tournament.categories?.slice(0, 2).map(cat => (
-                          <Badge key={cat} variant="outline" className="text-[9px] uppercase h-5 px-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
-                            {cat}
-                          </Badge>
-                        ))}
-                        {tournament.categories && tournament.categories.length > 2 && (
-                          <span className="text-[10px] font-bold text-muted-foreground">+{tournament.categories.length - 2}</span>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pb-4 pt-0">
-                      <div className="flex items-center justify-between pt-4 border-t border-muted/20">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[150px]">{tournament.location}</span>
-                        </div>
-                        <span className="text-[10px] font-black text-primary flex items-center gap-1 uppercase tracking-tighter">
-                          Gerenciar
-                          <PlayCircle className="h-3 w-3" />
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
 
-                {/* Actions Menu Hooked as Absolute */}
-                <div className="absolute top-4 right-4 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-background/80 rounded-full">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-muted/40">
-                      {(tournament.status === 'planning' || tournament.status === 'active') && (
-                        <DropdownMenuItem onClick={() => handleEdit(tournament)} className="rounded-lg">
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                      )}
-
-                      {tournament.status === 'planning' && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')} className="rounded-lg text-green-600 font-bold">
-                          <PlayCircle className="mr-2 h-4 w-4" />
-                          Iniciar Etapa
-                        </DropdownMenuItem>
-                      )}
-
-                      {tournament.status === 'active' && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'finished')} className="rounded-lg text-blue-600">
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Finalizar
-                        </DropdownMenuItem>
-                      )}
-
-                      {tournament.status !== 'finished' && tournament.status !== 'cancelled' && (
-                        <DropdownMenuItem
-                          className="text-orange-600 focus:text-orange-600 rounded-lg"
-                          onClick={() => handleStatusChange(tournament.id, 'cancelled')}
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelar
-                        </DropdownMenuItem>
-                      )}
-
-                      {tournament.status !== 'active' && (
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive rounded-lg"
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            handleDeleteRequest(tournament.id);
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black">Minhas Etapas</h2>
+                <p className="text-sm text-muted-foreground">Gerencie seus eventos ativos.</p>
               </div>
-            ))}
-          </div>
-        )}
+
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={handleOpenCreate} className="hidden md:flex rounded-full px-6 shadow-lg shadow-primary/20">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nova Etapa
+                  </Button>
+                </DialogTrigger>
+                {/* Floating Action Button for Mobile */}
+                {activeTab === 'etapas' && (
+                  <Button
+                    onClick={() => { handleOpenCreate(); setOpen(true); }}
+                    className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl shadow-primary/40 z-40 p-0"
+                  >
+                    <Plus className="h-7 w-7" />
+                  </Button>
+                )}
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
+                    <DialogDescription>
+                      {isEditing ? "Atualize as informações da etapa." : "Crie uma nova etapa selecionando a Arena."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome do Evento</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ex: Open de Verão 2026" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Data</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="time"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Horário</FormLabel>
+                              <FormControl>
+                                <Input type="time" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tipo</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Tipo" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Simples">Simples (1x1)</SelectItem>
+                                  <SelectItem value="Duplas">Duplas (2x2)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="arenaId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Local / Arena</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Arena" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {arenas.map((arena) => (
+                                    <SelectItem key={arena.id} value={arena.id}>
+                                      {arena.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {!isEditing && selectedArena && selectedArena.courts.length > 0 && (
+                        <div className="rounded-md border bg-muted/30 p-2 text-[10px]">
+                          <p className="font-bold mb-1 opacity-70">Estrutura: {selectedArena.courts.length} quadras</p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground italic">
+                            {selectedArena.courts.map((court, i) => (
+                              <span key={i}>• {court.name}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <Button type="submit" className="w-full mt-2 font-bold uppercase tracking-widest">
+                        {isEditing ? "Salvar Alterações" : "Criar Etapa"}
+                      </Button>
+
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {tournaments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center animate-in fade-in-50">
+                <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Trophy className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">Nenhuma etapa encontrada</h3>
+                <p className="mb-4 text-muted-foreground max-w-sm">
+                  Crie sua primeira etapa para começar a gerenciar torneios e partidas.
+                </p>
+                <Button onClick={() => setOpen(true)}>Criar Agora</Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {tournaments.map((tournament) => (
+                  <div key={tournament.id} className="relative group">
+                    <Link to={`/admin/tournament/${tournament.id}`} className="block">
+                      <Card className="hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 border-muted/40 overflow-hidden rounded-2xl">
+                        <div className="bg-primary/5 h-1.5 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start mb-2 pr-12">
+                            <div className="bg-primary/10 p-1.5 rounded-lg shadow-inner">
+                              <Trophy className="h-4 w-4 text-primary" />
+                            </div>
+                            {getStatusBadge(tournament.status)}
+                          </div>
+                          <CardTitle className="text-xl font-black tracking-tight group-hover:text-primary transition-colors">
+                            {tournament.name}
+                          </CardTitle>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase bg-muted/40 px-2 py-0.5 rounded-md">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(tournament.date).toLocaleDateString('pt-BR')}
+                            </div>
+                            {tournament.categories?.slice(0, 2).map(cat => (
+                              <Badge key={cat} variant="outline" className="text-[9px] uppercase h-5 px-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
+                                {cat}
+                              </Badge>
+                            ))}
+                            {tournament.categories && tournament.categories.length > 2 && (
+                              <span className="text-[10px] font-bold text-muted-foreground">+{tournament.categories.length - 2}</span>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-4 pt-0">
+                          <div className="flex items-center justify-between pt-4 border-t border-muted/20">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[150px]">{tournament.location}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-primary flex items-center gap-1 uppercase tracking-tighter">
+                              Gerenciar
+                              <PlayCircle className="h-3 w-3" />
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Actions Menu Hooked as Absolute */}
+                    <div className="absolute top-4 right-4 z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-background/80 rounded-full">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-muted/40">
+                          {(tournament.status === 'planning' || tournament.status === 'active') && (
+                            <DropdownMenuItem onClick={() => handleEdit(tournament)} className="rounded-lg">
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                          )}
+
+                          {tournament.status === 'planning' && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'active')} className="rounded-lg text-green-600 font-bold">
+                              <PlayCircle className="mr-2 h-4 w-4" />
+                              Iniciar Etapa
+                            </DropdownMenuItem>
+                          )}
+
+                          {tournament.status === 'active' && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(tournament.id, 'finished')} className="rounded-lg text-blue-600">
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Finalizar
+                            </DropdownMenuItem>
+                          )}
+
+                          {tournament.status !== 'finished' && tournament.status !== 'cancelled' && (
+                            <DropdownMenuItem
+                              className="text-orange-600 focus:text-orange-600 rounded-lg"
+                              onClick={() => handleStatusChange(tournament.id, 'cancelled')}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Cancelar
+                            </DropdownMenuItem>
+                          )}
+
+                          {tournament.status !== 'active' && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive rounded-lg"
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                handleDeleteRequest(tournament.id);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="logistica" className="space-y-6 mt-0">
+            <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm overflow-hidden">
+              <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Logística Global de Kits</CardTitle>
+                  <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Consolidado de atletas únicos em todas as etapas ativas.</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white transition-colors"
+                  onClick={() => {
+                    const shirtCount = participatingUniqueAthletes.reduce((acc, a) => {
+                      const size = a.shirtSize || 'Indefinido';
+                      acc[size] = (acc[size] || 0) + 1;
+                      return acc;
+                    }, {} as Record<string, number>);
+
+                    const shoeCount = participatingUniqueAthletes.reduce((acc, a) => {
+                      const size = a.shoeSize || 'Indefinido';
+                      acc[size] = (acc[size] || 0) + 1;
+                      return acc;
+                    }, {} as Record<string, number>);
+
+                    const text = `RESUMO GLOBAL DE KITS - ${new Date().toLocaleDateString('pt-BR')}\n\nCAMISAS:\n${Object.entries(shirtCount).sort().map(([s, c]) => `- ${s}: ${c}`).join('\n')}\n\nPÉ:\n${Object.entries(shoeCount).sort().map(([s, c]) => `- ${s}: ${c}`).join('\n')}`;
+
+                    navigator.clipboard.writeText(text);
+                    toast.success("Resumo global copiado!");
+                  }}
+                >
+                  <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar Resumo
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Shirt Summary */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-xl">
+                      <Shirt className="h-5 w-5" />
+                      <h3 className="font-black uppercase text-sm tracking-tight">Camisas</h3>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {Object.entries(participatingUniqueAthletes.reduce((acc, a) => {
+                        const size = a.shirtSize || 'Indefinido';
+                        acc[size] = (acc[size] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)).sort().map(([size, count]) => (
+                        <div key={size} className="p-3 rounded-xl border bg-card flex flex-col items-center">
+                          <span className="text-xl font-black text-primary">{count}</span>
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground">{size}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shoe Summary */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-xl">
+                      <Footprints className="h-5 w-5" />
+                      <h3 className="font-black uppercase text-sm tracking-tight">Pé</h3>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {Object.entries(participatingUniqueAthletes.reduce((acc, a) => {
+                        const size = a.shoeSize || 'Indefinido';
+                        acc[size] = (acc[size] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)).sort().map(([size, count]) => (
+                        <div key={size} className="p-3 rounded-xl border bg-card flex flex-col items-center">
+                          <span className="text-xl font-black text-primary">{count}</span>
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground">{size}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
+              <CardHeader className="px-0 md:px-6">
+                <CardTitle className="text-lg font-black uppercase tracking-tight">Participantes Únicos ({participatingUniqueAthletes.length})</CardTitle>
+                <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Atletas inscritos em pelo menos uma etapa ativa ou planejada.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0 md:px-6">
+                <div className="rounded-2xl border overflow-hidden bg-card">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-muted/50 border-b">
+                          <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest">Atleta</th>
+                          <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-center">Camisa</th>
+                          <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-center">Pé</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {participatingUniqueAthletes.sort((a, b) => a.name.localeCompare(b.name)).map(athlete => (
+                          <tr key={athlete.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="px-4 py-4">
+                              <div className="font-bold uppercase text-xs">{athlete.name}</div>
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <Badge variant="outline" className="text-[10px] font-black uppercase px-2 h-6 border-blue-100 text-blue-700 bg-blue-50/30">
+                                {athlete.shirtSize || '---'}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <Badge variant="outline" className="text-[10px] font-black uppercase px-2 h-6 border-purple-100 text-purple-700 bg-purple-50/30">
+                                {athlete.shoeSize || '---'}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                        {participatingUniqueAthletes.length === 0 && (
+                          <tr>
+                            <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground italic text-sm">
+                              Nenhum atleta participando em etapas ativas ou planejadas.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>

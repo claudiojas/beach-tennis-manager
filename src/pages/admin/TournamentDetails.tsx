@@ -917,11 +917,12 @@ export default function TournamentDetails() {
                             </div>
                         </SheetContent>
                     </Sheet>
-                )}
+                )
+                }
             </div>
 
             {/* Modals */}
-            <Dialog open={open} onOpenChange={setOpen}>
+            < Dialog open={open} onOpenChange={setOpen} >
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingCourt ? "Editar Quadra" : "Adicionar Quadra da Arena"}</DialogTitle>
@@ -988,7 +989,7 @@ export default function TournamentDetails() {
                         </form>
                     </Form>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             <Dialog open={openMatchDialog} onOpenChange={setOpenMatchDialog}>
                 <DialogContent className="max-w-2xl">
@@ -1077,19 +1078,21 @@ export default function TournamentDetails() {
                     </div>
                 </DialogContent>
             </Dialog>
-            {id && tournament && activeSubTournament && (
-                <ManualGroupGenerator
-                    tournamentId={id}
-                    athletes={getEligibleAthletesForCategory(activeSubTournament)}
-                    tournamentType={tournament.type as any}
-                    open={openManualGroups}
-                    onOpenChange={setOpenManualGroups}
-                    activeCategory={activeSubTournament}
-                    onSuccess={() => {
-                        toast.success("Grupos manuais gerados!");
-                    }}
-                />
-            )}
+            {
+                id && tournament && activeSubTournament && (
+                    <ManualGroupGenerator
+                        tournamentId={id}
+                        athletes={getEligibleAthletesForCategory(activeSubTournament)}
+                        tournamentType={tournament.type as any}
+                        open={openManualGroups}
+                        onOpenChange={setOpenManualGroups}
+                        activeCategory={activeSubTournament}
+                        onSuccess={() => {
+                            toast.success("Grupos manuais gerados!");
+                        }}
+                    />
+                )
+            }
 
             <AlertDialog open={openResetConfirm} onOpenChange={setOpenResetConfirm}>
                 <AlertDialogContent>
