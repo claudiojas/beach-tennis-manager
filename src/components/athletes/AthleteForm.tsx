@@ -33,7 +33,9 @@ const formSchema = z.object({
     phone: z.string().optional(),
     categories: z.array(z.string()).min(1, "Selecione pelo menos uma categoria"),
     registrationNumber: z.string().optional(),
-    gender: z.enum(["Masculino", "Feminino"]).optional(),
+    gender: z.enum(["Masculino", "Feminino"], {
+        required_error: "Selecione o gênero do atleta",
+    }),
     shirtSize: z.string().optional(),
     shoeSize: z.string().optional(),
 });

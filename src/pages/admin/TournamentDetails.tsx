@@ -127,6 +127,34 @@ export default function TournamentDetails() {
             };
         }
     }, [id]);
+    1.
+    const getEligibleAthletesForCategory = (cat: string) => {
+        if (!tournament) return [];
+        1.
+        const categoryGender = tournament.categoryGender?.[cat] || 'Mista';
+        const rules = tournament.categoryRules?.[cat] || [];
+        const specificCategoryAthletes = tournament.categoryAthletes?.[cat] || [];
+        1.
+        // Se houver atletas inscritos especificamente, use somente eles (filtro da aba atletas)
+        // Se não houver, pegamos todos e aplicamos as regras (comportamento fallback para auto-geração)
+        const sourceAthletes = (specificCategoryAthletes.length > 0)
+            ? athletes.filter(a => specificCategoryAthletes.includes(a.id))
+            : athletes;
+        1.
+        return sourceAthletes.filter(a => {
+            // 1. Gender check (STRICT - inclusive exige que gênero esteja preenchido)
+            if (categoryGender !== 'Mista') {
+                if (!a.gender || a.gender !== categoryGender) return false;
+            }
+            1.
+            // 2. Category/Rule check (Nível Técnico)
+            const athleteCategories = a.categories || (a.category ? [a.category] : []);
+            if (rules.length > 0) {
+                return athleteCategories.some(c => rules.includes(c));
+            }
+            return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
+        });
+    };
 
     const handleGenerateInitialMatches = async () => {
         if (!id || !tournament) return;
@@ -140,39 +168,14 @@ export default function TournamentDetails() {
             }
 
             for (const cat of tournamentCategories) {
-                // Determine which athletes are eligible for this specific category
-                let eligibleAthletes: typeof athletes = [];
-
-                // If there are specific athletes enrolled for this category, use them
-                const specificCategoryAthletes = tournament.categoryAthletes?.[cat];
-                if (specificCategoryAthletes && specificCategoryAthletes.length > 0) {
-                    eligibleAthletes = athletes.filter(a => specificCategoryAthletes.includes(a.id));
-                } else {
-                    // Fallback to global behavior
-                    const rules = tournament.categoryRules?.[cat] || [];
-                    const categoryGender = tournament.categoryGender?.[cat] || 'Mista';
-
-                    eligibleAthletes = athletes.filter(a => {
-                        // 1. Gender check
-                        if (categoryGender !== 'Mista') {
-                            if (a.gender && a.gender !== categoryGender) return false;
-                        }
-
-                        // 2. Category/Rule check
-                        const athleteCategories = a.categories || (a.category ? [a.category] : []);
-                        if (rules.length > 0) {
-                            return athleteCategories.some(c => rules.includes(c));
-                        }
-                        return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
-                    });
-                }
+                const eligibleAthletes = getEligibleAthletesForCategory(cat);
 
                 if (eligibleAthletes.length >= 2) {
                     await matchService.generateGroupMatches(id, cat, eligibleAthletes, tournament.type);
+                } else {
+                    toast.warning(`Não foi possível gerar grupos para a categoria ${cat}: atletas insuficientes (mínimo 2).`);
                 }
             }
-
-            if (athletes.length < 2) throw new Error("Atletas insuficientes neste torneio.");
 
             toast.success("Fase de Grupos gerada com sucesso!");
         } catch (error: any) {
@@ -649,35 +652,13 @@ export default function TournamentDetails() {
                                                     if (!id || !tournament || !activeSubTournament) return;
                                                     setIsGeneratingAuto(true);
                                                     try {
-                                                        let eligibleAthletes: typeof athletes = [];
-                                                        const specificCategoryAthletes = tournament.categoryAthletes?.[activeSubTournament];
-
-                                                        if (specificCategoryAthletes && specificCategoryAthletes.length > 0) {
-                                                            eligibleAthletes = athletes.filter(a => specificCategoryAthletes.includes(a.id));
-                                                        } else {
-                                                            const rules = tournament.categoryRules?.[activeSubTournament] || [];
-                                                            const categoryGender = tournament.categoryGender?.[activeSubTournament] || 'Mista';
-
-                                                            eligibleAthletes = athletes.filter(a => {
-                                                                // 1. Gender check
-                                                                if (categoryGender !== 'Mista') {
-                                                                    if (a.gender && a.gender !== categoryGender) return false;
-                                                                }
-
-                                                                // 2. Category/Rule check
-                                                                const athleteCategories = a.categories || (a.category ? [a.category] : []);
-                                                                if (rules.length > 0) {
-                                                                    return athleteCategories.some(c => rules.includes(c));
-                                                                }
-                                                                return athleteCategories.map(c => c.toUpperCase()).includes(activeSubTournament.toUpperCase());
-                                                            });
-                                                        }
+                                                        const eligibleAthletes = getEligibleAthletesForCategory(activeSubTournament);
 
                                                         if (eligibleAthletes.length >= 2) {
                                                             await matchService.generateGroupMatches(id, activeSubTournament, eligibleAthletes, tournament.type);
                                                             toast.success("Fase de Grupos gerada!");
                                                         } else {
-                                                            toast.error("Atletas insuficientes nesta categoria (mínimo 2).");
+                                                            toast.error(`Atletas insuficientes para a categoria ${activeSubTournament} (mínimo 2).`);
                                                         }
                                                     } catch (e: any) { toast.error(e.message); }
                                                     finally { setIsGeneratingAuto(false); }
@@ -1012,7 +993,7 @@ export default function TournamentDetails() {
             <Dialog open={openMatchDialog} onOpenChange={setOpenMatchDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingMatch ? "Editar Jogo" : "Novo Jogo"}</DialogTitle></DialogHeader>
-                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} matches={matches} courts={courts} categories={tournament?.categories} categoryGender={tournament?.categoryGender} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
+                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} matches={matches} courts={courts} categories={tournament?.categories} categoryGender={tournament?.categoryGender} categoryAthletes={tournament?.categoryAthletes} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
                 </DialogContent>
             </Dialog>
 
@@ -1100,24 +1081,7 @@ export default function TournamentDetails() {
             {id && tournament && activeSubTournament && (
                 <ManualGroupGenerator
                     tournamentId={id}
-                    athletes={athletes.filter(a => {
-                        const specificIds = tournament.categoryAthletes?.[activeSubTournament] || [];
-                        if (specificIds.length > 0) return specificIds.includes(a.id);
-
-                        // Fallback to rule matching if no specific IDs are set
-                        const rules = tournament.categoryRules?.[activeSubTournament] || [];
-                        const categoryGender = tournament.categoryGender?.[activeSubTournament] || 'Mista';
-
-                        // 1. Gender check
-                        if (categoryGender !== 'Mista') {
-                            if (a.gender && a.gender !== categoryGender) return false;
-                        }
-
-                        // 2. Category/Rule check
-                        const athleteCategories = a.categories || (a.category ? [a.category] : []);
-                        if (rules.length > 0) return athleteCategories.some(c => rules.includes(c));
-                        return athleteCategories.map(c => c.toUpperCase()).includes(activeSubTournament.toUpperCase());
-                    })}
+                    athletes={getEligibleAthletesForCategory(activeSubTournament)}
                     tournamentType={tournament.type as any}
                     open={openManualGroups}
                     onOpenChange={setOpenManualGroups}

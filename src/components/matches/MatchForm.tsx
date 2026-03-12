@@ -55,11 +55,12 @@ interface MatchFormProps {
     matches: Match[];
     categories?: string[];
     categoryGender?: Record<string, string>;
+    categoryAthletes?: Record<string, string[]>;
     onSuccess?: () => void;
     initialData?: Match;
 }
 
-export function MatchForm({ tournamentId, tournamentType, courts, matches, categories, categoryGender, onSuccess, initialData }: MatchFormProps) {
+export function MatchForm({ tournamentId, tournamentType, courts, matches, categories, categoryGender, categoryAthletes, onSuccess, initialData }: MatchFormProps) {
     const [players, setPlayers] = useState<Player[]>([]);
     const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,11 +109,19 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     const selectedIds = form.watch(["player1A", "player2A", "player1B", "player2B"]);
 
     const filteredPlayers = players.filter(p => {
-        // 1. Categoria (Tag)
-        const matchesCategory = p.category === selectedCategory || (p.categories && p.categories.includes(selectedCategory));
-        if (!matchesCategory) return false;
+        // 1. Enrollment Check (If categories are specifically managed)
+        const enrolledInCat = categoryAthletes?.[selectedCategory] || [];
+        if (enrolledInCat.length > 0 && !enrolledInCat.includes(p.id)) return false;
 
-        // 2. Gênero
+        // 2. Categoria / Tag Skill Match (Only if not specifically enrolled? Or always?)
+        // User says "listed in Athletes tab". Athletes tab requires Skill match OR explicit enrollment.
+        // But usually, enrollment is preferred.
+        if (enrolledInCat.length === 0) {
+            const matchesCategory = p.category === selectedCategory || (p.categories && p.categories.includes(selectedCategory));
+            if (!matchesCategory) return false;
+        }
+
+        // 3. Gênero (Always STRICT)
         const restriction = categoryGender?.[selectedCategory] || 'Mista';
         if (restriction !== 'Mista') {
             if (p.gender && p.gender !== restriction) return false;

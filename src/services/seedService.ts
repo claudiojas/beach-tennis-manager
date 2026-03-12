@@ -43,43 +43,49 @@ export const seedService = {
         const shoeSizes = ["37", "38", "39", "40", "41", "42", "43", "44"];
         const femaleShoeSizes = ["34", "35", "36", "37", "38", "39"];
 
-        // Generate Men (30)
-        maleNames.forEach((name, index) => {
-            const id = `seed_m_${index}`;
-            const cat = adultCategories[index % adultCategories.length];
+        // Generate Men (120)
+        for (let i = 0; i < 120; i++) {
+            const index = i % maleNames.length;
+            const name = i < maleNames.length ? maleNames[index] : `${maleNames[index]} ${Math.floor(i / maleNames.length) + 1}`;
+            const id = `seed_m_${i}`;
+            const cat = adultCategories[i % adultCategories.length];
             newAthletes[id] = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
                 categories: [cat],
                 gender: "Masculino",
-                shirtSize: shirtSizes[index % shirtSizes.length],
-                shoeSize: shoeSizes[index % shoeSizes.length],
+                shirtSize: shirtSizes[i % shirtSizes.length],
+                shoeSize: shoeSizes[i % shoeSizes.length],
                 createdAt: Date.now()
             };
-        });
+        }
 
-        // Generate Women (30)
-        femaleNames.forEach((name, index) => {
-            const id = `seed_f_${index}`;
-            const cat = adultCategories[index % adultCategories.length];
+        // Generate Women (120)
+        for (let i = 0; i < 120; i++) {
+            const index = i % femaleNames.length;
+            const name = i < femaleNames.length ? femaleNames[index] : `${femaleNames[index]} ${Math.floor(i / femaleNames.length) + 1}`;
+            const id = `seed_f_${i}`;
+            const cat = adultCategories[i % adultCategories.length];
             newAthletes[id] = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
                 categories: [cat],
                 gender: "Feminino",
-                shirtSize: shirtSizes[index % shirtSizes.length],
-                shoeSize: femaleShoeSizes[index % femaleShoeSizes.length],
+                shirtSize: shirtSizes[i % shirtSizes.length],
+                shoeSize: femaleShoeSizes[i % femaleShoeSizes.length],
                 createdAt: Date.now()
             };
-        });
+        }
 
-        // Generate Kids (20)
-        kidsNames.forEach((name, index) => {
-            const id = `seed_k_${index}`;
-            const cat = kidsCategories[index % kidsCategories.length];
-            const isFemale = index % 2 === 0;
+        // Generate Kids (60)
+        for (let i = 0; i < 60; i++) {
+            const index = i % kidsNames.length;
+            const name = i < kidsNames.length ? kidsNames[index] : `${kidsNames[index]} ${Math.floor(i / kidsNames.length) + 1}`;
+            const id = `seed_k_${i}`;
+            const cat = kidsCategories[i % kidsCategories.length];
+            const isFemale = i % 2 === 0;
             newAthletes[id] = {
                 id,
                 name,
@@ -87,10 +93,10 @@ export const seedService = {
                 categories: [cat],
                 gender: isFemale ? "Feminino" : "Masculino",
                 shirtSize: "PP",
-                shoeSize: (30 + (index % 5)).toString(),
+                shoeSize: (30 + (i % 5)).toString(),
                 createdAt: Date.now()
             };
-        });
+        }
 
         await set(athletesRef, newAthletes);
         return true;
