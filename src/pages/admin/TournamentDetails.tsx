@@ -362,7 +362,7 @@ export default function TournamentDetails() {
                                 <div className="flex flex-col gap-2 w-full md:w-auto min-w-[300px]">
                                     <div className="flex gap-2">
                                         <Input
-                                            placeholder="Nome do Torneio (ex: MASC A)"
+                                            placeholder="Add o nome do torneio"
                                             value={newCategoryName}
                                             onChange={(e) => setNewCategoryName(e.target.value)}
                                             className="h-11 rounded-xl bg-card border-primary/20 shadow-sm focus-visible:ring-primary/30 font-bold uppercase"

@@ -222,6 +222,7 @@ export default function AdminDashboard() {
           date: values.date,
           time: values.time,
           location: locationName,
+          arenaId: values.arenaId,
           type: values.type,
           categories: values.categories || [],
         });
@@ -233,6 +234,7 @@ export default function AdminDashboard() {
           date: values.date,
           time: values.time,
           location: locationName,
+          arenaId: values.arenaId,
           type: values.type,
           status: 'planning', // Explicitly set initial status
           settings: {
@@ -341,7 +343,7 @@ export default function AdminDashboard() {
             <DialogTrigger asChild>
               <Button onClick={handleOpenCreate} className="hidden md:flex rounded-full px-6 shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-4 w-4" />
-                Novo Torneio (Etapa)
+                Nova Etapa
               </Button>
             </DialogTrigger>
             {/* Floating Action Button for Mobile */}
@@ -353,7 +355,7 @@ export default function AdminDashboard() {
             </Button>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar Etapa" : "Novo Torneio (Etapa)"}</DialogTitle>
+                <DialogTitle>{isEditing ? "Editar Etapa" : "Nova Etapa"}</DialogTitle>
                 <DialogDescription>
                   {isEditing ? "Atualize as informações da etapa." : "Crie uma nova etapa selecionando a Arena."}
                 </DialogDescription>

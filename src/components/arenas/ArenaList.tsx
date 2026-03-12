@@ -70,7 +70,18 @@ export function ArenaList() {
                     ) : (
                         arenas.map((arena) => (
                             <TableRow key={arena.id}>
-                                <TableCell className="font-medium">{arena.name}</TableCell>
+                                <TableCell className="font-medium">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden border border-primary/20">
+                                            {arena.logoUrl ? (
+                                                <img src={arena.logoUrl} alt={arena.name} className="w-full h-full object-contain p-0.5" />
+                                            ) : (
+                                                <MapPin className="h-4 w-4 text-primary opacity-40" />
+                                            )}
+                                        </div>
+                                        {arena.name}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="hidden md:table-cell">
                                     {arena.location && (
                                         <div className="flex items-center gap-1 text-muted-foreground">
@@ -95,7 +106,7 @@ export function ArenaList() {
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent>
+                                        <DialogContent className="max-w-2xl rounded-3xl">
                                             <DialogHeader>
                                                 <DialogTitle>Editar Arena</DialogTitle>
                                             </DialogHeader>

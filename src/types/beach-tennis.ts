@@ -122,6 +122,7 @@ export interface Tournament {
   categoryAthletes?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["id1", "id2"] de atletas inscritos nele
   categoryGender?: Record<string, 'Masculino' | 'Feminino' | 'Mista'>; // Novo: Filtro de gênero por categoria
   settings?: TournamentSettings;
+  arenaId?: string;
 }
 export interface ArenaCourt {
   id: string; // Internal ID for the template
@@ -134,6 +135,7 @@ export interface Arena {
   location?: string;
   courts: ArenaCourt[];
   createdAt: number;
+  logoUrl?: string;
 }
 
 export interface Sponsor {

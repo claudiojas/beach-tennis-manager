@@ -18,6 +18,7 @@ const ArenaPanel = () => {
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [currentTournamentIndex, setCurrentTournamentIndex] = useState(0);
   const [runIndex, setRunIndex] = useState(0);
+  const [arenaLogo, setArenaLogo] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -65,6 +66,34 @@ const ArenaPanel = () => {
 
   const currentTournament = activeTournaments[currentTournamentIndex];
 
+  // Fetch Arena Logo for the current tournament
+  useEffect(() => {
+    if (currentTournament?.arenaId || currentTournament?.location) {
+      // Se não temos arenaId, buscamos no nó raiz de arenas para tentar o match por nome
+      const arenaPath = currentTournament.arenaId
+        ? `arenas/${currentTournament.arenaId}`
+        : 'arenas';
+
+      const arenaRef = ref(db, arenaPath);
+      const unsubscribe = onValue(arenaRef, (snapshot) => {
+        const data = snapshot.val();
+        if (currentTournament.arenaId) {
+          setArenaLogo(data?.logoUrl || null);
+        } else if (data) {
+          // Fallback legado: buscar arena pelo nome da localização
+          const arenas = Object.values(data) as any[];
+          const matchedArena = arenas.find(a => a.name === currentTournament.location);
+          setArenaLogo(matchedArena?.logoUrl || null);
+        } else {
+          setArenaLogo(null);
+        }
+      });
+      return () => unsubscribe();
+    } else {
+      setArenaLogo(null);
+    }
+  }, [currentTournament?.arenaId, currentTournament?.location]);
+
   const categoryData = useMemo(() => {
     if (!currentTournament) return [];
     const tMatches = allMatches.filter(m => m.tournamentId === currentTournament.id);
@@ -103,6 +132,7 @@ const ArenaPanel = () => {
         <ArenaHeader
           tournamentName={currentTournament?.name || 'Beach Tennis Manager'}
           location={currentTournament?.location}
+          logoUrl={arenaLogo || undefined}
           currentTime={currentTime}
         />
       </div>

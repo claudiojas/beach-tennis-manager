@@ -36,46 +36,56 @@ export const tournamentService = {
     },
 
     delete: async (id: string) => {
-        const updates: Record<string, any> = {};
+        const updates: Record<string, null> = {};
 
-        // 1. Prepare matches for deletion (Fetch all and filter locally to avoid indexing issues)
-        const matchesSnapshot = await get(ref(db, "matches"));
-        if (matchesSnapshot.exists()) {
-            const matches = matchesSnapshot.val();
-            Object.keys(matches).forEach(matchId => {
-                if (matches[matchId].tournamentId === id) {
-                    updates[`matches/${matchId}`] = null;
-                }
-            });
-        }
-
-        // 2. Prepare courts for deletion
-        const courtsSnapshot = await get(ref(db, "courts"));
-        if (courtsSnapshot.exists()) {
-            const courts = courtsSnapshot.val();
-            Object.keys(courts).forEach(courtId => {
-                if (courts[courtId].tournamentId === id) {
-                    updates[`courts/${courtId}`] = null;
-                }
-            });
-        }
-
-        // 3. Prepare results for deletion
-        const resultsSnapshot = await get(ref(db, "results"));
-        if (resultsSnapshot.exists()) {
-            const results = resultsSnapshot.val();
-            Object.keys(results).forEach(resultId => {
-                if (results[resultId].tournamentId === id) {
-                    updates[`results/${resultId}`] = null;
-                }
-            });
-        }
-
-        // 4. Delete the tournament itself
+        // 1. Mark tournament for deletion
         updates[`${DB_PATH}/${id}`] = null;
 
-        // 5. Execute all deletions atomically
-        await update(ref(db), updates);
-    }
+        // 2. Find and mark associated matches
+        const matchesQuery = query(ref(db, "matches"), orderByChild("tournamentId"), equalTo(id));
+        const matchesSnapshot = await get(matchesQuery);
+        if (matchesSnapshot.exists()) {
+            Object.keys(matchesSnapshot.val()).forEach(matchId => {
+                updates[`matches/${matchId}`] = null;
+            });
+        }
 
+        // 3. Find and mark associated courts
+        const courtsQuery = query(ref(db, "courts"), orderByChild("tournamentId"), equalTo(id));
+        const courtsSnapshot = await get(courtsQuery);
+        if (courtsSnapshot.exists()) {
+            Object.keys(courtsSnapshot.val()).forEach(courtId => {
+                updates[`courts/${courtId}`] = null;
+            });
+        }
+
+        // 4. Perform atomic update
+        await update(ref(db), updates);
+    },
+
+    uploadLogo: async (id: string, file: File): Promise<string> => {
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const SUPABASE_BUCKET = import.meta.env.VITE_SUPABASE_BUCKET || "sponsors";
+
+        const fileName = `tournaments/${id}/logo_${Date.now()}.png`;
+        const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${fileName}`;
+
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'apikey': SUPABASE_KEY,
+                'Content-Type': file.type
+            },
+            body: file
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Falha no upload para o Supabase: ${errorData.message || response.statusText}`);
+        }
+
+        return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${fileName}`;
+    }
 };

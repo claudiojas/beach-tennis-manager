@@ -54,7 +54,7 @@ export default function GlobalArenas() {
                                     Nova Arena
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="rounded-3xl">
+                            <DialogContent className="rounded-3xl max-w-2xl">
                                 <DialogHeader>
                                     <DialogTitle>Nova Arena</DialogTitle>
                                     <DialogDescription>

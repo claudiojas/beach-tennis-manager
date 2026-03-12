@@ -17,33 +17,49 @@ interface SponsorImageEditorProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSave: (croppedImage: Blob) => void;
+    aspectRatio?: 'square' | 'arena' | 'free';
 }
 
-export function SponsorImageEditor({ image, open, onOpenChange, onSave }: SponsorImageEditorProps) {
+export function SponsorImageEditor({ image, open, onOpenChange, onSave, aspectRatio = 'arena' }: SponsorImageEditorProps) {
+    const ARENA_ASPECT = 110 / 32;
+    const SQUARE_ASPECT = 1;
+
+    const getInitialAspect = () => {
+        if (aspectRatio === 'square') return SQUARE_ASPECT;
+        if (aspectRatio === 'arena') return ARENA_ASPECT;
+        return undefined;
+    };
+
     const [crop, setCrop] = useState<Crop>();
     const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-    const [isAspectLocked, setIsAspectLocked] = useState(false);
+    const [currentAspect, setCurrentAspect] = useState<number | undefined>(getInitialAspect());
+    const [aspectMode, setAspectMode] = useState<'square' | 'arena' | 'free'>(aspectRatio);
     const imgRef = useRef<HTMLImageElement>(null);
-
-    const ARENA_ASPECT = 110 / 32;
 
     function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
         const { width, height } = e.currentTarget;
 
-        // Inicializa com um crop centralizado
-        const initialCrop = isAspectLocked
-            ? centerCrop(makeAspectCrop({ unit: '%', width: 90 }, ARENA_ASPECT, width, height), width, height)
+        const initialCrop = currentAspect
+            ? centerCrop(makeAspectCrop({ unit: '%', width: 90 }, currentAspect, width, height), width, height)
             : { unit: '%' as const, x: 5, y: 5, width: 90, height: 90 };
 
         setCrop(initialCrop);
     }
 
-    const handleAspectToggle = (pressed: boolean) => {
-        setIsAspectLocked(pressed);
+    const handleAspectChange = (mode: 'square' | 'arena' | 'free') => {
+        setAspectMode(mode);
+        let newAspect: number | undefined;
+
+        if (mode === 'square') newAspect = SQUARE_ASPECT;
+        else if (mode === 'arena') newAspect = ARENA_ASPECT;
+        else newAspect = undefined;
+
+        setCurrentAspect(newAspect);
+
         if (imgRef.current) {
             const { width, height } = imgRef.current;
-            if (pressed) {
-                const newCrop = centerCrop(makeAspectCrop({ unit: '%', width: 90 }, ARENA_ASPECT, width, height), width, height);
+            if (newAspect) {
+                const newCrop = centerCrop(makeAspectCrop({ unit: '%', width: 90 }, newAspect, width, height), width, height);
                 setCrop(newCrop);
             }
         }
@@ -110,8 +126,8 @@ export function SponsorImageEditor({ image, open, onOpenChange, onSave }: Sponso
 
                     <div className="flex items-center gap-2 bg-slate-950/50 p-1 rounded-full border border-white/5">
                         <Toggle
-                            pressed={!isAspectLocked}
-                            onPressedChange={(p) => handleAspectToggle(!p)}
+                            pressed={aspectMode === 'free'}
+                            onPressedChange={() => handleAspectChange('free')}
                             className="rounded-full px-4 data-[state=on]:bg-white/10 text-xs font-bold uppercase transition-all"
                             size="sm"
                         >
@@ -119,8 +135,17 @@ export function SponsorImageEditor({ image, open, onOpenChange, onSave }: Sponso
                             Livre
                         </Toggle>
                         <Toggle
-                            pressed={isAspectLocked}
-                            onPressedChange={handleAspectToggle}
+                            pressed={aspectMode === 'square'}
+                            onPressedChange={() => handleAspectChange('square')}
+                            className="rounded-full px-4 data-[state=on]:bg-primary/20 data-[state=on]:text-primary text-xs font-bold uppercase transition-all"
+                            size="sm"
+                        >
+                            <div className="mr-2 h-3 w-3 border-2 border-current rounded-sm" />
+                            Quadrado
+                        </Toggle>
+                        <Toggle
+                            pressed={aspectMode === 'arena'}
+                            onPressedChange={() => handleAspectChange('arena')}
                             className="rounded-full px-4 data-[state=on]:bg-primary/20 data-[state=on]:text-primary text-xs font-bold uppercase transition-all"
                             size="sm"
                         >
@@ -135,7 +160,7 @@ export function SponsorImageEditor({ image, open, onOpenChange, onSave }: Sponso
                         crop={crop}
                         onChange={(c) => setCrop(c)}
                         onComplete={(c) => setCompletedCrop(c)}
-                        aspect={isAspectLocked ? ARENA_ASPECT : undefined}
+                        aspect={currentAspect}
                         className="max-w-full"
                     >
                         <img
