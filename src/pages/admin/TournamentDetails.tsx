@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, MapPin, Image as ImageIcon, Check, X, LayoutGrid, GitBranch, ListFilter } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, User, UserCheck, MapPin, Image as ImageIcon, Check, X, LayoutGrid, GitBranch, ListFilter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,7 +78,9 @@ export default function TournamentDetails() {
     const allGlobalCategories = Array.from(new Set([
         ...TOURNAMENT_CATEGORIES,
         ...dynamicCategories
-    ])).sort();
+    ]))
+        .filter(cat => cat.toUpperCase() !== 'MISTA')
+        .sort();
 
     useEffect(() => {
         const fetchArenas = async () => {
@@ -148,7 +150,15 @@ export default function TournamentDetails() {
                 } else {
                     // Fallback to global behavior
                     const rules = tournament.categoryRules?.[cat] || [];
+                    const categoryGender = tournament.categoryGender?.[cat] || 'Mista';
+
                     eligibleAthletes = athletes.filter(a => {
+                        // 1. Gender check
+                        if (categoryGender !== 'Mista') {
+                            if (a.gender && a.gender !== categoryGender) return false;
+                        }
+
+                        // 2. Category/Rule check
                         const athleteCategories = a.categories || (a.category ? [a.category] : []);
                         if (rules.length > 0) {
                             return athleteCategories.some(c => rules.includes(c));
@@ -646,7 +656,15 @@ export default function TournamentDetails() {
                                                             eligibleAthletes = athletes.filter(a => specificCategoryAthletes.includes(a.id));
                                                         } else {
                                                             const rules = tournament.categoryRules?.[activeSubTournament] || [];
+                                                            const categoryGender = tournament.categoryGender?.[activeSubTournament] || 'Mista';
+
                                                             eligibleAthletes = athletes.filter(a => {
+                                                                // 1. Gender check
+                                                                if (categoryGender !== 'Mista') {
+                                                                    if (a.gender && a.gender !== categoryGender) return false;
+                                                                }
+
+                                                                // 2. Category/Rule check
                                                                 const athleteCategories = a.categories || (a.category ? [a.category] : []);
                                                                 if (rules.length > 0) {
                                                                     return athleteCategories.some(c => rules.includes(c));
@@ -760,41 +778,85 @@ export default function TournamentDetails() {
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Permissões de atleta por categoria.</CardDescription>
                                             </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                                {allGlobalCategories.map((cat) => {
-                                                    const rules = tournament?.categoryRules?.[activeSubTournament] || [];
-                                                    const isChecked = rules.includes(cat);
+                                        <CardContent className="space-y-6">
+                                            {/* Gender Filter Selection */}
+                                            <div className="space-y-3 p-4 rounded-2xl bg-primary/5 border border-primary/10 transition-all duration-300">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Users className="h-4 w-4 text-primary" />
+                                                    <Label className="text-xs font-black uppercase tracking-widest text-primary/70">Restrição de Gênero</Label>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {['Masculino', 'Feminino', 'Mista'].map((g) => {
+                                                        const currentGender = tournament?.categoryGender?.[activeSubTournament] || 'Mista';
+                                                        const isSelected = currentGender === g;
+                                                        return (
+                                                            <Button
+                                                                key={g}
+                                                                variant={isSelected ? "default" : "outline"}
+                                                                size="sm"
+                                                                className={`h-10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${isSelected ? 'shadow-lg shadow-primary/20' : 'bg-background hover:bg-primary/5 hover:text-primary border-primary/10'}`}
+                                                                onClick={async () => {
+                                                                    if (!id || !tournament) return;
+                                                                    const updatedGender = { ...(tournament.categoryGender || {}) };
+                                                                    updatedGender[activeSubTournament] = g as any;
+                                                                    await tournamentService.update(id, { categoryGender: updatedGender });
+                                                                    toast.success(`Gênero definido para ${g}!`);
+                                                                }}
+                                                            >
+                                                                {g === 'Masculino' && <User className="mr-1.5 h-3 w-3" />}
+                                                                {g === 'Feminino' && <UserCheck className="mr-1.5 h-3 w-3" />}
+                                                                {g === 'Mista' && <Users className="mr-1.5 h-3 w-3" />}
+                                                                {g}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground italic font-medium">
+                                                    {tournament?.categoryGender?.[activeSubTournament] === 'Masculino' && "Apenas atletas do sexo Masculino poderão participar desta categoria."}
+                                                    {tournament?.categoryGender?.[activeSubTournament] === 'Feminino' && "Apenas atletas do sexo Feminino poderão participar desta categoria."}
+                                                    {(tournament?.categoryGender?.[activeSubTournament] === 'Mista' || !tournament?.categoryGender?.[activeSubTournament]) && "Atletas de ambos os sexos podem participar desta categoria."}
+                                                </p>
+                                            </div>
 
-                                                    return (
-                                                        <div key={cat} className="flex items-center space-x-2 p-2 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer"
-                                                            onClick={async () => {
-                                                                if (!id || !tournament) return;
-                                                                const currentRules = { ...(tournament.categoryRules || {}) };
-                                                                const activeRules = currentRules[activeSubTournament] || [];
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <ListFilter className="h-4 w-4 text-primary" />
+                                                    <Label className="text-xs font-black uppercase tracking-widest text-primary/70">Nível Técnico (Tags)</Label>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                    {allGlobalCategories.map((cat) => {
+                                                        const rules = tournament?.categoryRules?.[activeSubTournament] || [];
+                                                        const isChecked = rules.includes(cat);
 
-                                                                if (isChecked) {
-                                                                    currentRules[activeSubTournament] = activeRules.filter(c => c !== cat);
-                                                                } else {
-                                                                    currentRules[activeSubTournament] = [...activeRules, cat];
-                                                                }
+                                                        return (
+                                                            <div key={cat} className={`flex items-center space-x-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer ${isChecked ? 'bg-primary/5 border-primary shadow-sm hover:bg-primary/10' : 'bg-card border-muted/50 hover:border-primary/30 hover:bg-muted/30'}`}
+                                                                onClick={async () => {
+                                                                    if (!id || !tournament) return;
+                                                                    const currentRules = { ...(tournament.categoryRules || {}) };
+                                                                    const activeRules = currentRules[activeSubTournament] || [];
 
-                                                                // Se ficou vazio, remove a chave para limpar o banco
-                                                                if (currentRules[activeSubTournament].length === 0) {
-                                                                    delete currentRules[activeSubTournament];
-                                                                }
+                                                                    if (isChecked) {
+                                                                        currentRules[activeSubTournament] = activeRules.filter(c => c !== cat);
+                                                                    } else {
+                                                                        currentRules[activeSubTournament] = [...activeRules, cat];
+                                                                    }
 
-                                                                await tournamentService.update(id, { categoryRules: currentRules });
-                                                                toast.success(`Regra ${isChecked ? 'removida' : 'adicionada'}!`);
-                                                            }}
-                                                        >
-                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center border-primary ${isChecked ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
-                                                                {isChecked && <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>}
+                                                                    if (currentRules[activeSubTournament].length === 0) {
+                                                                        delete currentRules[activeSubTournament];
+                                                                    }
+
+                                                                    await tournamentService.update(id, { categoryRules: currentRules });
+                                                                    toast.success(`Regra ${isChecked ? 'removida' : 'adicionada'}!`);
+                                                                }}
+                                                            >
+                                                                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${isChecked ? 'bg-primary border-primary text-primary-foreground' : 'bg-background border-muted-foreground/30'}`}>
+                                                                    {isChecked && <Check className="h-3 w-3" />}
+                                                                </div>
+                                                                <Label className="cursor-pointer flex-1 font-bold text-xs uppercase tracking-tight">{cat}</Label>
                                                             </div>
-                                                            <Label className="cursor-pointer flex-1 font-bold text-sm uppercase">{cat}</Label>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -950,7 +1012,7 @@ export default function TournamentDetails() {
             <Dialog open={openMatchDialog} onOpenChange={setOpenMatchDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingMatch ? "Editar Jogo" : "Novo Jogo"}</DialogTitle></DialogHeader>
-                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} matches={matches} courts={courts} categories={tournament?.categories} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
+                    {id && <MatchForm tournamentId={id} tournamentType={tournament?.type || 'Duplas'} matches={matches} courts={courts} categories={tournament?.categories} categoryGender={tournament?.categoryGender} onSuccess={() => setOpenMatchDialog(false)} initialData={editingMatch || undefined} />}
                 </DialogContent>
             </Dialog>
 
@@ -1044,6 +1106,14 @@ export default function TournamentDetails() {
 
                         // Fallback to rule matching if no specific IDs are set
                         const rules = tournament.categoryRules?.[activeSubTournament] || [];
+                        const categoryGender = tournament.categoryGender?.[activeSubTournament] || 'Mista';
+
+                        // 1. Gender check
+                        if (categoryGender !== 'Mista') {
+                            if (a.gender && a.gender !== categoryGender) return false;
+                        }
+
+                        // 2. Category/Rule check
                         const athleteCategories = a.categories || (a.category ? [a.category] : []);
                         if (rules.length > 0) return athleteCategories.some(c => rules.includes(c));
                         return athleteCategories.map(c => c.toUpperCase()).includes(activeSubTournament.toUpperCase());

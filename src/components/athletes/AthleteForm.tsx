@@ -33,6 +33,9 @@ const formSchema = z.object({
     phone: z.string().optional(),
     categories: z.array(z.string()).min(1, "Selecione pelo menos uma categoria"),
     registrationNumber: z.string().optional(),
+    gender: z.enum(["Masculino", "Feminino"]).optional(),
+    shirtSize: z.string().optional(),
+    shoeSize: z.string().optional(),
 });
 
 interface AthleteFormProps {
@@ -66,6 +69,9 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
             phone: initialData?.phone || "",
             categories: initialData?.categories || (initialData?.category ? [initialData.category] : []),
             registrationNumber: initialData?.registrationNumber || "",
+            gender: initialData?.gender,
+            shirtSize: initialData?.shirtSize || "",
+            shoeSize: initialData?.shoeSize || "",
         },
     });
 
@@ -82,6 +88,9 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                     category: primaryCategory as Category,
                     categories: values.categories as Category[],
                     registrationNumber: values.registrationNumber,
+                    gender: values.gender,
+                    shirtSize: values.shirtSize,
+                    shoeSize: values.shoeSize,
                 });
                 toast.success("Atleta atualizado com sucesso!");
             } else {
@@ -91,6 +100,9 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                     category: primaryCategory as Category,
                     categories: values.categories as Category[],
                     registrationNumber: values.registrationNumber,
+                    gender: values.gender,
+                    shirtSize: values.shirtSize,
+                    shoeSize: values.shoeSize,
                 });
                 toast.success("Atleta cadastrado com sucesso!");
             }
@@ -153,6 +165,67 @@ export function AthleteForm({ onSuccess, initialData }: AthleteFormProps) {
                         </FormItem>
                     )}
                 />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-xl bg-muted/20">
+                    <FormField
+                        control={form.control}
+                        name="gender"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Gênero</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Masculino">Masculino</SelectItem>
+                                        <SelectItem value="Feminino">Feminino</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="shirtSize"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Camiseta</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Tamanho" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {["PP", "P", "M", "G", "GG", "XG"].map(size => (
+                                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="shoeSize"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tamanho do Pé</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ex: 40" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
 
                 <FormField
                     control={form.control}

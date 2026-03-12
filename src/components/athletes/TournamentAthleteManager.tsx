@@ -74,6 +74,15 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         // Essential: Check both the new 'categories' array and the legacy 'category' string
         const athleteCategories = a.categories || (a.category ? [a.category] : []);
 
+        // 1. Gender Filter Check
+        const categoryGender = activeCategory ? tournament.categoryGender?.[activeCategory] || 'Mista' : 'Mista';
+        if (categoryGender !== 'Mista') {
+            // Se atleta não tem gênero definido, por segurança não mostramos em categorias restritas?
+            // Ou tratamos como 'indefinido' e bloqueamos.
+            if (a.gender && a.gender !== categoryGender) return false;
+            if (!a.gender) return false; // Bloqueia se não tiver gênero cadastrado em categoria restrita
+        }
+
         const rules = activeCategory && tournament.categoryRules ? tournament.categoryRules[activeCategory] || [] : [];
         let isInCategory = false;
 
@@ -195,7 +204,7 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                     {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
-                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat.toUpperCase()}</Badge>
+                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat}</Badge>
                                     ))}
                                 </div>
                                 {isParticipating && (

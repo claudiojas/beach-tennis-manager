@@ -22,11 +22,11 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    const hasSeeded = localStorage.getItem("temp_seed_80_v1");
+    const hasSeeded = localStorage.getItem("temp_seed_80_v3");
     if (!hasSeeded) {
       seedService.seedAthletes().then(() => {
-        localStorage.setItem("temp_seed_80_v1", "true");
-        console.log("✅ Database seeded with 80 athletes!");
+        localStorage.setItem("temp_seed_80_v3", "true");
+        console.log("✅ Database seeded with 80 athletes (No Mista Tag)!");
       });
     }
   }, []);

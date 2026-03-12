@@ -54,11 +54,12 @@ interface MatchFormProps {
     courts: Court[];
     matches: Match[];
     categories?: string[];
+    categoryGender?: Record<string, string>;
     onSuccess?: () => void;
     initialData?: Match;
 }
 
-export function MatchForm({ tournamentId, tournamentType, courts, matches, categories, onSuccess, initialData }: MatchFormProps) {
+export function MatchForm({ tournamentId, tournamentType, courts, matches, categories, categoryGender, onSuccess, initialData }: MatchFormProps) {
     const [players, setPlayers] = useState<Player[]>([]);
     const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,7 +82,9 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
 
     const allCategories = (categories && categories.length > 0)
         ? categories
-        : Array.from(new Set([...TOURNAMENT_CATEGORIES, ...dynamicCategories])).sort();
+        : Array.from(new Set([...TOURNAMENT_CATEGORIES, ...dynamicCategories]))
+            .filter(cat => cat.toUpperCase() !== 'MISTA')
+            .sort();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -104,7 +107,20 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     const selectedCategory = form.watch("category");
     const selectedIds = form.watch(["player1A", "player2A", "player1B", "player2B"]);
 
-    const filteredPlayers = players.filter(p => p.category === selectedCategory);
+    const filteredPlayers = players.filter(p => {
+        // 1. Categoria (Tag)
+        const matchesCategory = p.category === selectedCategory || (p.categories && p.categories.includes(selectedCategory));
+        if (!matchesCategory) return false;
+
+        // 2. Gênero
+        const restriction = categoryGender?.[selectedCategory] || 'Mista';
+        if (restriction !== 'Mista') {
+            if (p.gender && p.gender !== restriction) return false;
+            if (!p.gender) return false;
+        }
+
+        return true;
+    });
 
     // Helper to check if a player is already selected in another slot
     const isPlayerSelected = (playerId: string, currentField: string) => {

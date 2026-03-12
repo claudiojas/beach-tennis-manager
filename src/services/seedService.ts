@@ -28,8 +28,8 @@ const kidsNames = [
     "Duda Borba", "Lili Viana", "Soso Neto", "Tutu Cruz", "Guga Medeiros"
 ];
 
-const adultCategories = ["A", "B", "C", "D", "INICIANTE", "40+", "50+"];
-const kidsCategories = ["SUB-12", "SUB-14", "SUB-16", "KIDS INICIANTE"];
+const adultCategories = ["A", "B", "C", "D", "Iniciante", "40+", "50+"];
+const kidsCategories = ["Sub-12", "Sub-14", "Sub-16", "Kids Iniciante"];
 
 export const seedService = {
     seedAthletes: async () => {
@@ -39,6 +39,10 @@ export const seedService = {
         const newAthletes: any = {};
         let regCount = 1;
 
+        const shirtSizes = ["P", "M", "G", "GG"];
+        const shoeSizes = ["37", "38", "39", "40", "41", "42", "43", "44"];
+        const femaleShoeSizes = ["34", "35", "36", "37", "38", "39"];
+
         // Generate Men (30)
         maleNames.forEach((name, index) => {
             const id = `seed_m_${index}`;
@@ -47,7 +51,10 @@ export const seedService = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
-                categories: [cat, "MISTA"],
+                categories: [cat],
+                gender: "Masculino",
+                shirtSize: shirtSizes[index % shirtSizes.length],
+                shoeSize: shoeSizes[index % shoeSizes.length],
                 createdAt: Date.now()
             };
         });
@@ -60,7 +67,10 @@ export const seedService = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
-                categories: [cat, "Mista"],
+                categories: [cat],
+                gender: "Feminino",
+                shirtSize: shirtSizes[index % shirtSizes.length],
+                shoeSize: femaleShoeSizes[index % femaleShoeSizes.length],
                 createdAt: Date.now()
             };
         });
@@ -69,11 +79,15 @@ export const seedService = {
         kidsNames.forEach((name, index) => {
             const id = `seed_k_${index}`;
             const cat = kidsCategories[index % kidsCategories.length];
+            const isFemale = index % 2 === 0;
             newAthletes[id] = {
                 id,
                 name,
                 registrationNumber: (regCount++).toString().padStart(3, '0'),
                 categories: [cat],
+                gender: isFemale ? "Feminino" : "Masculino",
+                shirtSize: "PP",
+                shoeSize: (30 + (index % 5)).toString(),
                 createdAt: Date.now()
             };
         });

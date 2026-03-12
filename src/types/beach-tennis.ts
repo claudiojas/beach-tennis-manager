@@ -10,7 +10,6 @@ export const TOURNAMENT_CATEGORIES = [
   "C",
   "D",
   "INICIANTE",
-  "MISTA",
   "SUB-12",
   "SUB-14",
   "+40",
@@ -26,6 +25,9 @@ export interface Player {
   email?: string; // Optional for now
   photoUrl?: string;
   registrationNumber?: string;
+  gender?: 'Masculino' | 'Feminino';
+  shirtSize?: string;
+  shoeSize?: string;
 }
 
 export interface Team {
@@ -118,6 +120,7 @@ export interface Tournament {
   categories?: string[]; // Categories active in this tournament
   categoryRules?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["A", "PRO"] de atletas que podem jogar nele
   categoryAthletes?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["id1", "id2"] de atletas inscritos nele
+  categoryGender?: Record<string, 'Masculino' | 'Feminino' | 'Mista'>; // Novo: Filtro de gênero por categoria
   settings?: TournamentSettings;
 }
 export interface ArenaCourt {

@@ -156,7 +156,7 @@ export function MatchList({ tournamentId, courts, matches, onEdit }: MatchListPr
                                             <span className="font-bold">{status.label}</span>
                                         </Badge>
                                         <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 text-[9px] px-1.5 h-5 font-black uppercase">
-                                            Cat {match.category.toUpperCase()}
+                                            Cat {match.category}
                                         </Badge>
                                         {match.group && (
                                             <Badge variant="outline" className="font-black border-primary/30 text-primary text-[9px] px-1.5 h-5 bg-primary/5 uppercase">
