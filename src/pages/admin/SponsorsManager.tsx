@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { sponsorService } from "@/services/sponsorService";
 import { imageProcessor } from "@/utils/imageProcessor";
 import { Sponsor } from "@/types/beach-tennis";
+import { SponsorImageEditor } from "@/components/sponsors/SponsorImageEditor";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -31,6 +32,8 @@ export default function SponsorsManager() {
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [editorOpen, setEditorOpen] = useState(false);
+    const [transparentUrl, setTransparentUrl] = useState<string | null>(null);
 
     // Estados para o Modal de Exclusão
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -67,21 +70,42 @@ export default function SponsorsManager() {
 
         setIsProcessing(true);
         try {
-            // 1. Processamento Inteligente (Remover Fundo + Comprimir)
-            toast.info("Processando imagem... Removendo fundo e otimizando.", { duration: 5000 });
-            const processedFile = await imageProcessor.processSponsorLogo(file);
+            // 1. Processamento Inteligente (Remover Fundo)
+            toast.info("Processando imagem... Removendo fundo.", { duration: 5000 });
+            const noBgBlob = await imageProcessor.removeBackground(file);
 
-            // 2. Upload para o Firebase
-            toast.info("Fazendo upload para o servidor...");
-            await sponsorService.create(name, processedFile);
+            // 2. Abrir Editor para Crop Manual
+            const url = URL.createObjectURL(noBgBlob);
+            setTransparentUrl(url);
+            setEditorOpen(true);
+
+            // O restante do upload ocorrerá no callback do Editor
+        } catch (error: any) {
+            console.error(error);
+            toast.error(`Erro: ${error.message || "Falha ao processar imagem"}`);
+            setIsProcessing(false);
+        }
+    };
+
+    const handleEditorSave = async (croppedBlob: Blob) => {
+        setIsProcessing(true);
+        try {
+            // 3. Otimizar e Comprimir
+            toast.info("Otimizando imagem para a arena...");
+            const finalFile = await imageProcessor.compress(croppedBlob);
+
+            // 4. Upload para o Firebase
+            toast.info("Salvando patrocinador...");
+            await sponsorService.create(name, finalFile);
 
             toast.success("Patrocinador adicionado com sucesso!");
             setName("");
             setFile(null);
             setPreviewUrl(null);
+            setTransparentUrl(null);
         } catch (error: any) {
             console.error(error);
-            toast.error(`Erro: ${error.message || "Falha ao processar imagem"}`);
+            toast.error(`Erro: ${error.message || "Falha ao salvar"}`);
         } finally {
             setIsProcessing(false);
         }
@@ -213,7 +237,7 @@ export default function SponsorsManager() {
                                             <img
                                                 src={sponsor.logoUrl}
                                                 alt={sponsor.name}
-                                                className="max-h-20 max-w-full object-contain brightness-0 invert opacity-70 group-hover:opacity-100 transition-all drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                                                className="max-h-20 max-w-full object-contain opacity-80 group-hover:opacity-100 transition-all drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]"
                                             />
                                         </div>
                                         <p className="text-[10px] font-black uppercase tracking-tighter mt-3 text-muted-foreground group-hover:text-white truncate w-full text-center">
@@ -286,6 +310,14 @@ export default function SponsorsManager() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {transparentUrl && (
+                <SponsorImageEditor
+                    image={transparentUrl}
+                    open={editorOpen}
+                    onOpenChange={setEditorOpen}
+                    onSave={handleEditorSave}
+                />
+            )}
         </div>
     );
 }

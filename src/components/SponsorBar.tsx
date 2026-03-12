@@ -24,12 +24,12 @@ export const SponsorBar = () => {
 
     const logoList = useMemo(() => {
         const SponsorLogo = ({ sponsor }: { sponsor: Sponsor }) => (
-            <div className="inline-flex items-center justify-center w-[140px] h-11 mx-12 shrink-0">
+            <div className="inline-flex items-center justify-center w-[110px] h-8 mx-10 shrink-0">
                 <img
                     src={sponsor.logoUrl}
                     alt={sponsor.name}
                     loading="eager"
-                    className="max-w-full max-h-full object-contain brightness-0 invert opacity-60 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    className="max-w-full max-h-full object-contain hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                     style={{ backfaceVisibility: 'hidden' }}
                 />
             </div>
@@ -54,11 +54,11 @@ export const SponsorBar = () => {
     if (sponsors.length === 0) return null;
 
     return (
-        <div className="w-full bg-slate-900/60 backdrop-blur-md border-t border-white/5 py-1 overflow-hidden relative shadow-2xl shrink-0 z-50">
+        <div className="w-full bg-black/80 backdrop-blur-xl border-t border-white/10 py-2 overflow-hidden relative shadow-[0_-10px_40px_rgba(0,0,0,0.5)] shrink-0 z-50">
             <div className="flex items-center h-[50px]">
                 {/* Visual Fading Gradients */}
-                <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-slate-900 via-slate-900/60 to-transparent z-10" />
-                <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-slate-900 via-slate-900/60 to-transparent z-10" />
+                <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-black via-black/60 to-transparent z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-black via-black/60 to-transparent z-10" />
 
                 {logoList}
             </div>

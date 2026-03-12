@@ -25,7 +25,7 @@ export const imageProcessor = {
      */
     compress: async (fileOrBlob: File | Blob): Promise<File> => {
         const options = {
-            maxSizeMB: 0.2, // Máximo 200KB
+            maxSizeMB: 0.1, // Reduzi para 100KB já que é um logo pequeno
             maxWidthOrHeight: 800,
             useWebWorker: true,
             fileType: 'image/webp' as string
@@ -43,7 +43,6 @@ export const imageProcessor = {
 
     /**
      * Detecta pixels não transparentes e corta as bordas vazias
-     * Adicionado threshold de alpha para ignorar "sujeira" deixada pela remoção de fundo
      */
     trimImage: async (blob: Blob): Promise<Blob> => {
         return new Promise((resolve) => {
@@ -69,7 +68,6 @@ export const imageProcessor = {
                     bottom: 0
                 };
 
-                // Threshold de alpha: Ignora pixels com opacidade menor que 15 (aprox 6%)
                 const ALPHA_THRESHOLD = 15;
 
                 for (let i = 0; i < l; i += 4) {
@@ -84,17 +82,11 @@ export const imageProcessor = {
                     }
                 }
 
-                console.log(`📏 Dimensões originais: ${img.width}x${img.height}`);
-                console.log(`📍 Bounds detectados:`, bound);
-
-                // Se não encontrou pixel (imagem vazia), retorna original
                 if (bound.top >= img.height || bound.left >= img.width || bound.right === 0) {
-                    console.log('⚠️ Nenhum conteúdo detectado para cortar.');
                     resolve(blob);
                     return;
                 }
 
-                // Adiciona um pequeno padding de 2px para não encostar na borda (opcional)
                 const padding = 2;
                 const startX = Math.max(0, bound.left - padding);
                 const startY = Math.max(0, bound.top - padding);
@@ -104,9 +96,6 @@ export const imageProcessor = {
                 const trimHeight = endY - startY + 1;
                 const trimWidth = endX - startX + 1;
 
-                console.log(`✂️ Dimensões finais: ${trimWidth}x${trimHeight}`);
-
-                // Cria novo canvas com tamanho exato do logo
                 const trimmedCanvas = document.createElement('canvas');
                 trimmedCanvas.width = trimWidth;
                 trimmedCanvas.height = trimHeight;
@@ -130,16 +119,9 @@ export const imageProcessor = {
      * Processamento completo: Remove fundo -> Corta Bordas -> Comprime
      */
     processSponsorLogo: async (file: File): Promise<File> => {
-        // 1. Remove fundo
         const noBgBlob = await imageProcessor.removeBackground(file);
-
-        // 2. Auto-Trim: Corta os espaços vazios ao redor do logo
-        console.log('✂️ Cortando bordas vazias...');
         const trimmedBlob = await imageProcessor.trimImage(noBgBlob);
-
-        // 3. Comprime e converte para WebP
         const finalFile = await imageProcessor.compress(trimmedBlob);
-
         return finalFile;
     }
 };

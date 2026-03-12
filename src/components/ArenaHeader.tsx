@@ -11,7 +11,7 @@ export const ArenaHeader = ({ tournamentName, currentTime }: ArenaHeaderProps) =
   };
 
   return (
-    <header className="bg-slate-950/80 backdrop-blur-md px-8 py-4 flex items-center justify-between border-b border-white/5 z-50">
+    <header className="bg-black/90 backdrop-blur-xl px-8 py-4 flex items-center justify-between border-b border-white/10 z-50 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
       <div className="flex items-center gap-4">
         <div className="bg-primary/10 p-2 rounded-2xl border border-primary/20">
           <Palmtree className="text-primary" size={28} />
