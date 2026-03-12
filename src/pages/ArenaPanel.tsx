@@ -102,6 +102,7 @@ const ArenaPanel = () => {
       <div className="relative z-[100] shadow-2xl bg-[#020617]">
         <ArenaHeader
           tournamentName={currentTournament?.name || 'Beach Tennis Manager'}
+          location={currentTournament?.location}
           currentTime={currentTime}
         />
       </div>

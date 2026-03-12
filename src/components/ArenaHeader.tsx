@@ -2,10 +2,11 @@ import { Palmtree, Clock } from 'lucide-react';
 
 interface ArenaHeaderProps {
   tournamentName: string;
+  location?: string;
   currentTime: Date;
 }
 
-export const ArenaHeader = ({ tournamentName, currentTime }: ArenaHeaderProps) => {
+export const ArenaHeader = ({ tournamentName, location, currentTime }: ArenaHeaderProps) => {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
@@ -20,7 +21,9 @@ export const ArenaHeader = ({ tournamentName, currentTime }: ArenaHeaderProps) =
           <h1 className="text-3xl font-black text-white tracking-tighter italic uppercase leading-none">
             {tournamentName}
           </h1>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">Arena Management System</p>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">
+            {location || 'Arena Management System'}
+          </p>
         </div>
       </div>
 
