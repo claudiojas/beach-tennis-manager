@@ -1,23 +1,14 @@
 import imageCompression from 'browser-image-compression';
-import { removeBackground } from '@imgly/background-removal';
+// import { removeBackground } from '@imgly/background-removal';
 
 export const imageProcessor = {
     /**
-     * Remove fundo da imagem usando IA local
+     * @deprecated O cliente optou por não usar remoção de fundo via IA devido ao tempo de processamento.
+     * Mantendo apenas como referência se necessário no futuro.
      */
     removeBackground: async (file: File): Promise<Blob> => {
-        try {
-            console.log('🤖 Removendo fundo da imagem...');
-            const blob = await removeBackground(file, {
-                progress: (side, progress) => {
-                    console.log(`IA: ${side} - ${Math.round(progress * 100)}%`);
-                }
-            });
-            return blob;
-        } catch (error) {
-            console.error('Erro ao remover fundo:', error);
-            throw new Error('Falha ao processar remoção de fundo.');
-        }
+        console.warn('removeBackground is deprecated and currently disabled.');
+        return file; // Retorna o arquivo original
     },
 
     /**
@@ -113,15 +104,5 @@ export const imageProcessor = {
             };
             img.src = URL.createObjectURL(blob);
         });
-    },
-
-    /**
-     * Processamento completo: Remove fundo -> Corta Bordas -> Comprime
-     */
-    processSponsorLogo: async (file: File): Promise<File> => {
-        const noBgBlob = await imageProcessor.removeBackground(file);
-        const trimmedBlob = await imageProcessor.trimImage(noBgBlob);
-        const finalFile = await imageProcessor.compress(trimmedBlob);
-        return finalFile;
     }
 };

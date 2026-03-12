@@ -98,8 +98,7 @@ export function ArenaForm({ onSuccess, initialData }: ArenaFormProps) {
 
         setIsProcessing(true);
         try {
-            const processedBlob = await imageProcessor.removeBackground(file);
-            const url = URL.createObjectURL(processedBlob);
+            const url = URL.createObjectURL(file);
             setImageUrl(url);
             setIsEditorOpen(true);
         } catch (error) {

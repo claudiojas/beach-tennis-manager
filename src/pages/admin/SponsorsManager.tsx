@@ -70,12 +70,8 @@ export default function SponsorsManager() {
 
         setIsProcessing(true);
         try {
-            // 1. Processamento Inteligente (Remover Fundo)
-            toast.info("Processando imagem... Removendo fundo.", { duration: 5000 });
-            const noBgBlob = await imageProcessor.removeBackground(file);
-
-            // 2. Abrir Editor para Crop Manual
-            const url = URL.createObjectURL(noBgBlob);
+            // 1. Abrir Editor para Crop Manual diretamente
+            const url = URL.createObjectURL(file);
             setTransparentUrl(url);
             setEditorOpen(true);
 
@@ -159,7 +155,7 @@ export default function SponsorsManager() {
                         <CardHeader className="pb-4">
                             <CardTitle className="text-xl font-black italic">IA Patrocínio</CardTitle>
                             <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                Remoção de fundo automática
+                                Editor de logos e anúncios
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -193,7 +189,7 @@ export default function SponsorsManager() {
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] text-muted-foreground italic">
-                                        Nossa IA removerá o fundo e otimizará o peso automaticamente.
+                                        Selecione PNG, JPG ou WEBP. Otimizaremos o peso automaticamente.
                                     </p>
                                 </div>
                             </div>
