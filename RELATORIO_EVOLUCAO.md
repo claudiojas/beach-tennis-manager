@@ -47,12 +47,18 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 - **Velocidade Constante**: Padronização da velocidade de scroll vertical (`60px/s`) para legibilidade perfeita em telas grandes.
 - **Sincronização de Transição**: Lógica aprimorada para garantir que o torneio só mude após o scroll vertical atingir o final do conteúdo.
 
-## 8. Próximos Passos
+## 8. Gestão de Imagens Simplificada (Sponsors & Arenas)
+- **Foco em Velocidade**: Desativação da remoção automática de fundo por IA para agilizar o upload de logos e anúncios.
+- **Edição Manual Preservada**: O fluxo agora abre diretamente o editor de **Recorte (Crop)**, permitindo ajustes precisos em segundos.
+- **Otimização de Ativos**: Manutenção da compressão inteligente e conversão para WebP, garantindo que o carregamento do painel e do app continue extremamente rápido.
+
+## 9. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
 - [x] Travas de segurança contra geração duplicada de chaves e grupos.
 - [x] Unificação de logística para evitar duplicidade de kits.
+- [x] Simplificação do fluxo de imagens para maior produtividade do admin.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 12 de Março de 2026 - Logística Global e Mobile UX.*
+*Relatório atualizado em 12 de Março de 2026 - Otimização de Imagens e UX Admin.*
