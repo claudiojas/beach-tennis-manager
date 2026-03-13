@@ -43,86 +43,91 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
                 <h3 className="text-base font-black uppercase tracking-tight text-white italic">{section.name}</h3>
             </div>
 
-            <div className="w-full px-2 md:px-3 pb-3 overflow-x-auto scrollbar-hide">
-                <table className="w-full min-w-[320px] text-left border-separate border-spacing-y-1">
-                    <thead className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                        <tr>
-                            <th className="px-3 py-1">Confronto</th>
-                            <th className="px-2 py-1 text-center w-16 md:w-20">Placar</th>
-                            <th className="px-2 py-1 w-24 md:w-32">Fase/Qdr</th>
-                            <th className="px-3 py-1 text-right w-20 md:w-24">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {section.matches.map(m => (
-                            <tr key={m.id} className="group transition-all duration-300">
-                                {/* Atletas */}
-                                <td className="bg-white/[0.03] rounded-l-md px-3 py-1.5 border-y border-l border-white/5 group-hover:bg-white/[0.05]">
-                                    <div className="flex flex-col gap-[2px]">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className={`text-[11px] md:text-sm font-black truncate max-w-[90px] md:max-w-[130px] ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
-                                                {shortenName(m.teamA.player1.name)}
-                                                {m.teamA.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamA.player2.name)}</span>}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="h-[1px] w-2 md:w-3 bg-primary/30" />
-                                            <span className="text-[7px] md:text-[8px] font-black text-slate-600 italic">VS</span>
-                                            <div className="h-[1px] w-2 md:w-3 bg-primary/30" />
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className={`text-[11px] md:text-sm font-black truncate max-w-[90px] md:max-w-[130px] ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
-                                                {shortenName(m.teamB.player1.name)}
-                                                {m.teamB.player2 && <span className="text-white/40 ml-1">/ {shortenName(m.teamB.player2.name)}</span>}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                {/* Placar */}
-                                <td className="bg-black/40 px-2 py-1.5 border-y border-white/5 group-hover:bg-black/60">
-                                    <div className="flex flex-col items-center justify-center gap-0.5">
-                                        <div className="flex items-center justify-center gap-1 md:gap-1.5 font-mono text-lg md:text-xl font-black text-primary italic">
-                                            <span>{m.setsA}</span>
-                                            <span className="text-white/10 text-[10px] md:text-xs font-sans">x</span>
-                                            <span>{m.setsB}</span>
-                                        </div>
-                                        {m.status === 'ongoing' && (
-                                            <div className="flex items-center justify-center gap-2 text-[10px] font-black text-white/40 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-                                                <span className={m.pointsA === '40' || m.pointsA === 'AD' ? 'text-primary' : ''}>{m.pointsA}</span>
-                                                <span className="opacity-20">:</span>
-                                                <span className={m.pointsB === '40' || m.pointsB === 'AD' ? 'text-primary' : ''}>{m.pointsB}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-
-                                {/* Fase / Quadra */}
-                                <td className="bg-white/[0.03] px-2 py-1.5 border-y border-white/5 group-hover:bg-white/[0.05]">
-                                    <div className="flex flex-col gap-1 text-[9px] md:text-[10px] font-bold uppercase">
-                                        <div className="flex items-center gap-1 text-primary">
-                                            {m.group ? <Users className="w-3 h-3" /> : <Trophy className="w-3 h-3" />}
-                                            <span className="truncate max-w-[60px] md:max-w-[80px]">{m.group ? `Grp ${m.group}` : m.round}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-slate-400">
-                                            <MapPin className="w-3 h-3" />
-                                            <span className="truncate max-w-[60px] md:max-w-[80px]">{m.courtName || 'A DEFINIR'}</span>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                {/* Status */}
-                                <td className="bg-white/[0.03] rounded-r-md px-2 md:px-3 py-1.5 border-y border-r border-white/5 group-hover:bg-white/[0.05]">
-                                    <div className="flex justify-end">
-                                        <span className={`px-2 py-1 md:px-2.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black border tracking-wider ${getStatusStyle(m.status)}`}>
-                                            {getStatusText(m.status)}
+            <div className="w-full px-2 md:px-3 pb-3 space-y-3">
+                {section.matches.map(m => (
+                    <div
+                        key={m.id}
+                        className="bg-white/[0.03] rounded-xl border border-white/5 overflow-hidden group transition-all duration-300 hover:bg-white/[0.06] hover:border-white/10"
+                    >
+                        {/* Top Area: Names and Score */}
+                        <div className="flex items-center justify-between p-4 gap-4 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent">
+                            {/* Team 1 */}
+                            <div className="flex-1 flex flex-col items-end gap-0.5">
+                                <span className={`text-sm md:text-base font-black uppercase tracking-tight text-right leading-tight ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
+                                    {shortenName(m.teamA.player1.name)}
+                                </span>
+                                {m.teamA.player2 && (
+                                    <>
+                                        <span className="text-[10px] font-black text-white/20 italic">&</span>
+                                        <span className={`text-sm md:text-base font-black uppercase tracking-tight text-right leading-tight ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white'}`}>
+                                            {shortenName(m.teamA.player2.name)}
                                         </span>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Score Center */}
+                            <div className="flex flex-col items-center justify-center min-w-[90px] shrink-0">
+                                <div className="flex items-center gap-2.5 px-3 py-1.5 bg-black/60 rounded-xl border border-white/5 shadow-inner">
+                                    <span className={`text-xl md:text-2xl font-mono font-black italic ${m.status === 'finished' && m.setsA > m.setsB ? 'text-primary' : 'text-white/90'}`}>
+                                        {m.setsA}
+                                    </span>
+                                    <span className="text-white/10 text-[10px] font-sans not-italic">x</span>
+                                    <span className={`text-xl md:text-2xl font-mono font-black italic ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white/90'}`}>
+                                        {m.setsB}
+                                    </span>
+                                </div>
+                                {m.status === 'ongoing' && (
+                                    <div className="mt-1.5 flex items-center gap-1 text-[9px] font-black text-white/40 bg-primary/10 px-1.5 py-0.5 rounded-md border border-primary/20 animate-pulse">
+                                        <span className={m.pointsA === '40' || m.pointsA === 'AD' ? 'text-primary' : ''}>{m.pointsA}</span>
+                                        <span className="opacity-20">:</span>
+                                        <span className={m.pointsB === '40' || m.pointsB === 'AD' ? 'text-primary' : ''}>{m.pointsB}</span>
                                     </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                )}
+                            </div>
+
+                            {/* Team 2 */}
+                            <div className="flex-1 flex flex-col items-start gap-0.5">
+                                <span className={`text-sm md:text-base font-black uppercase tracking-tight text-left leading-tight ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
+                                    {shortenName(m.teamB.player1.name)}
+                                </span>
+                                {m.teamB.player2 && (
+                                    <>
+                                        <span className="text-[10px] font-black text-white/20 italic">&</span>
+                                        <span className={`text-sm md:text-base font-black uppercase tracking-tight text-left leading-tight ${m.status === 'finished' && m.setsB > m.setsA ? 'text-primary' : 'text-white'}`}>
+                                            {shortenName(m.teamB.player2.name)}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bottom Area: Info and Status */}
+                        <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-black/20">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-1.5 text-primary">
+                                    {m.group ? <Users className="w-3.5 h-3.5 opacity-50" /> : <Trophy className="w-3.5 h-3.5 opacity-50" />}
+                                    <span className="text-[10px] md:text-[11px] font-black uppercase tracking-wider">
+                                        {m.group ? `GRUPO ${m.group}` : m.round}
+                                    </span>
+                                </div>
+
+                                <div className="h-3 w-[1px] bg-white/10" />
+
+                                <div className="flex items-center gap-1.5 text-slate-400">
+                                    <MapPin className="w-3.5 h-3.5 opacity-50" />
+                                    <span className="text-[10px] md:text-[11px] font-black uppercase tracking-wider truncate max-w-[120px]">
+                                        {m.courtName || 'A DEFINIR'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <span className={`px-2.5 py-0.5 rounded-md text-[8px] md:text-[9px] font-black border tracking-[0.15em] ${getStatusStyle(m.status)}`}>
+                                {getStatusText(m.status)}
+                            </span>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
