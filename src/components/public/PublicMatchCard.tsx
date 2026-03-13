@@ -36,7 +36,7 @@ export const PublicMatchCard = ({ match }: PublicMatchCardProps) => {
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-50">
                 <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter px-2 h-5 bg-slate-50 border-slate-200">
-                        {match.category}
+                        {typeof match.category === 'string' ? match.category : (match.category as any)?.name}
                     </Badge>
                     {match.round && (
                         <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter px-2 h-5 bg-primary/5 text-primary border-primary/10">
@@ -93,10 +93,6 @@ export const PublicMatchCard = ({ match }: PublicMatchCardProps) => {
                         ) : (
                             <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">VS</span>
                         )}
-
-                        {match.status === 'ongoing' && match.serving && (
-                            <div className={`mt-1 h-1 w-4 rounded-full bg-yellow-400 animate-pulse ${match.serving === 'teamA' ? '-translate-x-4' : 'translate-x-4'}`} />
-                        )}
                     </div>
 
                     {/* Team B */}
@@ -114,15 +110,6 @@ export const PublicMatchCard = ({ match }: PublicMatchCardProps) => {
                         )}
                     </div>
                 </div>
-
-                {/* Real-time points (only for ongoing) */}
-                {match.status === 'ongoing' && (
-                    <div className="bg-slate-50/50 rounded-2xl p-3 flex justify-between items-center border border-slate-100/50">
-                        <span className="text-xl font-black text-primary tabular-nums">{match.pointsA}</span>
-                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Pontos</span>
-                        <span className="text-xl font-black text-primary tabular-nums">{match.pointsB}</span>
-                    </div>
-                )}
 
                 {/* History Sets */}
                 {match.historySets && match.historySets.length > 0 && (

@@ -102,14 +102,34 @@ const ArenaPanel = () => {
   const categoryData = useMemo(() => {
     if (!currentTournament) return [];
     const tMatches = allMatches.filter(m => m.tournamentId === currentTournament.id);
-    const officialCategories = currentTournament.categories || [];
-    const tCats = officialCategories.length > 0
-      ? Array.from(new Set(officialCategories))
-      : Array.from(new Set(tMatches.map(m => m.category))).filter(Boolean);
 
-    return tCats.map(cat => {
-      const normalizedCat = cat.trim().toUpperCase();
-      const matches = tMatches.filter(m => {
+    // Merge official categories and categories found in matches
+    const officialCats = currentTournament.categories || [];
+    const matchCats = Array.from(new Set(tMatches.map(m => m.category))).filter(Boolean);
+
+    // Create a base list of categories (prioritize official objects)
+    const combinedCats = [...officialCats];
+    matchCats.forEach(mCat => {
+      // If this match category name is not represented in official categories (by name), add it
+      const alreadyExists = combinedCats.some(c => {
+        const cName = typeof c === 'string' ? c : c.name;
+        return cName.trim().toUpperCase() === mCat.trim().toUpperCase();
+      });
+      if (!alreadyExists) {
+        combinedCats.push(mCat);
+      }
+    });
+
+    return combinedCats.map(cat => {
+      if (!cat) return null;
+      const catName = typeof cat === 'string' ? cat : cat.name;
+      const catId = typeof cat === 'string' ? null : cat.id;
+      const normalizedCat = catName.trim().toUpperCase();
+
+      const categoryMatches = tMatches.filter(m => {
+        // Match by ID if available, otherwise fallback to name
+        if (catId && m.categoryId === catId) return true;
+
         if (!m.category) return false;
         const mCat = m.category.trim().toUpperCase();
         return mCat === normalizedCat || mCat.includes(normalizedCat) || normalizedCat.includes(mCat);
@@ -117,14 +137,15 @@ const ArenaPanel = () => {
         ...m,
         courtName: courts.find(c => c.id === m.courtId)?.name
       }));
-      if (matches.length === 0) return null;
-      return { category: cat, matches };
-    }).filter(Boolean) as { category: string, matches: any[] }[];
+
+      if (categoryMatches.length === 0) return null;
+      return { category: cat, matches: categoryMatches };
+    }).filter(Boolean) as { category: string | { id: string, name: string }, matches: any[] }[];
   }, [currentTournament, allMatches, courts]);
 
-  // Todas as linhas de categorias do torneio (cada linha = até 3 colunas)
   const rows = useMemo(() => {
     const r = [];
+    if (categoryData.length === 0) return r;
     for (let i = 0; i < categoryData.length; i += 3) {
       r.push(categoryData.slice(i, i + 3));
     }
@@ -173,64 +194,15 @@ const ArenaPanel = () => {
       </div>
 
       <main className="flex-1 overflow-hidden relative z-0">
-        <AnimatePresence mode="wait">
-          {rows.length > 0 ? (
+        <AnimatePresence mode="wait" initial={false}>
+          {rows.length === 0 ? (
             <motion.div
-              key={`arena-${currentTournament?.id ?? 'none'}-${runIndex}`}
+              key="loading-state"
               initial={{ opacity: 0 }}
-              animate={isCalculating ? { opacity: 0 } : {
-                opacity: 1,
-                y: '-100%',
-              }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{
-                y: {
-                  duration: scrollDuration,
-                  delay: 1.5,
-                  ease: 'linear',
-                },
-                opacity: { duration: 0.3 }
-              }}
-              onAnimationComplete={(definition) => {
-                // definition normally contains the target object what was just completed
-                // We only want to switch when the vertical scroll (y) is finished.
-                const isScrollFinished = typeof definition === 'object' && 'y' in definition && definition.y === '-100%';
-
-                if (!isCalculating && isScrollFinished) {
-                  if (activeTournaments.length > 1) {
-                    setCurrentTournamentIndex(prev => (prev + 1) % activeTournaments.length);
-                  } else {
-                    setRunIndex(prev => prev + 1);
-                  }
-                }
-              }}
-              className="w-full flex flex-col"
-              ref={scrollRef}
+              className="flex-1 h-full flex flex-col items-center justify-center space-y-8 text-center bg-slate-950/50"
             >
-              {rows.map((row, rowIdx) => (
-                <div
-                  key={`row-${rowIdx}`}
-                  className="grid grid-cols-3"
-                >
-                  {row.map((catPage, idx) => (
-                    <div key={`${catPage.category}-${idx}`} className="h-full">
-                      <ArenaGridColumn
-                        category={catPage.category}
-                        tournamentName={currentTournament?.name || ''}
-                        matches={catPage.matches}
-                      />
-                    </div>
-                  ))}
-                  {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
-                    <div key={`empty-${rowIdx}-${i}`} className="bg-slate-900/10 flex items-center justify-center opacity-5">
-                      <Trophy size={60} />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </motion.div>
-          ) : (
-            <div key="loading" className="flex-1 h-full flex flex-col items-center justify-center space-y-8 text-center bg-slate-950/50">
               <div className="relative">
                 <div className="absolute -inset-8 bg-primary/20 rounded-full blur-3xl animate-pulse" />
                 <Loader2 className="w-20 h-20 text-primary animate-spin relative z-10" />
@@ -243,7 +215,70 @@ const ArenaPanel = () => {
                   Sincronizando categorias, grupos e chaves em tempo real.
                 </p>
               </div>
-            </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`arena-content-${currentTournament?.id || 'none'}-${runIndex}`}
+              initial={{ opacity: 0 }}
+              animate={isCalculating ? { opacity: 0 } : {
+                opacity: 1,
+                y: scrollDuration > 5 ? '-100%' : '0%',
+              }}
+              exit={{ opacity: 0 }}
+              transition={{
+                y: {
+                  duration: scrollDuration > 5 ? scrollDuration : 0,
+                  delay: 1.5,
+                  ease: 'linear',
+                },
+                opacity: { duration: 0.3 }
+              }}
+              onAnimationComplete={(definition) => {
+                const isFinished = !isCalculating && (
+                  (scrollDuration <= 5) ||
+                  (typeof definition === 'object' && 'y' in definition && definition.y === '-100%')
+                );
+
+                if (isFinished) {
+                  const timeout = scrollDuration <= 5 ? 8000 : 0;
+                  setTimeout(() => {
+                    if (activeTournaments.length > 1) {
+                      setCurrentTournamentIndex(prev => (prev + 1) % activeTournaments.length);
+                    } else {
+                      setRunIndex(prev => prev + 1);
+                    }
+                  }, timeout);
+                }
+              }}
+              className="w-full"
+            >
+              <div ref={scrollRef} className="w-full flex flex-col">
+                {rows.map((row, rowIdx) => (
+                  <div
+                    key={`row-${rowIdx}`}
+                    className="grid grid-cols-3"
+                  >
+                    {row.map((catPage, idx) => {
+                      const catId = typeof catPage.category === 'string' ? catPage.category : (catPage.category.id || idx);
+                      return (
+                        <div key={`${catId}-${idx}`} className="h-full">
+                          <ArenaGridColumn
+                            category={catPage.category}
+                            tournamentName={currentTournament?.name || ''}
+                            matches={catPage.matches}
+                          />
+                        </div>
+                      );
+                    })}
+                    {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
+                      <div key={`empty-${rowIdx}-${i}`} className="bg-slate-900/10 flex items-center justify-center opacity-5">
+                        <Trophy size={60} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </main>

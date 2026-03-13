@@ -59,6 +59,24 @@ export const tournamentService = {
             });
         }
 
+        // 4. Find and mark associated results
+        const resultsQuery = query(ref(db, "results"), orderByChild("tournamentId"), equalTo(id));
+        const resultsSnapshot = await get(resultsQuery);
+        if (resultsSnapshot.exists()) {
+            Object.keys(resultsSnapshot.val()).forEach(resultId => {
+                updates[`results/${resultId}`] = null;
+            });
+        }
+
+        // 5. Find and mark associated sponsors (careful: only if they belong exclusively to this tournament)
+        const sponsorsQuery = query(ref(db, "sponsors"), orderByChild("tournamentId"), equalTo(id));
+        const sponsorsSnapshot = await get(sponsorsQuery);
+        if (sponsorsSnapshot.exists()) {
+            Object.keys(sponsorsSnapshot.val()).forEach(sponsorId => {
+                updates[`sponsors/${sponsorId}`] = null;
+            });
+        }
+
         // 4. Perform atomic update
         await update(ref(db), updates);
     },

@@ -1,7 +1,6 @@
 import { db } from "@/lib/firebase";
-import { Match, Team, Category } from "@/types/beach-tennis";
-import { ref, push, set, query, orderByChild, equalTo, get, update } from "firebase/database";
-import { courtService } from "./courtService";
+import { Match, Team } from "@/types/beach-tennis";
+import { ref, push, get, update } from "firebase/database";
 
 const MATCHES_PATH = "matches";
 
@@ -10,7 +9,7 @@ export const bracketService = {
      * Generates a single elimination bracket for a tournament category.
      * Supports 4 or 8 teams for now.
      */
-    generateBracket: async (tournamentId: string, category: Category, teams: Team[]) => {
+    generateBracket: async (tournamentId: string, category: string, teams: Team[], categoryId?: string) => {
         const N = teams.length;
         if (N < 2) throw new Error("Mínimo de 2 duplas para gerar chave.");
 
@@ -35,18 +34,6 @@ export const bracketService = {
         const prelimRoundName = ROUND_NAMES[P * 2];
 
         if (!baseRoundName) throw new Error(`O sistema não suporta chaves para ${N} equipes no momento.`);
-
-        // Fetch available courts for this tournament
-        const allCourts = await courtService.getByTournamentOnce(tournamentId);
-        const existingMatchesSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
-        const existingMatches = existingMatchesSnapshot.exists() ? Object.values(existingMatchesSnapshot.val()) as Match[] : [];
-
-        const occupiedCourtIds = existingMatches
-            .filter(m => m.status === 'planned' || m.status === 'ongoing')
-            .map(m => m.courtId);
-
-        let availableCourts = allCourts.filter(c => !occupiedCourtIds.includes(c.id));
-        const getNextCourt = () => availableCourts.shift()?.id || null;
 
         const matchesRef = ref(db, MATCHES_PATH);
         const matchUpdates: Record<string, any> = {};
@@ -77,11 +64,11 @@ export const bracketService = {
                 const mId = mRef.key!;
                 currentRoundIds.push(mId);
 
-                const data = createPlaceholderMatch(mId, tournamentId, category, rName, i);
+                const data = createPlaceholderMatch(mId, tournamentId, category, rName, i, categoryId);
                 if (nextRoundMatches) {
                     data.nextMatchId = nextRoundMatches[Math.floor(i / 2)];
                 }
-                data.courtId = getNextCourt();
+                data.courtId = null;
 
                 matchUpdates[mId] = data;
             }
@@ -128,11 +115,11 @@ export const bracketService = {
                 const piRef = push(matchesRef);
                 const piId = piRef.key!;
                 const piData = {
-                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2),
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2, categoryId),
                     teamA: playInTeams[playInPairIndex * 2],
                     teamB: playInTeams[playInPairIndex * 2 + 1],
                     nextMatchId: match.id,
-                    courtId: getNextCourt()
+                    courtId: null
                 };
                 matchUpdates[piId] = piData;
                 playInPairIndex++;
@@ -146,11 +133,11 @@ export const bracketService = {
                 const piRef = push(matchesRef);
                 const piId = piRef.key!;
                 const piData = {
-                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2),
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2, categoryId),
                     teamA: playInTeams[playInPairIndex * 2],
                     teamB: playInTeams[playInPairIndex * 2 + 1],
                     nextMatchId: match.id,
-                    courtId: getNextCourt()
+                    courtId: null
                 };
                 matchUpdates[piId] = piData;
                 playInPairIndex++;
@@ -176,11 +163,12 @@ export const bracketService = {
 /**
  * Helper to create a base match object with default values
  */
-function createPlaceholderMatch(id: string, tournamentId: string, category: Category, round: Match['round'], position: number): Match {
+function createPlaceholderMatch(id: string, tournamentId: string, category: string, round: Match['round'], position: number, categoryId?: string): Match {
     return {
         id,
         tournamentId,
         category,
+        categoryId: categoryId || null,
         status: 'planned',
         setsA: 0,
         setsB: 0,

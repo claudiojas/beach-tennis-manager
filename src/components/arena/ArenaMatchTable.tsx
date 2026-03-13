@@ -15,9 +15,9 @@ interface ArenaMatchTableProps {
 export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
     const getStatusStyle = (status: Match['status']) => {
         switch (status) {
-            case 'ongoing': return 'bg-green-500/20 text-green-400 border-green-500/30 animate-pulse';
-            case 'finished': return 'bg-slate-500/10 text-slate-500 border-white/5';
-            default: return 'bg-amber-500/10 text-amber-500/70 border-amber-500/20';
+            case 'ongoing': return 'bg-green-500/20 text-green-400 animate-pulse';
+            case 'finished': return 'bg-slate-500/10 text-slate-50';
+            default: return 'bg-amber-500/10 text-amber-500/70';
         }
     };
 
@@ -30,7 +30,7 @@ export function ArenaMatchTable({ section }: ArenaMatchTableProps) {
     };
 
     return (
-        <div className="w-full h-fit flex-none bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl relative overflow-hidden">
+        <div className="w-full h-fit flex-none backdrop-blur-md rounded-2xl shadow-xl relative overflow-hidden">
             {/* Indicador de Tipo */}
             <div className="absolute top-2 right-2 opacity-[0.05]">
                 {section.type === 'group' ? <Users size={40} /> : <Trophy size={40} />}

@@ -75,8 +75,15 @@ export default function PublicView() {
     const upcomingMatches = matches.filter(m => m.status === 'planned').sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 
     const allCategories = Array.from(new Set([
-        ...(tournament?.categories || []),
-        ...matches.map(m => m.category)
+        ...(tournament?.categories || []).map(cat => typeof cat === 'string' ? cat : cat.name),
+        ...matches.map(m => {
+            // If the match has a category ID that matches an official category, use the official name
+            if (m.categoryId && tournament?.categories) {
+                const official = tournament.categories.find(c => typeof c === 'object' && c.id === m.categoryId);
+                if (official && typeof official === 'object') return official.name;
+            }
+            return m.category;
+        })
     ])).filter(Boolean).sort();
 
     return (

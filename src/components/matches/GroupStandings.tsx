@@ -29,12 +29,13 @@ import { useState } from "react";
 interface GroupStandingsProps {
     tournamentId: string;
     category: string;
+    categoryId?: string;
     groupName: string;
     matches: Match[];
     readOnly?: boolean;
 }
 
-export function GroupStandings({ tournamentId, category, groupName, matches, readOnly }: GroupStandingsProps) {
+export function GroupStandings({ tournamentId, category, categoryId, groupName, matches, readOnly }: GroupStandingsProps) {
     const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
     // 1. Identify all unique teams in this group
     const teamMap = new Map<string, { name: string; team: Team }>();
@@ -179,7 +180,7 @@ export function GroupStandings({ tournamentId, category, groupName, matches, rea
                         <AlertDialogAction
                             onClick={async () => {
                                 try {
-                                    await matchService.deleteMatchesByGroup(tournamentId, category, groupName);
+                                    await matchService.deleteMatchesByGroup(tournamentId, category, groupName, categoryId);
                                     toast.success(`Grupo ${groupName} removido!`);
                                     setOpenDeleteConfirm(false);
                                 } catch (e) {

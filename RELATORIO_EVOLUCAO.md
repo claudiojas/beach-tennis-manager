@@ -67,6 +67,8 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 - [x] Unificação de logística para evitar duplicidade de kits.
 - [x] Simplificação do fluxo de imagens para maior produtividade do admin.
 - [x] Refatoração completa do sistema de mata-mata automático.
+- [x] **Fluxo de Partida Automatizado**: A seleção de quadra agora é feita diretamente no card do jogo. Ao selecionar uma quadra, o jogo inicia automaticamente (status 'Em Jogo'). Ao inserir um placar final (seguindo as regras CBT), o sistema finaliza o jogo e libera a quadra automaticamente.
+- [x] **Interface Simplificada**: Remoção de botões manuais de "Iniciar" e simplificação das etiquetas de status para uma gestão visual mais rápida.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---

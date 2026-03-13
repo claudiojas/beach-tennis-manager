@@ -24,18 +24,18 @@ import { toast } from "sonner";
 import { matchService } from "@/services/matchService";
 import { athleteService } from "@/services/athleteService";
 import { categoryService } from "@/services/categoryService";
-import { Player, Court, Match, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
-import { Loader2, Users, User, CalendarClock, Clock, MapPin, Trophy } from "lucide-react";
+import { Player, Court, Match, TOURNAMENT_CATEGORIES, TournamentCategory } from "@/types/beach-tennis";
+import { Loader2, Users, User, CalendarClock, Clock, Trophy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
     matchType: z.enum(["singles", "doubles"]),
     category: z.string().min(1, "Selecione a categoria"),
+    categoryId: z.string().optional(),
     player1A: z.string().min(1, "Selecione o jogador 1 da Dupla A"),
     player2A: z.string().optional(),
     player1B: z.string().min(1, "Selecione o jogador 1 da Dupla B"),
     player2B: z.string().optional(),
-    courtId: z.string().min(1, "Selecione a quadra para este jogo"),
     scheduledDate: z.string().optional(),
     scheduledTime: z.string().optional(),
 }).refine((data) => {
@@ -53,7 +53,7 @@ interface MatchFormProps {
     tournamentType: 'Simples' | 'Duplas';
     courts: Court[];
     matches: Match[];
-    categories?: string[];
+    categories?: (string | TournamentCategory)[];
     categoryGender?: Record<string, string>;
     categoryAthletes?: Record<string, string[]>;
     onSuccess?: () => void;
@@ -81,11 +81,14 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
         };
     }, []);
 
-    const allCategories = (categories && categories.length > 0)
-        ? categories
+    const normalizedCategories: TournamentCategory[] = categories
+        ? categories.map(cat => typeof cat === 'string' ? { id: cat, name: cat } : cat)
         : Array.from(new Set([...TOURNAMENT_CATEGORIES, ...dynamicCategories]))
             .filter(cat => cat.toUpperCase() !== 'MISTA')
-            .sort();
+            .sort()
+            .map(name => ({ id: name, name }));
+
+    const allCategories = normalizedCategories;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -93,12 +96,12 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
             matchType: initialData
                 ? (initialData.teamA.player2 ? "doubles" : "singles")
                 : (tournamentType === 'Simples' ? "singles" : "doubles"),
-            category: (initialData?.category as string) || "B",
+            category: initialData?.category || "",
+            categoryId: initialData?.categoryId || "",
             player1A: initialData?.teamA.player1.id || "",
             player2A: initialData?.teamA.player2?.id || "",
             player1B: initialData?.teamB.player1.id || "",
             player2B: initialData?.teamB.player2?.id || "",
-            courtId: initialData?.courtId || "",
             scheduledDate: initialData?.startTime ? new Date(initialData.startTime).toISOString().split('T')[0] : "",
             scheduledTime: initialData?.startTime ? new Date(initialData.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "",
         },
@@ -109,8 +112,11 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
     const selectedIds = form.watch(["player1A", "player2A", "player1B", "player2B"]);
 
     const filteredPlayers = players.filter(p => {
+        const catId = form.watch("categoryId") || selectedCategory;
+        const catName = normalizedCategories.find(c => c.id === catId)?.name || selectedCategory;
+
         // 1. Enrollment Check (If categories are specifically managed)
-        const enrolledInCat = categoryAthletes?.[selectedCategory] || [];
+        const enrolledInCat = categoryAthletes?.[catId] || categoryAthletes?.[catName] || [];
         if (enrolledInCat.length > 0 && !enrolledInCat.includes(p.id)) return false;
 
         // 2. Categoria / Tag Skill Match (Only if not specifically enrolled? Or always?)
@@ -122,7 +128,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
         }
 
         // 3. Gênero (Always STRICT)
-        const restriction = categoryGender?.[selectedCategory] || 'Mista';
+        const restriction = categoryGender?.[catId] || categoryGender?.[catName] || 'Mista';
         if (restriction !== 'Mista') {
             if (p.gender && p.gender !== restriction) return false;
             if (!p.gender) return false;
@@ -165,23 +171,22 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
             const payload: any = {
                 tournamentId,
                 category: values.category,
+                categoryId: values.categoryId || null,
                 teamA: {
                     player1: getPlayer(values.player1A),
                 },
                 teamB: {
                     player1: getPlayer(values.player1B),
                 },
-                courtId: values.courtId || null,
+                status: initialData?.status || 'planned',
+                actualStartTime: initialData?.actualStartTime || null,
                 startTime: (values.scheduledDate && values.scheduledTime)
                     ? new Date(`${values.scheduledDate}T${values.scheduledTime}`).getTime()
                     : initialData?.startTime || null,
-                // PROFESSIONAL SCORING INITIALIZATION
+                // Match Score Initialization
                 setsA: initialData?.setsA ?? 0,
                 setsB: initialData?.setsB ?? 0,
-                pointsA: initialData?.pointsA ?? 0,
-                pointsB: initialData?.pointsB ?? 0,
                 historySets: initialData?.historySets ?? [],
-                serving: initialData?.serving ?? 'teamA',
             };
 
             // Only attach player2 if it exists (for doubles)
@@ -206,7 +211,6 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                 player2A: "",
                 player1B: "",
                 player2B: "",
-                courtId: "",
                 scheduledDate: "",
                 scheduledTime: "",
             });
@@ -231,43 +235,24 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 p-5 bg-muted/20 rounded-[24px] border border-muted-foreground/10 shadow-inner">
-                    <FormField
-                        control={form.control}
-                        name="courtId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                    <MapPin className="h-4 w-4" /> Quadra
-                                </FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione a quadra..." />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {courts.map((court) => (
-                                            <SelectItem key={court.id} value={court.id}>
-                                                {court.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 p-5 bg-muted/20 rounded-[24px] border border-muted-foreground/10 shadow-inner">
                     <FormField
                         control={form.control}
-                        name="category"
+                        name="categoryId"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="flex items-center gap-2">
                                     <Trophy className="h-4 w-4" /> Categoria
                                 </FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <Select
+                                    onValueChange={(val) => {
+                                        field.onChange(val);
+                                        const catObj = normalizedCategories.find(c => c.id === val);
+                                        if (catObj) form.setValue("category", catObj.name);
+                                    }}
+                                    value={field.value}
+                                >
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecione..." />
@@ -275,7 +260,7 @@ export function MatchForm({ tournamentId, tournamentType, courts, matches, categ
                                     </FormControl>
                                     <SelectContent>
                                         {allCategories.map(cat => (
-                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

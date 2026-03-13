@@ -99,43 +99,27 @@ export const ArenaCourtCard = ({ court, isHighlighted = false }: ArenaCourtCardP
           {/* Match Score Area */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
             {/* Team A */}
-            <div className={`text-right space-y-2 ${match.serving === 'teamA' ? 'relative' : ''}`}>
-              <p className="text-lg sm:text-2xl font-black text-white leading-none uppercase tracking-tighter">
+            <div className="text-right space-y-2">
+              <p className="text-xl sm:text-3xl font-black text-white leading-none uppercase tracking-tighter">
                 {getTeamDisplay(match.teamA)}
               </p>
-              <div className="flex justify-end items-center gap-2 sm:gap-4 font-mono">
-                {match.serving === 'teamA' && (
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.8)] animate-pulse" />
-                )}
-                <span className="text-5xl sm:text-7xl font-black text-primary leading-none drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] tabular-nums">
-                  {match.pointsA}
-                </span>
-              </div>
             </div>
 
-            {/* Sets Divider */}
-            <div className="flex flex-col items-center gap-1 bg-white/[0.08] px-3 sm:px-5 py-2 sm:py-3 rounded-2xl border border-white/10 shadow-inner">
-              <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Sets</span>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xl sm:text-4xl font-black text-white">{match.setsA}</span>
-                <span className="text-lg sm:text-xl font-thin text-slate-700">|</span>
-                <span className="text-xl sm:text-4xl font-black text-white">{match.setsB}</span>
+            {/* Score Indicator */}
+            <div className="flex flex-col items-center gap-1 bg-white/[0.08] px-4 sm:px-8 py-3 sm:py-5 rounded-[2.5rem] border border-white/10 shadow-2xl backdrop-blur-md">
+              <span className="text-[10px] sm:text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none mb-2">Placar</span>
+              <div className="flex items-center gap-4 sm:gap-6">
+                <span className="text-5xl sm:text-8xl font-black text-primary tabular-nums drop-shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)]">{match.setsA}</span>
+                <span className="text-3xl sm:text-5xl font-thin text-slate-700">|</span>
+                <span className="text-5xl sm:text-8xl font-black text-primary tabular-nums drop-shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)]">{match.setsB}</span>
               </div>
             </div>
 
             {/* Team B */}
-            <div className={`text-left space-y-2 ${match.serving === 'teamB' ? 'relative' : ''}`}>
-              <p className="text-lg sm:text-2xl font-black text-white leading-none uppercase tracking-tighter">
+            <div className="text-left space-y-2">
+              <p className="text-xl sm:text-3xl font-black text-white leading-none uppercase tracking-tighter">
                 {getTeamDisplay(match.teamB)}
               </p>
-              <div className="flex justify-start items-center gap-2 sm:gap-4 font-mono">
-                <span className="text-5xl sm:text-7xl font-black text-primary leading-none drop-shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] tabular-nums">
-                  {match.pointsB}
-                </span>
-                {match.serving === 'teamB' && (
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.8)] animate-pulse" />
-                )}
-              </div>
             </div>
           </div>
 

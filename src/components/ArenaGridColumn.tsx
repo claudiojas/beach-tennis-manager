@@ -5,7 +5,7 @@ import { ArenaMatchTable, MatchSection } from './arena/ArenaMatchTable';
 import { motion, useAnimationControls } from 'framer-motion';
 
 interface ArenaGridColumnProps {
-    category: string;
+    category: string | { id: string, name: string };
     tournamentName: string;
     matches: (Match & { courtName?: string })[];
 }
@@ -17,19 +17,35 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
     const isMounted = useRef(true);
 
     const { etapa, displayCategory } = useMemo(() => {
+        const categoryName = typeof categoryProp === 'string' ? categoryProp : categoryProp.name;
+
+        // Se o nome atual for um UUID, tenta buscar o nome real nas partidas vinculadas
+        const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+        let foundCat = categoryName;
+        if (isUuid(categoryName)) {
+            const matchWithName = matches.find(m => m.category && !isUuid(m.category));
+            if (matchWithName) {
+                foundCat = matchWithName.category;
+            } else {
+                foundCat = 'Categoria';
+            }
+        }
+
+        // Se o nome contém um separador (ex: "Etapa - Mista C"), pega a Etapa e a Categoria
         const separators = [' - ', ' / ', ' | ', ' : '];
         let foundEtapa = tournamentName;
-        let foundCat = categoryProp;
         for (const sep of separators) {
-            if (categoryProp.includes(sep)) {
-                const parts = categoryProp.split(sep);
-                foundEtapa = parts[0].trim();
-                foundCat = parts[1].trim();
+            if (foundCat.includes(sep)) {
+                const parts = foundCat.split(sep);
+                foundEtapa = parts[0]?.trim() || tournamentName;
+                foundCat = parts[1]?.trim() || foundCat;
                 break;
             }
         }
+
         return { etapa: foundEtapa, displayCategory: foundCat };
-    }, [categoryProp, tournamentName]);
+    }, [categoryProp, matches, tournamentName]);
 
     const { groups, knockouts } = useMemo(() => {
         const groupSections: MatchSection[] = [];
@@ -121,9 +137,6 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
     return (
         <div className="flex flex-col h-full bg-[#0f172a]/40 relative overflow-hidden">
             <div className="p-6 border-b border-white/10 bg-[#020617] z-30 shadow-xl">
-                <p className="text-[10px] font-black text-[#0088cc] uppercase tracking-[0.5em] mb-1 italic">
-                    Etapa: {etapa}
-                </p>
                 <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-tight">
                     {displayCategory}
                 </h2>

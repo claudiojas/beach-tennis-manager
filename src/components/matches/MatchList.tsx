@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Match, Court } from "@/types/beach-tennis";
 import { matchService } from "@/services/matchService";
-import { Card, CardContent } from "@/components/ui/card";
+import { courtService } from "@/services/courtService";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, CheckCircle2, PlayCircle, Pencil, Trash2, MapPin, Check, X, Trophy, MoreVertical } from "lucide-react";
+import {
+    Calendar,
+    Edit,
+    Trash2,
+    MapPin,
+    Trophy,
+    MoreVertical,
+    Calculator
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,7 +27,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
     DropdownMenu,
@@ -36,98 +44,133 @@ interface MatchListProps {
 }
 
 export function MatchList({ tournamentId, courts, matches, onEdit, showDescriptions }: MatchListProps) {
-    const [matchToDelete, setMatchToDelete] = useState<string | null>(null);
+    const [editingMatchToDelete, setEditingMatchToDelete] = useState<Match | null>(null);
+    const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
     const [editingScoreId, setEditingScoreId] = useState<string | null>(null);
     const [tempScore, setTempScore] = useState<{
         setsA: number;
         setsB: number;
-        pointsA: string | number;
-        pointsB: string | number;
-        status: Match['status'];
-        courtId?: string;
     } | null>(null);
 
-    const handleStartEditScore = (match: Match) => {
-        setEditingScoreId(match.id);
-        setTempScore({
-            setsA: match.setsA,
-            setsB: match.setsB,
-            pointsA: match.pointsA,
-            pointsB: match.pointsB,
-            status: match.status,
-            courtId: match.courtId
-        });
-    };
-
-    const handleSaveScore = async (matchId: string) => {
+    const handleUpdateScore = async (matchId: string) => {
         if (!tempScore) return;
 
-        /* Removed strict courtId check for Admin */
-
         try {
-            await matchService.update(matchId, {
-                setsA: Number(tempScore.setsA),
-                setsB: Number(tempScore.setsB),
-                pointsA: tempScore.pointsA,
-                pointsB: tempScore.pointsB,
-                status: tempScore.status,
-                courtId: tempScore.courtId
-            });
-            toast.success("Partida atualizada!");
+            // Automatic Finish Logic (CBT Rules)
+            let newStatus = 'ongoing' as Match['status'];
+            const { setsA, setsB } = tempScore;
+            const diff = Math.abs(setsA - setsB);
+            const max = Math.max(setsA, setsB);
+
+            // Win conditions: (6 with 2 diff) OR (7 with 1 or 2 diff)
+            if ((max >= 6 && diff >= 2) || (max >= 7)) {
+                newStatus = 'finished';
+            }
+
+            const updateData: any = {
+                setsA,
+                setsB,
+                status: newStatus,
+            };
+
+            const match = matches.find(m => m.id === matchId);
+
+            if (newStatus === 'finished') {
+                updateData.endTime = Date.now();
+                // Liberar quadra
+                if (match?.courtId) {
+                    await courtService.finishMatch(match.courtId);
+                }
+            } else if (match?.courtId) {
+                // Sincronizar com a quadra no Arena Panel
+                await courtService.updateScore(match.courtId, { setsA, setsB, status: newStatus });
+            }
+
+            await matchService.update(matchId, updateData);
             setEditingScoreId(null);
             setTempScore(null);
+            toast.success(newStatus === 'finished' ? "Partida finalizada!" : "Placar atualizado!");
         } catch (error) {
-            toast.error("Erro ao atualizar partida. Verifique a conexão.");
+            toast.error("Erro ao atualizar placar");
         }
     };
-    const handleQuickFinish = async (matchId: string) => {
+
+    const handleUpdateCourt = async (matchId: string, courtId: string) => {
         try {
-            await matchService.update(matchId, { status: 'finished' });
-            toast.success("Partida marcada como finalizada!");
+            const match = matches.find(m => m.id === matchId);
+            const oldCourtId = match?.courtId;
+
+            // Brindagem: Verificação de segurança adicional
+            if (courtId) {
+                const court = courts.find(c => c.id === courtId);
+                if (court?.status === 'em_jogo' && court.id !== oldCourtId) {
+                    toast.error("Esta quadra já está sendo usada por outro jogo!");
+                    return;
+                }
+            }
+
+            // Se for "null" ou vazio, libera a quadra antiga e volta para planejado
+            if (!courtId) {
+                if (oldCourtId) await courtService.finishMatch(oldCourtId);
+                await matchService.update(matchId, {
+                    courtId: null,
+                    status: 'planned',
+                    actualStartTime: null
+                });
+                toast.success("Quadra removida e jogo zerado.");
+                return;
+            }
+
+            // Se mudou de quadra
+            if (oldCourtId && oldCourtId !== courtId) {
+                await courtService.finishMatch(oldCourtId);
+            }
+
+            // Atualiza status para ongoing e reserva nova quadra
+            const newStatus = 'ongoing';
+            const actualStartTime = match?.actualStartTime || Date.now();
+
+            // Sincroniza com a quadra
+            const updatedMatch = { ...match, courtId, status: newStatus, actualStartTime } as Match;
+            await courtService.updateStatus(courtId, 'em_jogo');
+            // Coloca o match inteiro no currentMatch da quadra para o Arena Panel ver
+            const courtRef = courtService.updateScore(courtId, updatedMatch as any);
+
+            await matchService.update(matchId, {
+                courtId,
+                status: newStatus,
+                actualStartTime
+            });
+
+            toast.success("Quadra definida e jogo iniciado!");
         } catch (error) {
-            toast.error("Erro ao finalizar partida.");
+            toast.error("Erro ao atualizar quadra");
         }
     };
-
-    const handleQuickStart = async (matchId: string) => {
-        try {
-            await matchService.update(matchId, { status: 'ongoing' });
-            toast.success("Partida iniciada!");
-        } catch (error) {
-            toast.error("Erro ao iniciar partida.");
-        }
-    };
-
-
-    // Removed internal fetching
-
 
     const handleDelete = async () => {
-        if (!matchToDelete) return;
+        if (!editingMatchToDelete) return;
         try {
-            await matchService.remove(matchToDelete);
-            toast.success("Partida removida com sucesso!");
+            await matchService.remove(editingMatchToDelete.id);
+            toast.success("Partida removida!");
+            setOpenDeleteConfirm(false);
+            setEditingMatchToDelete(null);
         } catch (error) {
-            toast.error("Erro ao remover partida.");
-        } finally {
-            setMatchToDelete(null);
+            toast.error("Erro ao remover partida");
         }
     };
 
-    const getStatusInfo = (status: Match['status']) => {
-        switch (status) {
-            case 'ongoing':
-                return { label: 'Em Andamento', color: 'bg-green-500', icon: PlayCircle };
-            case 'finished':
-                return { label: 'Finalizada', color: 'bg-gray-500', icon: CheckCircle2 };
-            default:
-                return { label: 'Planejada', color: 'bg-yellow-500', icon: CalendarClock };
-        }
-    };
+    const getMatchPurpose = (round: string, pos: number) => {
+        const displayPos = pos + 1;
+        const nextPos = Math.floor(pos / 2) + 1;
 
-    const getCourtName = (courtId?: string) => {
-        if (!courtId) return "Não definida";
-        return courts.find(c => c.id === courtId)?.name || "Não definida";
+        switch (round) {
+            case 'final': return "Grande Final - Vale o título!";
+            case 'semi': return `Semifinal ${displayPos} - Vale vaga na Grande Final`;
+            case 'quartas': return `Quartas ${displayPos} - Vale vaga na Semifinal ${nextPos}`;
+            case 'oitavas': return `Oitavas ${displayPos} - Vale vaga nas Quartas ${nextPos}`;
+            default: return null;
+        }
     };
 
     if (matches.length === 0) {
@@ -138,285 +181,184 @@ export function MatchList({ tournamentId, courts, matches, onEdit, showDescripti
         );
     }
 
-    const getMatchPurpose = (match: Match) => {
-        if (!match.round || match.round === 'Grupos') return null;
-
-        const pos = (match.bracketPosition || 0) + 1;
-        const nextPos = Math.floor((match.bracketPosition || 0) / 2) + 1;
-
-        switch (match.round) {
-            case 'final': return "Grande Final - Vale o título!";
-            case 'semi': return `Semifinal ${pos} - Vale vaga na Grande Final`;
-            case 'quartas': return `Quartas ${pos} - Vale vaga na Semifinal ${nextPos}`;
-            case 'oitavas': return `Oitavas ${pos} - Vale vaga nas Quartas ${nextPos}`;
-            default: return null;
-        }
-    };
-
     return (
-        <>
-            <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
-                {matches.map((match) => {
-                    const status = getStatusInfo(match.status);
-                    const StatusIcon = status.icon;
-
-                    return (
-                        <Card key={match.id} className={`overflow-hidden group transition-all duration-300 ${match.status === 'finished' ? 'opacity-70 bg-muted/30 scale-[0.98]' : ''}`}>
-                            <div className={`h-2 w-full ${status.color}`} />
-                            <CardContent className="p-4">
-                                {/* Header Row: Status + Actions */}
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex flex-wrap gap-1.5 items-center">
-                                        <Badge variant="outline" className="flex items-center gap-1 text-[9px] px-1.5 h-5 bg-background shadow-sm border-muted-foreground/20">
-                                            <StatusIcon className="h-2.5 w-2.5" />
-                                            <span className="font-bold">{status.label}</span>
-                                        </Badge>
-                                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 text-[9px] px-1.5 h-5 font-black uppercase">
-                                            Cat {match.category}
-                                        </Badge>
-                                        {match.group && (
-                                            <Badge variant="outline" className="font-black border-primary/30 text-primary text-[9px] px-1.5 h-5 bg-primary/5 uppercase">
-                                                Gr {match.group}
-                                            </Badge>
-                                        )}
-                                        {showDescriptions && getMatchPurpose(match) && (
-                                            <Badge variant="outline" className="font-black border-orange-500/30 text-orange-600 text-[9px] px-1.5 h-5 bg-orange-50 uppercase tracking-tight">
-                                                {getMatchPurpose(match)}
-                                            </Badge>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-1.5 items-center">
-                                        {editingScoreId === match.id ? (
-                                            <div className="flex bg-white/50 backdrop-blur rounded-full p-0.5 border shadow-sm">
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:bg-green-50 rounded-full" onClick={() => handleSaveScore(match.id)}>
-                                                    <Check className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-red-50 rounded-full" onClick={() => setEditingScoreId(null)}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-1.5 bg-white/50 backdrop-blur rounded-full p-0.5 border shadow-sm">
-                                                {/* Common quick action based on status */}
-                                                {match.status === 'planned' && (
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 text-blue-500 hover:text-blue-600 rounded-full hover:bg-blue-50"
-                                                        onClick={() => handleQuickStart(match.id)}
-                                                    >
-                                                        <PlayCircle className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                                {match.status === 'ongoing' && (
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 text-green-600 hover:text-green-700 rounded-full hover:bg-green-50"
-                                                        onClick={() => handleQuickFinish(match.id)}
-                                                    >
-                                                        <CheckCircle2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-48">
-                                                        <DropdownMenuItem onClick={() => handleStartEditScore(match)}>
-                                                            <Trophy className="mr-2 h-4 w-4 text-primary" /> Editar Placar
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => onEdit(match)}>
-                                                            <Pencil className="mr-2 h-4 w-4" /> Editar Jogo
-                                                        </DropdownMenuItem>
-                                                        {match.status === 'planned' && (
-                                                            <DropdownMenuItem onClick={() => handleQuickStart(match.id)}>
-                                                                <PlayCircle className="mr-2 h-4 w-4 text-blue-500" /> Iniciar Agora
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        {match.status === 'ongoing' && (
-                                                            <DropdownMenuItem onClick={() => handleQuickFinish(match.id)}>
-                                                                <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Finalizar Agora
-                                                            </DropdownMenuItem>
-                                                        )}
-                                                        <DropdownMenuItem onClick={() => setMatchToDelete(match.id)} className="text-destructive focus:text-destructive">
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Excluir Partida
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Court & Time Info (if exists) */}
-                                {editingScoreId === match.id ? (
-                                    <div className="mb-4 flex flex-col gap-3 bg-primary/5 p-3 rounded-xl border border-primary/10">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Status do Jogo</label>
-                                                <select
-                                                    className="w-full h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
-                                                    value={tempScore?.status}
-                                                    onChange={(e) => setTempScore(prev => prev ? { ...prev, status: e.target.value as any } : null)}
-                                                >
-                                                    <option value="planned">Planejado (WAIT)</option>
-                                                    <option value="ongoing">Em Jogo (LIVE)</option>
-                                                    <option value="finished">Finalizado (FIM)</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary/60">Local (Quadra)</label>
-                                                <select
-                                                    className="w-full h-9 bg-white border border-primary/20 rounded-lg text-xs font-bold px-3 focus:ring-2 focus:ring-primary/20 outline-none"
-                                                    value={tempScore?.courtId || ""}
-                                                    onChange={(e) => setTempScore(prev => prev ? { ...prev, courtId: e.target.value } : null)}
-                                                >
-                                                    <option value="">Selecione...</option>
-                                                    {courts.map(c => (
-                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        {match.startTime && (
-                                            <div className="text-[10px] text-muted-foreground bg-white/50 p-1.5 rounded-lg border border-dashed flex items-center justify-center gap-2">
-                                                <CalendarClock className="h-3 w-3" />
-                                                Agendado para: {format(new Date(match.startTime), "dd/MM HH:mm")}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (match.courtId || match.startTime) && (
-                                    <div className="mb-4 flex items-center justify-between bg-slate-50/50 p-2 rounded-xl border border-dashed border-muted-foreground/10">
-                                        <div className="flex flex-wrap gap-2 w-full justify-between items-center">
-                                            {match.startTime && (
-                                                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-tight">
-                                                    <CalendarClock className="h-3 w-3 text-primary/50" />
-                                                    {format(new Date(match.startTime), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                                                </span>
-                                            )}
-                                            {match.courtId && (
-                                                <Badge variant="outline" className="text-[10px] font-black border-none bg-primary/5 text-primary rounded-lg flex items-center gap-1.5 shadow-sm">
-                                                    <MapPin className="h-3 w-3" />
-                                                    {getCourtName(match.courtId)}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            {matches.map((match) => (
+                <Card key={match.id} className="overflow-hidden border-muted/40 shadow-sm hover:shadow-md transition-shadow rounded-3xl">
+                    <div className="p-4 md:p-6 space-y-4">
+                        {/* Header: Cat, Group & Status */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {match.group && (
+                                    <Badge variant="outline" className="text-[9px] font-black bg-primary/5 text-primary border-primary/10 uppercase px-2 h-5">
+                                        Grupo {match.group}
+                                    </Badge>
                                 )}
+                                {showDescriptions && match.round && (
+                                    <Badge variant="secondary" className="text-[9px] font-black bg-yellow-500/10 text-yellow-700 border-none px-2 h-5 flex items-center gap-1">
+                                        <Trophy className="w-2.5 h-2.5" />
+                                        {getMatchPurpose(match.round, match.bracketPosition || 0)}
+                                    </Badge>
+                                )}
+                            </div>
 
-                                {/* Match Players & Score */}
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center bg-slate-50 md:bg-secondary/5 p-4 rounded-[20px] border border-muted/30 shadow-inner relative overflow-hidden">
-                                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/20 md:hidden" />
+                            <div className="flex items-center gap-2">
+                                {/* Status Badge */}
+                                {match.status === 'planned' && <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 border-none text-[8px] font-black uppercase tracking-widest px-2">Planejado</Badge>}
+                                {match.status === 'ongoing' && (
+                                    <Badge className="bg-red-500 text-white hover:bg-red-600 border-none text-[8px] font-black uppercase tracking-widest px-2 animate-pulse">
+                                        Ao Vivo
+                                    </Badge>
+                                )}
+                                {match.status === 'finished' && <Badge className="bg-green-100 text-green-600 hover:bg-green-100 border-none text-[8px] font-black uppercase tracking-widest px-2">Finalizado</Badge>}
 
-                                        {/* Team A */}
-                                        <div className="text-right flex-1 min-w-0 pr-2">
-                                            <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player1.name)}</p>
-                                            {match.teamA.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player2.name)}</p>}
-                                            <div className="mt-2 flex justify-end items-center gap-2">
-                                                {match.serving === 'teamA' && !editingScoreId && <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_12px_rgba(234,179,8,0.8)] border border-yellow-200" />}
-                                                {editingScoreId === match.id ? (
-                                                    <input
-                                                        type="text"
-                                                        className="w-14 h-12 bg-white border-2 border-primary/20 rounded-xl text-center text-2xl font-black text-primary shadow-sm focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-                                                        value={tempScore?.pointsA}
-                                                        onChange={(e) => setTempScore(prev => prev ? { ...prev, pointsA: e.target.value } : null)}
-                                                    />
-                                                ) : (
-                                                    <span className="text-3xl font-black text-primary tabular-nums tracking-tighter drop-shadow-sm">{match.pointsA}</span>
-                                                )}
-                                            </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem onClick={() => onEdit(match)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Editar Atletas/Hora
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { setEditingMatchToDelete(match); setOpenDeleteConfirm(true); }} className="text-red-600">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Excluir Partida
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+
+                        {/* Court Selector - Moved to Card */}
+                        <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                            <select
+                                className="bg-transparent text-[11px] font-black uppercase tracking-tight text-slate-600 focus:outline-none flex-1 cursor-pointer"
+                                value={match.courtId || ''}
+                                onChange={(e) => handleUpdateCourt(match.id, e.target.value)}
+                                disabled={match.status === 'finished'}
+                            >
+                                <option value="">Sem Quadra (Planejado)</option>
+                                {courts.map(c => {
+                                    // Considera OCUPADA se o status for 'em_jogo' E não for a quadra que este jogo já está usando
+                                    const isOccupied = c.status === 'em_jogo' && c.id !== match.courtId;
+                                    return (
+                                        <option
+                                            key={c.id}
+                                            value={c.id}
+                                            disabled={isOccupied}
+                                            className={isOccupied ? "text-slate-300 italic" : ""}
+                                        >
+                                            {c.name} {isOccupied ? " (OCUPADA)" : ""}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            {match.status === 'ongoing' && (
+                                <div className="flex items-center gap-1 mr-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                    <span className="text-[9px] font-mono text-slate-500">{match.actualStartTime ? format(match.actualStartTime, 'HH:mm') : ''}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Match Score UI */}
+                        <div className="flex items-center justify-between gap-4 py-2">
+                            {/* Team A */}
+                            <div className="text-right flex-1 min-w-0 pr-2">
+                                <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player1.name)}</p>
+                                {match.teamA.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamA.player2.name)}</p>}
+                            </div>
+
+                            {/* Score Indicator */}
+                            <div className="px-3 md:px-6 flex flex-col items-center bg-white/50 backdrop-blur-sm p-2 rounded-2xl border border-muted shadow-sm flex-shrink-0">
+                                <span className="text-[7px] md:text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Placar</span>
+                                <div className="flex items-center gap-1.5">
+                                    {editingScoreId === match.id ? (
+                                        <div className="flex items-center gap-1">
+                                            <input
+                                                type="number"
+                                                className="w-14 h-10 bg-white border-2 border-primary/20 rounded-xl text-center font-black text-xl focus:border-primary/40 outline-none"
+                                                value={tempScore?.setsA}
+                                                onChange={(e) => setTempScore(prev => prev ? { ...prev, setsA: parseInt(e.target.value) || 0 } : null)}
+                                            />
+                                            <span className="text-muted-foreground/40 font-black">-</span>
+                                            <input
+                                                type="number"
+                                                className="w-14 h-10 bg-white border-2 border-primary/20 rounded-xl text-center font-black text-xl focus:border-primary/40 outline-none"
+                                                value={tempScore?.setsB}
+                                                onChange={(e) => setTempScore(prev => prev ? { ...prev, setsB: parseInt(e.target.value) || 0 } : null)}
+                                            />
                                         </div>
-
-                                        {/* Sets Indicator */}
-                                        <div className="px-3 md:px-6 flex flex-col items-center bg-white/50 backdrop-blur-sm p-2 rounded-2xl border border-muted shadow-sm flex-shrink-0">
-                                            <span className="text-[7px] md:text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Sets</span>
-                                            <div className="flex items-center gap-1.5">
-                                                {editingScoreId === match.id ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="number"
-                                                            className="w-12 h-10 bg-white border-2 border-black/5 rounded-xl text-center font-black text-lg focus:border-primary/30 outline-none"
-                                                            value={tempScore?.setsA}
-                                                            onChange={(e) => setTempScore(prev => prev ? { ...prev, setsA: parseInt(e.target.value) || 0 } : null)}
-                                                        />
-                                                        <span className="text-muted-foreground/40 font-black">-</span>
-                                                        <input
-                                                            type="number"
-                                                            className="w-12 h-10 bg-white border-2 border-black/5 rounded-xl text-center font-black text-lg focus:border-primary/30 outline-none"
-                                                            value={tempScore?.setsB}
-                                                            onChange={(e) => setTempScore(prev => prev ? { ...prev, setsB: parseInt(e.target.value) || 0 } : null)}
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-2xl font-black text-slate-800 leading-none">{match.setsA}</span>
-                                                        <div className="w-px h-6 bg-muted-foreground/20 rotate-12" />
-                                                        <span className="text-2xl font-black text-slate-800 leading-none">{match.setsB}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Team B */}
-                                        <div className="text-left flex-1 min-w-0 pl-2">
-                                            <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player1.name)}</p>
-                                            {match.teamB.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player2.name)}</p>}
-                                            <div className="mt-2 flex justify-start items-center gap-2">
-                                                {editingScoreId === match.id ? (
-                                                    <input
-                                                        type="text"
-                                                        className="w-14 h-12 bg-white border-2 border-primary/20 rounded-xl text-center text-2xl font-black text-primary shadow-sm focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-                                                        value={tempScore?.pointsB}
-                                                        onChange={(e) => setTempScore(prev => prev ? { ...prev, pointsB: e.target.value } : null)}
-                                                    />
-                                                ) : (
-                                                    <span className="text-3xl font-black text-primary tabular-nums tracking-tighter drop-shadow-sm">{match.pointsB}</span>
-                                                )}
-                                                {match.serving === 'teamB' && !editingScoreId && <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_12px_rgba(234,179,8,0.8)] border border-yellow-200" />}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* History Sets */}
-                                    {match.historySets && match.historySets.length > 0 && (
-                                        <div className="flex justify-center flex-wrap gap-2 animate-in fade-in zoom-in-95 duration-300">
-                                            {match.historySets.map((s, i) => (
-                                                <Badge key={i} variant="secondary" className="text-[9px] font-black tracking-widest bg-slate-100 text-slate-500 hover:bg-slate-200 border-none px-2 rounded-lg">
-                                                    SET {i + 1}: {s.scoreA}-{s.scoreB}
-                                                </Badge>
-                                            ))}
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-3xl font-black text-slate-800 leading-none tabular-nums">{match.setsA}</span>
+                                            <div className="w-px h-8 bg-muted-foreground/20 rotate-12" />
+                                            <span className="text-3xl font-black text-slate-800 leading-none tabular-nums">{match.setsB}</span>
                                         </div>
                                     )}
                                 </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+                            </div>
 
-            <AlertDialog open={!!matchToDelete} onOpenChange={() => setMatchToDelete(null)}>
+                            {/* Team B */}
+                            <div className="text-left flex-1 min-w-0 pl-2">
+                                <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player1.name)}</p>
+                                {match.teamB.player2 && <p className="font-black text-[13px] md:text-sm truncate uppercase tracking-tight text-slate-800">{shortenName(match.teamB.player2.name)}</p>}
+                            </div>
+                        </div>
+
+                        {/* Action Bar */}
+                        <div className="flex items-center justify-between pt-2 border-t border-muted/40">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3" />
+                                {match.startTime ? format(match.startTime, "dd MMM - HH:mm", { locale: ptBR }) : "Não agendado"}
+                            </span>
+
+                            <div className="flex gap-2">
+                                {editingScoreId === match.id ? (
+                                    <>
+                                        <Button variant="ghost" size="sm" onClick={() => setEditingScoreId(null)} className="h-10 px-4 rounded-xl font-bold uppercase text-[10px]">
+                                            Cancelar
+                                        </Button>
+                                        <Button size="sm" onClick={() => handleUpdateScore(match.id)} className="h-10 px-6 rounded-xl font-black uppercase text-[10px] shadow-lg shadow-primary/20">
+                                            Salvar
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setEditingScoreId(match.id);
+                                            setTempScore({ setsA: match.setsA, setsB: match.setsB });
+                                        }}
+                                        className="h-10 px-6 rounded-xl font-black uppercase text-[10px] bg-slate-50 border-slate-200"
+                                    >
+                                        <Calculator className="w-3.5 h-3.5 mr-2 text-primary" />
+                                        Editar Placar
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            ))}
+
+            <AlertDialog open={openDeleteConfirm} onOpenChange={setOpenDeleteConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                        <AlertDialogTitle>Excluir Partida?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. A partida será removida permanentemente.
+                            Esta ação removerá permanentemente o jogo da categoria.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Excluir
-                        </AlertDialogAction>
+                        <AlertDialogCancel onClick={() => setEditingMatchToDelete(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-        </>
+        </div>
     );
 }

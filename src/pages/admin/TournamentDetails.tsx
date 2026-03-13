@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Trash2, QrCode, Pencil, Loader2, PlayCircle, Settings, Trophy, Share2, Unlock, RotateCcw, Users, User, UserCheck, MapPin, Image as ImageIcon, Check, X, LayoutGrid, GitBranch, ListFilter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,7 +29,7 @@ import { matchService } from "@/services/matchService";
 import { athleteService } from "@/services/athleteService";
 import { tournamentService } from "@/services/tournamentService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Court, Match, Tournament, Player, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
+import { Court, Match, Tournament, Player, TOURNAMENT_CATEGORIES, TournamentCategory } from "@/types/beach-tennis";
 import { toast } from "sonner";
 import { AthleteForm } from "@/components/athletes/AthleteForm";
 import { MatchList } from "@/components/matches/MatchList";
@@ -48,6 +48,7 @@ const courtSchema = z.object({
 
 export default function TournamentDetails() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [tournament, setTournament] = useState<Tournament | null>(null);
     const [athletes, setAthletes] = useState<Player[]>([]);
     const [courts, setCourts] = useState<Court[]>([]);
@@ -58,6 +59,8 @@ export default function TournamentDetails() {
     const [editingCourt, setEditingCourt] = useState<Court | null>(null);
     const [editingMatch, setEditingMatch] = useState<Match | null>(null);
     const [openSettings, setOpenSettings] = useState(false);
+    const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [openQR, setOpenQR] = useState(false);
     const [arenas, setArenas] = useState<any[]>([]);
     const [isCustomCourt, setIsCustomCourt] = useState(false);
@@ -127,32 +130,50 @@ export default function TournamentDetails() {
             };
         }
     }, [id]);
-    1.
-    const getEligibleAthletesForCategory = (cat: string) => {
+
+    const handleDeleteTournament = async () => {
+        if (!id) return;
+        setIsDeleting(true);
+        try {
+            await tournamentService.delete(id);
+            toast.success("Etapa excluída com sucesso.");
+            navigate("/admin");
+        } catch (error: any) {
+            console.error("Erro ao excluir etapa:", error);
+            toast.error("Erro ao excluir etapa. Verifique o console.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+
+    const getEligibleAthletesForCategory = (cat: string | TournamentCategory) => {
         if (!tournament) return [];
-        1.
-        const categoryGender = tournament.categoryGender?.[cat] || 'Mista';
-        const rules = tournament.categoryRules?.[cat] || [];
-        const specificCategoryAthletes = tournament.categoryAthletes?.[cat] || [];
-        1.
+        const catId = typeof cat === 'string' ? cat : cat.id;
+        const catName = typeof cat === 'string' ? cat : cat.name;
+
+        const categoryGender = tournament.categoryGender?.[catId] || tournament.categoryGender?.[catName] || 'Mista';
+        const rules = tournament.categoryRules?.[catId] || tournament.categoryRules?.[catName] || [];
+        const specificCategoryAthletes = tournament.categoryAthletes?.[catId] || tournament.categoryAthletes?.[catName] || [];
+
         // Se houver atletas inscritos especificamente, use somente eles (filtro da aba atletas)
         // Se não houver, pegamos todos e aplicamos as regras (comportamento fallback para auto-geração)
         const sourceAthletes = (specificCategoryAthletes.length > 0)
             ? athletes.filter(a => specificCategoryAthletes.includes(a.id))
             : athletes;
-        1.
+
         return sourceAthletes.filter(a => {
             // 1. Gender check (STRICT - inclusive exige que gênero esteja preenchido)
             if (categoryGender !== 'Mista') {
                 if (!a.gender || a.gender !== categoryGender) return false;
             }
-            1.
+
             // 2. Category/Rule check (Nível Técnico)
             const athleteCategories = a.categories || (a.category ? [a.category] : []);
             if (rules.length > 0) {
                 return athleteCategories.some(c => rules.includes(c));
             }
-            return athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase());
+            return athleteCategories.map(c => c.toUpperCase()).includes(catName.toUpperCase());
         });
     };
 
@@ -161,7 +182,7 @@ export default function TournamentDetails() {
         setIsGeneratingAuto(true);
         try {
             // Generate for all categories defined in the tournament
-            const tournamentCategories = tournament.categories || [];
+            const tournamentCategories = (tournament.categories || []) as (string | TournamentCategory)[];
 
             if (tournamentCategories.length === 0) {
                 throw new Error("Defina as categorias do torneio nas configurações primeiro.");
@@ -169,11 +190,13 @@ export default function TournamentDetails() {
 
             for (const cat of tournamentCategories) {
                 const eligibleAthletes = getEligibleAthletesForCategory(cat);
+                const catId = typeof cat === 'string' ? cat : cat.id;
+                const catName = typeof cat === 'string' ? cat : cat.name;
 
                 if (eligibleAthletes.length >= 2) {
-                    await matchService.generateGroupMatches(id, cat, eligibleAthletes, tournament.type);
+                    await matchService.generateGroupMatches(id, catName, eligibleAthletes, tournament.type, catId);
                 } else {
-                    toast.warning(`Não foi possível gerar grupos para a categoria ${cat}: atletas insuficientes (mínimo 2).`);
+                    toast.warning(`Não foi possível gerar grupos para a categoria ${catName}: atletas insuficientes (mínimo 2).`);
                 }
             }
 
@@ -204,74 +227,132 @@ export default function TournamentDetails() {
         }
     };
 
-    // Dynamic categories from current matches + tournament settings
-    const availableCategories = Array.from(new Set([
-        ...(tournament?.categories || []),
-        ...matches.map(m => m.category)
-    ])).filter(Boolean).sort();
+    // Normalizamos categorias para uma lista de objetos {id, name}
+    const normalizedCategories: TournamentCategory[] = Array.from(
+        (tournament?.categories || []).reduce((acc, cat) => {
+            if (typeof cat === 'string') {
+                acc.set(cat, { id: cat, name: cat });
+            } else {
+                acc.set(cat.id, cat);
+            }
+            return acc;
+        }, new Map<string, TournamentCategory>())
+    ).map(([_, cat]) => cat);
+
+    // Adicionamos categorias que venham dos jogos mas não estão no torneio (legado/auto)
+    matches.forEach(m => {
+        const id = m.categoryId || m.category;
+        if (id && !normalizedCategories.find(c => c.id === id)) {
+            normalizedCategories.push({ id, name: m.category });
+        }
+    });
+
+    const activeCategoryObj = normalizedCategories.find(c => c.id === activeSubTournament || c.name === activeSubTournament);
 
     // Simplified: Show all categories in the UI
     const filteredMatches = activeSubTournament
-        ? matches.filter(m => m.category.toUpperCase() === activeSubTournament.toUpperCase())
+        ? matches.filter(m => (m.categoryId === activeSubTournament) || (m.category.toUpperCase() === activeSubTournament.toUpperCase()))
         : matches;
 
     const [newCategoryName, setNewCategoryName] = useState("");
     const [editingCategory, setEditingCategory] = useState<string | null>(null);
     const [editCategoryName, setEditCategoryName] = useState("");
 
-    const handleSaveCategoryEdit = (oldCat: string) => {
+    if (!tournament && id) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    const handleSaveCategoryEdit = async (oldCatId: string, oldCatName: string) => {
         const name = editCategoryName.trim().toUpperCase();
-        if (name && id && tournament && name !== oldCat) {
-            const currentCats = tournament.categories || [];
-            if (!currentCats.includes(name)) {
-                // We need to update the categories array, the categoryRules AND categoryAthletes if any exists for this category
-                const updatedCats = currentCats.map(c => c === oldCat ? name : c);
-
-                const updatedRules = { ...(tournament.categoryRules || {}) };
-                if (updatedRules[oldCat]) {
-                    updatedRules[name] = updatedRules[oldCat];
-                    delete updatedRules[oldCat];
+        if (name && id && tournament && name !== oldCatName) {
+            const currentCats = (tournament.categories || []) as (string | TournamentCategory)[];
+            const updatedCats = currentCats.map(c => {
+                const cId = typeof c === 'string' ? c : c.id;
+                if (cId === oldCatId) {
+                    return { id: cId, name: name };
                 }
+                return c;
+            });
 
-                const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
-                if (updatedCategoryAthletes[oldCat]) {
-                    updatedCategoryAthletes[name] = updatedCategoryAthletes[oldCat];
-                    delete updatedCategoryAthletes[oldCat];
-                }
+            await tournamentService.update(id, {
+                categories: updatedCats
+            });
 
-                tournamentService.update(id, {
-                    categories: updatedCats,
-                    categoryRules: updatedRules,
-                    categoryAthletes: updatedCategoryAthletes
-                });
-
-                if (activeSubTournament === oldCat) setActiveSubTournament(name);
-                setEditingCategory(null);
-                toast.success(`Torneio renomeado para ${name}!`);
-            } else {
-                toast.error("Este torneio já existe nesta etapa.");
-            }
+            setEditingCategory(null);
+            toast.success(`Torneio renomeado para ${name}!`);
         } else {
             setEditingCategory(null);
         }
     };
 
-    const handleAddCategory = () => {
+    const handleAddCategory = async () => {
         const name = newCategoryName.trim().toUpperCase();
         if (!name) {
             toast.error("Digite um nome para o torneio");
             return;
         }
         if (id && tournament) {
-            const currentCats = tournament.categories || [];
-            if (!currentCats.includes(name)) {
-                tournamentService.update(id, { categories: [...currentCats, name] });
-                setNewCategoryName("");
-                toast.success(`Torneio ${name} adicionado!`);
-            } else {
+            const currentCats = (tournament.categories || []) as (string | TournamentCategory)[];
+
+            // Check if name already exists
+            const nameExists = currentCats.some(c => (typeof c === 'string' ? c : c.name).toUpperCase() === name);
+            if (nameExists) {
                 toast.error("Este torneio já existe nesta etapa.");
+                return;
             }
+
+            const newCat: TournamentCategory = {
+                id: crypto.randomUUID(),
+                name
+            };
+
+            await tournamentService.update(id, {
+                categories: [...currentCats, newCat]
+            });
+            setNewCategoryName("");
+            toast.success(`Torneio ${name} adicionado!`);
         }
+    };
+
+    const handleDeleteCategory = async (cat: TournamentCategory) => {
+        if (!id || !tournament) return;
+
+        const currentCats = (tournament.categories || []) as (string | TournamentCategory)[];
+        const updated = currentCats.filter(c => (typeof c === 'string' ? c : c.id) !== cat.id);
+
+        const updatedRules = { ...(tournament.categoryRules || {}) };
+        delete updatedRules[cat.id];
+        delete updatedRules[cat.name];
+
+        const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
+        delete updatedCategoryAthletes[cat.id];
+        delete updatedCategoryAthletes[cat.name];
+
+        const updatedCategoryGender = { ...(tournament.categoryGender || {}) };
+        delete updatedCategoryGender[cat.id];
+        delete updatedCategoryGender[cat.name];
+
+        await tournamentService.update(id, {
+            categories: updated,
+            categoryRules: updatedRules,
+            categoryAthletes: updatedCategoryAthletes,
+            categoryGender: updatedCategoryGender
+        });
+
+        // Thorough cleanup of matches and results for this category
+        await matchService.deleteByCategory(id, cat.id);
+        if (cat.name !== cat.id) {
+            await matchService.deleteByCategory(id, cat.name);
+        }
+
+        if (activeSubTournament === cat.id || activeSubTournament === cat.name) {
+            setActiveSubTournament(null);
+        }
+        toast.success(`Torneio ${cat.name} removido.`);
     };
 
     const matchingArena = arenas.find(a => a.name === tournament?.location);
@@ -295,7 +376,7 @@ export default function TournamentDetails() {
                     </Link>
                     <div className="flex-1 min-w-0 border-l pl-4">
                         <h1 className="text-lg font-bold tracking-tight truncate">
-                            {activeSubTournament || tournament?.name || "Gerenciar"}
+                            {activeCategoryObj?.name || tournament?.name || "Gerenciar"}
                         </h1>
                         {!activeSubTournament && (
                             <p className="text-[10px] text-muted-foreground uppercase font-black truncate">Etapa</p>
@@ -330,16 +411,16 @@ export default function TournamentDetails() {
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {tournament.categories?.map(cat => {
+                                {normalizedCategories.map(cat => {
                                     // Try to find the final match for this category
-                                    const finalMatch = matches.find(m => m.category.toUpperCase() === cat.toUpperCase() && m.round === 'final' && m.status === 'finished');
+                                    const finalMatch = matches.find(m => (m.categoryId === cat.id || m.category.toUpperCase() === cat.name.toUpperCase()) && m.round === 'final' && m.status === 'finished');
                                     if (!finalMatch) return null;
 
                                     const winner = finalMatch.setsA > finalMatch.setsB ? finalMatch.teamA : finalMatch.teamB;
 
                                     return (
-                                        <div key={cat} className="p-4 rounded-xl bg-card border shadow-sm">
-                                            <Badge variant="outline" className="mb-2 text-[8px] uppercase">{cat}</Badge>
+                                        <div key={cat.id} className="p-4 rounded-xl bg-card border shadow-sm">
+                                            <Badge variant="outline" className="mb-2 text-[8px] uppercase">{cat.name}</Badge>
                                             <p className="font-bold text-sm">🏆 {winner.player1.name}</p>
                                             {winner.player2 && <p className="font-bold text-sm pl-6"> & {winner.player2.name}</p>}
                                             <p className="text-[10px] text-muted-foreground mt-2 uppercase">Campeões</p>
@@ -380,8 +461,8 @@ export default function TournamentDetails() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {tournament?.categories?.map(cat => {
-                                    const catMatches = matches.filter(m => m.category.toUpperCase() === cat.toUpperCase());
+                                {normalizedCategories.map(cat => {
+                                    const catMatches = matches.filter(m => m.categoryId === cat.id || (m.category.toUpperCase() === cat.name.toUpperCase() && !m.categoryId));
                                     const finishedMatches = catMatches.filter(m => m.status === 'finished').length;
                                     const totalMatches = catMatches.length;
                                     const progress = totalMatches > 0 ? (finishedMatches / totalMatches) * 100 : 0;
@@ -390,9 +471,9 @@ export default function TournamentDetails() {
 
                                     return (
                                         <Card
-                                            key={cat}
-                                            className={`relative group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-muted/40 rounded-2xl ${activeSubTournament === cat ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'}`}
-                                            onClick={() => editingCategory !== cat && setActiveSubTournament(cat)}
+                                            key={cat.id}
+                                            className={`relative group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden border-muted/40 rounded-2xl ${activeSubTournament === cat.id ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'}`}
+                                            onClick={() => editingCategory !== cat.id && setActiveSubTournament(cat.id)}
                                         >
                                             <div className="absolute top-0 right-0 p-2 z-10 flex flex-col items-end gap-1">
                                                 {isFinished ? (
@@ -411,8 +492,8 @@ export default function TournamentDetails() {
                                                         className="h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setEditingCategory(cat);
-                                                            setEditCategoryName(cat);
+                                                            setEditingCategory(cat.id);
+                                                            setEditCategoryName(cat.name);
                                                         }}
                                                     >
                                                         <Pencil className="h-4 w-4" />
@@ -423,21 +504,7 @@ export default function TournamentDetails() {
                                                         className="h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            // Logic for deletion as before
-                                                            if (id && tournament) {
-                                                                const updated = (tournament.categories || []).filter(c => c !== cat);
-                                                                const updatedRules = { ...(tournament.categoryRules || {}) };
-                                                                delete updatedRules[cat];
-                                                                const updatedCategoryAthletes = { ...(tournament.categoryAthletes || {}) };
-                                                                delete updatedCategoryAthletes[cat];
-                                                                tournamentService.update(id, {
-                                                                    categories: updated,
-                                                                    categoryRules: updatedRules,
-                                                                    categoryAthletes: updatedCategoryAthletes
-                                                                });
-                                                                if (activeSubTournament === cat) setActiveSubTournament(null);
-                                                                toast.success(`Torneio ${cat} removido.`);
-                                                            }
+                                                            handleDeleteCategory(cat);
                                                         }}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -446,7 +513,7 @@ export default function TournamentDetails() {
                                             </div>
 
                                             <CardHeader className="pb-2">
-                                                {editingCategory === cat ? (
+                                                {editingCategory === cat.id ? (
                                                     <div className="flex items-center gap-2 w-full pt-4" onClick={(e) => e.stopPropagation()}>
                                                         <Input
                                                             value={editCategoryName}
@@ -454,17 +521,17 @@ export default function TournamentDetails() {
                                                             className="h-9 text-sm font-bold uppercase rounded-lg"
                                                             autoFocus
                                                             onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') handleSaveCategoryEdit(cat);
+                                                                if (e.key === 'Enter') handleSaveCategoryEdit(cat.id, cat.name);
                                                                 if (e.key === 'Escape') setEditingCategory(null);
                                                             }}
                                                         />
-                                                        <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => handleSaveCategoryEdit(cat)}>
+                                                        <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => handleSaveCategoryEdit(cat.id, cat.name)}>
                                                             <Check className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 ) : (
                                                     <CardTitle className="text-lg font-black tracking-tight uppercase group-hover:text-primary transition-colors pr-12">
-                                                        {cat}
+                                                        {cat.name}
                                                     </CardTitle>
                                                 )}
                                             </CardHeader>
@@ -518,7 +585,7 @@ export default function TournamentDetails() {
                                         <Trophy className="h-5 w-5 text-primary-foreground" />
                                     </div>
                                     <div>
-                                        <span className="font-black uppercase text-lg leading-none tracking-tight block">{activeSubTournament}</span>
+                                        <span className="font-black uppercase text-lg leading-none tracking-tight block">{activeCategoryObj?.name}</span>
                                         <span className="text-[10px] text-primary uppercase font-black tracking-widest mt-1 block opacity-70">Gerenciando Categoria</span>
                                     </div>
                                 </div>
@@ -609,7 +676,19 @@ export default function TournamentDetails() {
                                                                 <span>{court.name}</span>
                                                                 <span className="text-[10px] text-muted-foreground uppercase font-normal">{court.status.replace('_', ' ')}</span>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-6 w-6 text-blue-500"
+                                                                    onClick={() => {
+                                                                        courtService.finishMatch(court.id);
+                                                                        toast.success(`Quadra ${court.name} liberada.`);
+                                                                    }}
+                                                                    title="Liberar quadra manualmente"
+                                                                >
+                                                                    <RotateCcw className="h-3 w-3" />
+                                                                </Button>
                                                                 <Badge variant="secondary">{court.pin}</Badge>
                                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => courtService.remove(court.id)}>
                                                                     <Trash2 className="h-3 w-3" />
@@ -627,12 +706,12 @@ export default function TournamentDetails() {
                                     <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
                                         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div className="space-y-1">
-                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Atletas - {activeSubTournament}</CardTitle>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Atletas</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Inscritos nesta categoria.</CardDescription>
                                             </div>
                                         </CardHeader>
                                         <CardContent>
-                                            {tournament && <TournamentAthleteManager tournament={tournament} activeCategory={activeSubTournament} />}
+                                            {tournament && activeCategoryObj && <TournamentAthleteManager tournament={tournament} activeCategory={activeCategoryObj.id} />}
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -641,7 +720,7 @@ export default function TournamentDetails() {
                                     <Card>
                                         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div>
-                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Grupos - {activeSubTournament}</CardTitle>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Grupos</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Classificação e chaves da fase de grupos.</CardDescription>
                                             </div>
                                             <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -655,10 +734,10 @@ export default function TournamentDetails() {
                                                         const eligibleAthletes = getEligibleAthletesForCategory(activeSubTournament);
 
                                                         if (eligibleAthletes.length >= 2) {
-                                                            await matchService.generateGroupMatches(id, activeSubTournament, eligibleAthletes, tournament.type);
+                                                            await matchService.generateGroupMatches(id, activeCategoryObj?.name || '', eligibleAthletes, tournament.type, activeCategoryObj?.id);
                                                             toast.success("Fase de Grupos gerada!");
                                                         } else {
-                                                            toast.error(`Atletas insuficientes para a categoria ${activeSubTournament} (mínimo 2).`);
+                                                            toast.error(`Atletas insuficientes para a categoria ${activeCategoryObj?.name || activeSubTournament} (mínimo 2).`);
                                                         }
                                                     } catch (e: any) { toast.error(e.message); }
                                                     finally { setIsGeneratingAuto(false); }
@@ -673,7 +752,7 @@ export default function TournamentDetails() {
                                                     const groups = Array.from(new Set(filteredMatches.filter(m => m.group).map(m => m.group))).sort();
                                                     if (groups.length === 0) return (
                                                         <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
-                                                            Nenhum grupo encontrado para {activeSubTournament}.
+                                                            Nenhum grupo encontrado para {activeCategoryObj?.name || activeSubTournament}.
                                                         </div>
                                                     );
 
@@ -681,9 +760,10 @@ export default function TournamentDetails() {
                                                         <div className="grid gap-6 md:gap-8 md:grid-cols-2">
                                                             {groups.map(g => (
                                                                 <GroupStandings
-                                                                    key={`${activeSubTournament}-${g}`}
+                                                                    key={`${activeCategoryObj?.id}-${g}`}
                                                                     tournamentId={id}
-                                                                    category={activeSubTournament}
+                                                                    category={activeCategoryObj?.name || activeCategoryObj?.id || ''}
+                                                                    categoryId={activeCategoryObj?.id}
                                                                     groupName={g!}
                                                                     matches={filteredMatches.filter(m => m.group === g)}
                                                                 />
@@ -700,7 +780,7 @@ export default function TournamentDetails() {
                                     <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
                                         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div className="space-y-1">
-                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Jogos - {activeSubTournament}</CardTitle>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Jogos</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Gerenciamento de partidas e resultados.</CardDescription>
                                             </div>
                                             <div className="flex flex-wrap gap-2 w-full md:w-auto">
@@ -737,7 +817,7 @@ export default function TournamentDetails() {
                                     <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
                                         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div className="space-y-1">
-                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Mata-Mata - {activeSubTournament}</CardTitle>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Mata-Mata</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Chaves eliminatórias e finais.</CardDescription>
                                             </div>
                                         </CardHeader>
@@ -749,11 +829,16 @@ export default function TournamentDetails() {
                                                     matches={filteredMatches}
                                                     courts={courts}
                                                     onEdit={(m) => { setEditingMatch(m); setOpenMatchDialog(true); }}
-                                                    activeCategory={activeSubTournament}
+                                                    activeCategory={activeCategoryObj?.name || activeSubTournament}
                                                     onGenerateEliminatories={async () => {
                                                         if (!id || !activeSubTournament) return;
                                                         try {
-                                                            await matchService.promoteGroupWinners(id, activeSubTournament, 2);
+                                                            const result = await matchService.promoteGroupWinners(
+                                                                id,
+                                                                activeCategoryObj?.name || '',
+                                                                2, // Top 2 from each group (Standard)
+                                                                activeCategoryObj?.id
+                                                            );
                                                             toast.success("Eliminatórias geradas com sucesso!");
                                                         } catch (e: any) { toast.error(e.message); }
                                                     }}
@@ -772,7 +857,7 @@ export default function TournamentDetails() {
                                     <Card className="border-none shadow-none bg-transparent md:bg-card md:border md:shadow-sm">
                                         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between px-0 md:px-6 pb-6 gap-4">
                                             <div className="space-y-1">
-                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Regras - {activeSubTournament}</CardTitle>
+                                                <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Regras</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Permissões de atleta por categoria.</CardDescription>
                                             </div>
                                         </CardHeader>
@@ -785,7 +870,7 @@ export default function TournamentDetails() {
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {['Masculino', 'Feminino', 'Mista'].map((g) => {
-                                                        const currentGender = tournament?.categoryGender?.[activeSubTournament] || 'Mista';
+                                                        const currentGender = tournament?.categoryGender?.[activeSubTournament] || tournament?.categoryGender?.[activeCategoryObj?.name || ''] || 'Mista';
                                                         const isSelected = currentGender === g;
                                                         return (
                                                             <Button
@@ -794,9 +879,10 @@ export default function TournamentDetails() {
                                                                 size="sm"
                                                                 className={`h-10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${isSelected ? 'shadow-lg shadow-primary/20' : 'bg-background hover:bg-primary/5 hover:text-primary border-primary/10'}`}
                                                                 onClick={async () => {
-                                                                    if (!id || !tournament) return;
+                                                                    if (!id || !tournament || !activeCategoryObj) return;
                                                                     const updatedGender = { ...(tournament.categoryGender || {}) };
-                                                                    updatedGender[activeSubTournament] = g as any;
+                                                                    updatedGender[activeCategoryObj.id] = g as any;
+                                                                    // For legacy compatibility, also update by name if needed, but ID is preferred
                                                                     await tournamentService.update(id, { categoryGender: updatedGender });
                                                                     toast.success(`Gênero definido para ${g}!`);
                                                                 }}
@@ -829,18 +915,19 @@ export default function TournamentDetails() {
                                                         return (
                                                             <div key={cat} className={`flex items-center space-x-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer ${isChecked ? 'bg-primary/5 border-primary shadow-sm hover:bg-primary/10' : 'bg-card border-muted/50 hover:border-primary/30 hover:bg-muted/30'}`}
                                                                 onClick={async () => {
-                                                                    if (!id || !tournament) return;
+                                                                    if (!id || !tournament || !activeCategoryObj) return;
                                                                     const currentRules = { ...(tournament.categoryRules || {}) };
-                                                                    const activeRules = currentRules[activeSubTournament] || [];
+                                                                    const activeRules = currentRules[activeCategoryObj.id] || currentRules[activeCategoryObj.name] || [];
 
                                                                     if (isChecked) {
-                                                                        currentRules[activeSubTournament] = activeRules.filter(c => c !== cat);
+                                                                        currentRules[activeCategoryObj.id] = activeRules.filter(c => c !== cat);
                                                                     } else {
-                                                                        currentRules[activeSubTournament] = [...activeRules, cat];
+                                                                        currentRules[activeCategoryObj.id] = [...activeRules, cat];
                                                                     }
 
-                                                                    if (currentRules[activeSubTournament].length === 0) {
-                                                                        delete currentRules[activeSubTournament];
+                                                                    if (currentRules[activeCategoryObj.id].length === 0) {
+                                                                        delete currentRules[activeCategoryObj.id];
+                                                                        delete currentRules[activeCategoryObj.name];
                                                                     }
 
                                                                     await tournamentService.update(id, { categoryRules: currentRules });
@@ -886,7 +973,7 @@ export default function TournamentDetails() {
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-xl font-black uppercase tracking-tight">Gerenciamento</span>
-                                        <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{activeSubTournament}</span>
+                                        <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{activeCategoryObj?.name || activeSubTournament}</span>
                                     </div>
                                 </SheetTitle>
                             </SheetHeader>
@@ -1060,9 +1147,46 @@ export default function TournamentDetails() {
                         </div>
 
                         <Button className="w-full" onClick={() => setOpenSettings(false)}>Fechar e Salvar</Button>
+
+                        <div className="pt-6 border-t border-destructive/20 mt-6">
+                            <h4 className="text-sm font-bold text-destructive mb-2 uppercase tracking-tighter">Zona de Perigo</h4>
+                            <p className="text-[10px] text-muted-foreground mb-4">Esta ação é irreversível e excluirá todos os dados (atletas, grupos, jogos) desta etapa.</p>
+                            <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() => {
+                                    setOpenSettings(false);
+                                    setOpenDeleteAlert(true);
+                                }}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir Etapa permanentemente
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={openDeleteAlert} onOpenChange={setOpenDeleteAlert}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente a etapa
+                            <strong> {tournament?.name}</strong> e removerá todos os dados associados a ela (jogos, quadras, grupos e registros).
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteTournament}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Excluindo..." : "Sim, excluir tudo"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* QR Code Dialog */}
             <Dialog open={openQR} onOpenChange={setOpenQR}>

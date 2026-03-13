@@ -5,7 +5,7 @@ import * as z from "zod";
 import { tournamentService } from "@/services/tournamentService";
 import { courtService } from "@/services/courtService";
 import { arenaService } from "@/services/arenaService";
-import { Tournament, Arena, TOURNAMENT_CATEGORIES } from "@/types/beach-tennis";
+import { Tournament, Arena, TOURNAMENT_CATEGORIES, TournamentCategory } from "@/types/beach-tennis";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
@@ -79,7 +79,7 @@ const formSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Horário inválido."),
   arenaId: z.string().min(1, "Selecione uma arena."),
   type: z.enum(['Simples', 'Duplas'], { required_error: "Selecione o tipo do torneio." }),
-  categories: z.array(z.string()).optional(),
+  categories: z.array(z.union([z.string(), z.object({ id: z.string(), name: z.string() })])).optional(),
 });
 
 export default function AdminDashboard() {
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
       time: tournament.time || "08:00",
       arenaId: matchArena ? matchArena.id : "",
       type: tournament.type || "Duplas",
-      categories: tournament.categories || [],
+      categories: (tournament.categories || []) as (string | TournamentCategory)[],
     });
     setOpen(true);
   };
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
           location: locationName,
           arenaId: values.arenaId,
           type: values.type,
-          categories: values.categories || [],
+          categories: (values.categories || []) as (string | TournamentCategory)[],
         });
         toast.success("Etapa atualizada!");
       } else {
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
             noAd: true
           },
           participatingAthleteIds: [],
-          categories: values.categories || []
+          categories: (values.categories || []) as (string | TournamentCategory)[]
         } as Omit<Tournament, "id" | "createdAt">);
 
         // Auto-create courts from Arena template
@@ -550,11 +550,15 @@ export default function AdminDashboard() {
                               <Calendar className="h-3 w-3" />
                               {new Date(tournament.date).toLocaleDateString('pt-BR')}
                             </div>
-                            {tournament.categories?.slice(0, 2).map(cat => (
-                              <Badge key={cat} variant="outline" className="text-[9px] uppercase h-5 px-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
-                                {cat}
-                              </Badge>
-                            ))}
+                            {tournament.categories?.slice(0, 2).map((cat, idx) => {
+                              const name = typeof cat === 'string' ? cat : cat.name;
+                              const key = typeof cat === 'string' ? `${cat}-${idx}` : cat.id;
+                              return (
+                                <Badge key={key} variant="outline" className="text-[9px] uppercase h-5 px-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
+                                  {name}
+                                </Badge>
+                              );
+                            })}
                             {tournament.categories && tournament.categories.length > 2 && (
                               <span className="text-[10px] font-bold text-muted-foreground">+{tournament.categories.length - 2}</span>
                             )}

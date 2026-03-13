@@ -23,6 +23,11 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
     const [isGenerating, setIsGenerating] = useState(false);
     const [bracketMatches, setBracketMatches] = useState<Match[]>([]);
 
+    // Resolve display name for the category
+    const categoryDisplayName = bracketMatches.length > 0 && bracketMatches[0].category
+        ? bracketMatches[0].category
+        : activeCategory;
+
     useEffect(() => {
         // Filtra apenas partidas que pertencem ao mata-mata (possuem round definido)
         const filtered = matches.filter(m => m.round && m.round !== 'Grupos');
@@ -51,7 +56,7 @@ export function TournamentBrackets({ tournamentId, tournamentType, matches, cour
         return (
             <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl bg-muted/20 px-6 text-center">
                 <GitBranch className="h-12 w-12 text-muted-foreground mb-4 opacity-20" />
-                <p className="text-muted-foreground font-medium mb-1">Crie as eliminatórias para {activeCategory}.</p>
+                <p className="text-muted-foreground font-medium mb-1">Crie as eliminatórias para {categoryDisplayName}.</p>
                 <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-widest mb-6">
                     {isGroupStageFinished
                         ? "A fase de grupos terminou. Você já pode gerar a chave final."

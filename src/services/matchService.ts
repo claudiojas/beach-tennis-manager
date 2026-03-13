@@ -9,9 +9,13 @@ export const matchService = {
     create: async (match: Omit<Match, "id" | "status" | "setsA" | "setsB" | "pointsA" | "pointsB" | "historySets" | "serving">) => {
         const matchesRef = ref(db, MATCHES_PATH);
         const newMatchRef = push(matchesRef);
+
+        // Clean undefined values
+        const cleanPayload = Object.fromEntries(
+            Object.entries(match).filter(([_, v]) => v !== undefined)
+        );
+
         const newMatch: Match = {
-            ...match,
-            id: newMatchRef.key!,
             status: 'planned',
             setsA: 0,
             setsB: 0,
@@ -19,7 +23,10 @@ export const matchService = {
             pointsB: 0,
             historySets: [],
             serving: 'teamA',
-        };
+            ...cleanPayload,
+            id: newMatchRef.key!,
+        } as Match;
+
         await set(newMatchRef, newMatch);
         return newMatchRef.key;
     },
@@ -33,7 +40,7 @@ export const matchService = {
         return onValue(matchesQuery, (snapshot) => {
             const data = snapshot.val();
             const matches: Match[] = data ? Object.values(data) : [];
-            callback(matches.reverse()); // Newest first
+            callback(matches);
         });
     },
 
@@ -190,16 +197,20 @@ export const matchService = {
      * NEW: Generates Group Phase (Round Robin)
      * Groups of 3 or 4 based on total teams.
      */
-    generateGroupMatches: async (tournamentId: string, category: string, athletes: Player[], type: 'Simples' | 'Duplas') => {
+    generateGroupMatches: async (tournamentId: string, category: string, athletes: Player[], type: 'Simples' | 'Duplas', categoryId?: string) => {
         // --- SAFEGUARD: Prevent Duplicate Groups ---
         const existingSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
         if (existingSnapshot.exists()) {
             const existingMatches = Object.values(existingSnapshot.val()) as Match[];
-            const alreadyHasGroups = existingMatches.some(m => m.category === category && m.round === 'Grupos');
+            // Check by categoryId if provided, otherwise fallback to name
+            const alreadyHasGroups = existingMatches.some(m =>
+                (categoryId ? m.categoryId === categoryId : m.category === category) && m.round === 'Grupos'
+            );
             if (alreadyHasGroups) {
                 throw new Error(`Partidas de grupo para a categoria ${category} já foram geradas.`);
             }
         }
+        // ... (remaining teams logic)
 
         const teams: Team[] = [];
         if (type === 'Simples') {
@@ -211,17 +222,6 @@ export const matchService = {
         }
 
         if (teams.length < 3) throw new Error("Mínimo de 3 duplas/atletas para fase de grupos.");
-
-        // Fetch available courts
-        const allCourts = await courtService.getByTournamentOnce(tournamentId);
-        const existingMatchesSnapshot = await get(query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId)));
-        const existingMatches = existingMatchesSnapshot.exists() ? Object.values(existingMatchesSnapshot.val()) as Match[] : [];
-
-        const occupiedCourtIds = existingMatches
-            .filter(m => m.status === 'planned' || m.status === 'ongoing')
-            .map(m => m.courtId);
-
-        let availableCourts = allCourts.filter(c => !occupiedCourtIds.includes(c.id));
 
         const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
 
@@ -257,16 +257,16 @@ export const matchService = {
 
             for (let i = 0; i < groupTeams.length; i++) {
                 for (let j = i + 1; j < groupTeams.length; j++) {
-                    const court = availableCourts.shift();
                     await matchService.create({
                         tournamentId,
                         category,
+                        categoryId: categoryId || null,
                         teamA: groupTeams[i],
                         teamB: groupTeams[j],
                         group: groupName,
                         round: 'Grupos',
-                        courtId: court?.id || null
-                    });
+                        courtId: null
+                    } as any);
                 }
             }
         }
@@ -275,7 +275,7 @@ export const matchService = {
     /**
      * PROMOTE winners from Groups to Bracket
      */
-    promoteGroupWinners: async (tournamentId: string, category: string, topCount: 1 | 2) => {
+    promoteGroupWinners: async (tournamentId: string, category: string, topCount: 1 | 2, categoryId?: string) => {
         try {
             // 1. Get all matches for this tournament/category
             const matchesRef = ref(db, MATCHES_PATH);
@@ -284,7 +284,24 @@ export const matchService = {
             if (!snapshot.exists()) throw new Error("Nenhuma partida encontrada para este torneio.");
 
             const matchesData = snapshot.val();
-            const allMatches = matchesData ? (Object.values(matchesData) as Match[]).filter(m => m.category === category) : [];
+            // CRITICAL: Filter strictly by category AND round = 'Grupos'
+            const allMatches = matchesData ? (Object.values(matchesData) as Match[]).filter(m =>
+                (categoryId ? m.categoryId === categoryId : m.category === category) && m.round === 'Grupos'
+            ) : [];
+
+            // 1.5. CLEANUP: Remove any existing knockout matches for this category before generating new ones
+            const knockoutUpdates: Record<string, any> = {};
+            if (matchesData) {
+                Object.keys(matchesData).forEach(key => {
+                    const m = matchesData[key] as Match;
+                    if ((categoryId ? m.categoryId === categoryId : m.category === category) && m.round && m.round !== 'Grupos') {
+                        knockoutUpdates[key] = null;
+                    }
+                });
+                if (Object.keys(knockoutUpdates).length > 0) {
+                    await update(ref(db, MATCHES_PATH), knockoutUpdates);
+                }
+            }
 
             // 2. Identify Groups
             const groups = Array.from(new Set(allMatches.map(m => m.group).filter(Boolean))) as string[];
@@ -433,7 +450,7 @@ export const matchService = {
             // 4. Generate Bracket
             if (teamsToPromote.length >= 2) {
                 const bracketServiceImport = (await import('./bracketService')).bracketService;
-                await bracketServiceImport.generateBracket(tournamentId, category, teamsToPromote);
+                await bracketServiceImport.generateBracket(tournamentId, category, teamsToPromote, categoryId);
                 return true;
             } else {
                 throw new Error(`Número de equipes promovidas (${teamsToPromote.length}) é insuficiente para gerar mata-mata.`);
@@ -487,7 +504,7 @@ export const matchService = {
         }
     },
 
-    deleteMatchesByGroup: async (tournamentId: string, category: string, groupName: string) => {
+    deleteMatchesByGroup: async (tournamentId: string, category: string, groupName: string, categoryId?: string) => {
         const matchesQuery = query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
         const snapshot = await get(matchesQuery);
         const matchesData = snapshot.val();
@@ -496,11 +513,60 @@ export const matchService = {
             const updates: Record<string, any> = {};
             Object.keys(matchesData).forEach(key => {
                 const match = matchesData[key] as Match;
-                if (match.category === category && match.group === groupName) {
+                if ((categoryId ? match.categoryId === categoryId : match.category === category) && match.group === groupName) {
                     updates[key] = null;
                 }
             });
             await update(ref(db, MATCHES_PATH), updates);
+        }
+    },
+
+    deleteByCategory: async (tournamentId: string, categoryIdOrName: string) => {
+        const matchesQuery = query(ref(db, MATCHES_PATH), orderByChild("tournamentId"), equalTo(tournamentId));
+        const snapshot = await get(matchesQuery);
+        const matchesData = snapshot.val();
+
+        if (matchesData) {
+            const updates: Record<string, any> = {};
+            const courtsToRelease: Set<string> = new Set();
+
+            Object.keys(matchesData).forEach(key => {
+                const match = matchesData[key] as Match;
+                const isMatchCategory = match.categoryId === categoryIdOrName ||
+                    match.category === categoryIdOrName;
+
+                if (isMatchCategory) {
+                    updates[`matches/${key}`] = null;
+                    if (match.courtId) {
+                        courtsToRelease.add(match.courtId);
+                    }
+                }
+            });
+
+            // Also clean up results for this tournament/category
+            const resultsQuery = query(ref(db, "results"), orderByChild("tournamentId"), equalTo(tournamentId));
+            const resultsSnapshot = await get(resultsQuery);
+            const resultsData = resultsSnapshot.val();
+            if (resultsData) {
+                Object.keys(resultsData).forEach(key => {
+                    const result = resultsData[key];
+                    // Results might not have categoryId, they usually have category name or we can check the match relationship if needed
+                    // But usually results have a 'categoryId' or 'category' too
+                    if (result.categoryId === categoryIdOrName || result.category === categoryIdOrName) {
+                        updates[`results/${key}`] = null;
+                    }
+                });
+            }
+
+            // Release courts
+            courtsToRelease.forEach(courtId => {
+                updates[`courts/${courtId}/status`] = 'livre';
+                updates[`courts/${courtId}/currentMatch`] = null;
+            });
+
+            if (Object.keys(updates).length > 0) {
+                await update(ref(db), updates);
+            }
         }
     }
 };

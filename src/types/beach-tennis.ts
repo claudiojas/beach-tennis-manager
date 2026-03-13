@@ -3,6 +3,11 @@ export type CourtStatus = 'livre' | 'em_jogo' | 'pausada' | 'manutencao';
 
 export type Category = string;
 
+export interface TournamentCategory {
+  id: string;
+  name: string;
+}
+
 export const TOURNAMENT_CATEGORIES = [
   "PRO",
   "A",
@@ -56,7 +61,8 @@ export interface Match {
   id: string;
   tournamentId: string;
   courtId?: string;
-  category: Category;
+  categoryId?: string; // NEW: Unique ID for the category
+  category: Category;  // Keep for display/fallback
   teamA: Team;
   teamB: Team;
   // Professional Scoring
@@ -117,10 +123,10 @@ export interface Tournament {
   location?: string;
   createdAt: number;
   participatingAthleteIds?: string[]; // IDs of athletes in this tournament
-  categories?: string[]; // Categories active in this tournament
-  categoryRules?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["A", "PRO"] de atletas que podem jogar nele
-  categoryAthletes?: Record<string, string[]>; // Mapeia "Nome do Sub-torneio" -> ["id1", "id2"] de atletas inscritos nele
-  categoryGender?: Record<string, 'Masculino' | 'Feminino' | 'Mista'>; // Novo: Filtro de gênero por categoria
+  categories?: (string | TournamentCategory)[]; // Support both for migration
+  categoryRules?: Record<string, string[]>; // Map "Category ID" -> ["A", "PRO"]
+  categoryAthletes?: Record<string, string[]>; // Map "Category ID" -> ["id1", "id2"]
+  categoryGender?: Record<string, 'Masculino' | 'Feminino' | 'Mista'>; // Map "Category ID" -> Gender
   settings?: TournamentSettings;
   arenaId?: string;
 }

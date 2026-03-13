@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 
 interface TournamentAthleteManagerProps {
     tournament: Tournament;
-    activeCategory?: string | null;
+    activeCategory?: string | null; // This is now typically the categoryId
 }
 
 export function TournamentAthleteManager({ tournament, activeCategory = null }: TournamentAthleteManagerProps) {
@@ -32,7 +32,11 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
 
     const getParticipatingIds = () => {
         if (activeCategory) {
-            return tournament.categoryAthletes?.[activeCategory] || [];
+            const catName = tournament.categories?.find(c =>
+                typeof c === 'string' ? c === activeCategory : c.id === activeCategory
+            );
+            const activeCategoryName = typeof catName === 'string' ? catName : catName?.name || activeCategory;
+            return tournament.categoryAthletes?.[activeCategory] || tournament.categoryAthletes?.[activeCategoryName] || [];
         }
         return tournament.participatingAthleteIds || [];
     };
@@ -52,10 +56,16 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         try {
             if (activeCategory) {
                 const currentCategoryAthletes = tournament.categoryAthletes || {};
+                const catName = tournament.categories?.find(c =>
+                    typeof c === 'string' ? c === activeCategory : c.id === activeCategory
+                );
+                const activeCategoryName = typeof catName === 'string' ? catName : catName?.name || activeCategory;
+
                 await tournamentService.update(tournament.id, {
                     categoryAthletes: {
                         ...currentCategoryAthletes,
-                        [activeCategory]: newIds
+                        [activeCategory]: newIds,
+                        [activeCategoryName]: newIds // Update both for absolute safety during migration
                     }
                 });
             } else {
@@ -74,31 +84,29 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
         // Essential: Check both the new 'categories' array and the legacy 'category' string
         const athleteCategories = a.categories || (a.category ? [a.category] : []);
 
+        const catName = tournament.categories?.find(c =>
+            typeof c === 'string' ? c === activeCategory : c.id === activeCategory
+        );
+        const activeCategoryName = typeof catName === 'string' ? catName : catName?.name || activeCategory || '';
+
         // 1. Gender Filter Check
-        const categoryGender = activeCategory ? tournament.categoryGender?.[activeCategory] || 'Mista' : 'Mista';
+        const categoryGender = activeCategory ? (tournament.categoryGender?.[activeCategory] || tournament.categoryGender?.[activeCategoryName] || 'Mista') : 'Mista';
         if (categoryGender !== 'Mista') {
-            // Se atleta não tem gênero definido, por segurança não mostramos em categorias restritas?
-            // Ou tratamos como 'indefinido' e bloqueamos.
             if (a.gender && a.gender !== categoryGender) return false;
-            if (!a.gender) return false; // Bloqueia se não tiver gênero cadastrado em categoria restrita
+            if (!a.gender) return false;
         }
 
-        const rules = activeCategory && tournament.categoryRules ? tournament.categoryRules[activeCategory] || [] : [];
+        const rules = activeCategory && tournament.categoryRules ? (tournament.categoryRules[activeCategory] || tournament.categoryRules[activeCategoryName] || []) : [];
         let isInCategory = false;
 
         if (activeCategory && rules.length > 0) {
-            // Se houver regra para a categoria ativa, o atleta pode entrar se tiver qualquer uma das permitidas
             isInCategory = athleteCategories.some(c => rules.includes(c));
+        } else if (activeCategory) {
+            // Case fallback to name match if no specific rules
+            isInCategory = athleteCategories.some(c => c.toUpperCase() === activeCategoryName.toUpperCase());
         } else {
-            // Caso não tenha regra ou estejamos na visão global do torneio sem uma aba selecionada
-            isInCategory = tournament.categories?.some(cat =>
-                athleteCategories.map(c => c.toUpperCase()).includes(cat.toUpperCase())
-            ) || false;
-
-            if (activeCategory && isInCategory) {
-                // Filtra especificamente para o activeCategory exigindo match exato (comportamento antigo)
-                isInCategory = athleteCategories.some(c => c.toUpperCase() === activeCategory.toUpperCase());
-            }
+            // Visão global
+            isInCategory = true;
         }
 
         if (!isInCategory) return false;
@@ -150,9 +158,15 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                                         <TableCell className="font-semibold">{athlete.name}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-wrap gap-1">
-                                                {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
-                                                    <Badge key={cat} variant="outline" className="text-[10px] whitespace-nowrap">{cat}</Badge>
-                                                ))}
+                                                {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(catId => {
+                                                    const categoryObj = tournament.categories?.find(c =>
+                                                        typeof c === 'string' ? c === catId : c.id === catId
+                                                    );
+                                                    const displayName = typeof categoryObj === 'string' ? categoryObj : categoryObj?.name || catId;
+                                                    return (
+                                                        <Badge key={catId} variant="outline" className="text-[10px] whitespace-nowrap">{displayName}</Badge>
+                                                    );
+                                                })}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -203,9 +217,15 @@ export function TournamentAthleteManager({ tournament, activeCategory = null }: 
                                     </Button>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(cat => (
-                                        <Badge key={cat} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{cat}</Badge>
-                                    ))}
+                                    {(athlete.categories || (athlete.category ? [athlete.category] : [])).map(catId => {
+                                        const categoryObj = tournament.categories?.find(c =>
+                                            typeof c === 'string' ? c === catId : c.id === catId
+                                        );
+                                        const displayName = typeof categoryObj === 'string' ? categoryObj : categoryObj?.name || catId;
+                                        return (
+                                            <Badge key={catId} variant="secondary" className="text-[9px] font-bold uppercase py-0 px-2 tracking-tighter">{displayName}</Badge>
+                                        );
+                                    })}
                                 </div>
                                 {isParticipating && (
                                     <div className="mt-3 flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-widest bg-primary/10 w-fit px-2 py-1 rounded-md">
