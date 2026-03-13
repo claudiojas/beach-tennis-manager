@@ -54,13 +54,19 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 
 ## 9. Eliminatórias e Refinamento de Jogos
 - **Geração Inteligente (Mata-Mata)**: O sistema decide automaticamente o tamanho da chave (Oitavas, Quartas ou Semi) com base nos atletas classificados dos grupos.
+- **Seeding das Chaves (Cruzamento Oficial)**: Implementação de lógica de cruzamento padrão (1º de um grupo vs 2º do outro). O sistema ranqueia os campeões por desempenho global para garantir o equilíbrio (Melhor 1º vs Pior 2º).
 - **Segregação por Abas**:
     - Aba **"Jogos"**: Exibe exclusivamente partidas da fase de grupos, mantendo a lista limpa.
     - Aba **"Chaves"**: Exibe as eliminatórias com descrições do propósito de cada jogo (ex: "Vale vaga na Semifinal").
 - **Igualdade Visual em Duplas**: Refatoração do design para que ambos os atletas da dupla tenham a mesma visibilidade (peso e tamanho da fonte), garantindo reconhecimento igual para ambos.
 - **Filtro de Segurança**: O botão de geração só é habilitado após a conclusão de todos os jogos da fase de grupos da categoria.
 
-## 10. Próximos Passos
+## 11. Celebração e Transparência
+- **Destaque de Campeão na Arena**: Quando uma categoria é finalizada, o Painel Arena exibe automaticamente um card premium de **"Grande Campeão"** com gradiente dourado, ícones de troféu e animações de celebração.
+- **Modal de Classificação**: Adição de um botão "Classificação" na aba de chaves do Admin que abre um modal detalhado com a pontuação de cada dupla, facilitando a conferência antes de gerar o mata-mata.
+- **Destaque de Classificados**: No modal de classificação, os times que estão na zona de passagem (Top 2) são destacados em verde.
+
+## 12. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
 - [x] Travas de segurança contra geração duplicada de chaves e grupos.
@@ -69,7 +75,8 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 - [x] Refatoração completa do sistema de mata-mata automático.
 - [x] **Fluxo de Partida Automatizado**: A seleção de quadra agora é feita diretamente no card do jogo. Ao selecionar uma quadra, o jogo inicia automaticamente (status 'Em Jogo'). Ao inserir um placar final (seguindo as regras CBT), o sistema finaliza o jogo e libera a quadra automaticamente.
 - [x] **Interface Simplificada**: Remoção de botões manuais de "Iniciar" e simplificação das etiquetas de status para uma gestão visual mais rápida.
+- [x] **Lógica de Seeding Profissional**: Cruzamento inteligente de duplas classificadas seguindo mérito esportivo.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 12 de Março de 2026 - Inteligência em Eliminatórias.*
+*Relatório atualizado em 13 de Março de 2026 - Ouro e Elite na Arena.*

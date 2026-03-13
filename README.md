@@ -32,24 +32,24 @@ O sistema foi construído com o que há de mais moderno no ecossistema JavaScrip
 ## 🚀 Principais Módulos
 
 ### 1. Painel Administrativo (O Cérebro)
-Gestão global de categorias, atletas, arenas e quadras. Permite gerar chaves de eliminatórias e grupos com um clique e monitorar cada disputa em tempo real.
+Gestão global de categorias, atletas, arenas e quadras. Inclui **Chaveamento Inteligente** com seeding oficial, garantindo cruzamentos justos (1º vs 2º) e um **Modal de Classificação** auditável para conferência de resultados.
 
-### 2. Interface do Árbitro (A Operação)
-Design otimizado para operação sob luz solar, com botões de alta precisão e travas de segurança por dispositivo (Device Lock), garantindo que apenas o árbitro responsável altere o placar.
+### 2. Painel de Controle (Operação)
+Interface otimizada para o Admin, com atribuição rápida de quadras e finalização automática de jogos seguindo as regras da CBT.
 
 ### 3. Arena Panel (A Emoção)
-Modo carrossel dinâmico para TVs e telões. Alterna automaticamente entre as partidas "Ao Vivo", exibindo placares com contraste agressivo para legibilidade máxima em grandes ambientes.
+Modo carrossel dinâmico para TVs e telões. Exibe placares "Ao Vivo", próximos jogos e, ao finalizar uma categoria, revela o **"Grande Campeão"** com visuais premium, troféus e animações de celebração.
 
 ### 4. Public View (O Engajamento)
-Visão simplificada e elegante para atletas e torcedores, acessível via QR Code, sem necessidade de download ou login.
+Visão simplificada e elegante para atletas e torcedores (Mobile-App style), acessível via QR Code, com abas dedicadas para resultados e chaves em tempo real.
 
 ---
 
 ## 🛡️ Segurança e Robustez
 
--   **Lock de Dispositivo:** Cada partida em andamento é "selada" no dispositivo do árbitro inicial, evitando interferências acidentais.
--   **Gestão de Contingência:** O Admin possui autoridade para liberar partidas travadas remotamente em casos de falha de hardware na quadra.
--   **Integridade de Placar:** Persistência de dados ultra-resiliente, permitindo retomar de onde parou mesmo após perda de sinal de internet.
+-   **Integridade de Dados:** Sincronização em tempo real via Firebase, garantindo que o placar na TV nunca esteja atrasado em relação à mesa de controle.
+-   **Gestão de Contingência:** O Admin possui autoridade total para editar placares, liberar quadras e ajustar chaves remotamente.
+-   **Resiliência:** Persistência de dados local integrada para suportar instabilidades momentâneas de rede.
 
 ---
 
@@ -83,6 +83,6 @@ Visão simplificada e elegante para atletas e torcedores, acessível via QR Code
 
 ---
 
-© 2026 **Módulo Web**. Fundado por Cláudio Soares.
+© 2026 **Módulo Web Technology**. Fundado por Cláudio Soares.
 *Transformando ideias em produtos digitais de alta performance.*
 https://www.moduloweb.com.br/
