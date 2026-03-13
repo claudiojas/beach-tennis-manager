@@ -104,43 +104,49 @@ export const bracketService = {
         let byeIndex = 0;
         let playInPairIndex = 0;
 
+        // Distribute teams into the Base Round slots based on seeding
+        // For P=8, seeding is [0, 7, 3, 4, 1, 6, 2, 5]
         for (let i = 0; i < P / 2; i++) {
             const match = baseRoundMatches[i];
+            const idxA = baseSeeding[i * 2];
+            const idxB = baseSeeding[i * 2 + 1];
 
             // Slot A
-            if (byeIndex < byeTeamsCount) {
-                match.teamA = byeTeams[byeIndex++];
+            if (idxA < byeTeamsCount) {
+                match.teamA = byeTeams[idxA];
             } else {
                 // Must be a play-in link
+                const playInIndex = idxA - byeTeamsCount;
                 const piRef = push(matchesRef);
                 const piId = piRef.key!;
                 const piData = {
-                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2, categoryId),
-                    teamA: playInTeams[playInPairIndex * 2],
-                    teamB: playInTeams[playInPairIndex * 2 + 1],
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, i * 2, categoryId),
+                    teamA: playInTeams[playInIndex * 2],
+                    teamB: playInTeams[playInIndex * 2 + 1],
                     nextMatchId: match.id,
                     courtId: null
                 };
                 matchUpdates[piId] = piData;
-                playInPairIndex++;
+                match.teamA = { player1: { id: `waiting-${piId}`, name: 'Aguardando...', category } };
             }
 
             // Slot B
-            if (byeIndex < byeTeamsCount) {
-                match.teamB = byeTeams[byeIndex++];
+            if (idxB < byeTeamsCount) {
+                match.teamB = byeTeams[idxB];
             } else {
                 // Must be a play-in link
+                const playInIndex = idxB - byeTeamsCount;
                 const piRef = push(matchesRef);
                 const piId = piRef.key!;
                 const piData = {
-                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, playInPairIndex * 2, categoryId),
-                    teamA: playInTeams[playInPairIndex * 2],
-                    teamB: playInTeams[playInPairIndex * 2 + 1],
+                    ...createPlaceholderMatch(piId, tournamentId, category, prelimRoundName, i * 2 + 1, categoryId),
+                    teamA: playInTeams[playInIndex * 2],
+                    teamB: playInTeams[playInIndex * 2 + 1],
                     nextMatchId: match.id,
                     courtId: null
                 };
                 matchUpdates[piId] = piData;
-                playInPairIndex++;
+                match.teamB = { player1: { id: `waiting-${piId}`, name: 'Aguardando...', category } };
             }
         }
 
