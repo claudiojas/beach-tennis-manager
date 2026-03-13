@@ -144,7 +144,7 @@ export function GroupStandings({ tournamentId, category, categoryId, groupName, 
                             </TableHeader>
                             <TableBody>
                                 {sortedStandings.map((team, index) => (
-                                    <TableRow key={team.teamId} className={`${index < 2 ? "bg-primary/5" : ""} border-b-muted/10 last:border-0`}>
+                                    <TableRow key={team.teamId} className={`${index < 2 ? "bg-green-500/5 dark:bg-green-500/10" : ""} border-b-muted/10 last:border-0`}>
                                         <TableCell className="text-center font-black text-xs md:text-sm py-3 md:py-4 px-1 md:px-4">
                                             {index + 1}
                                         </TableCell>

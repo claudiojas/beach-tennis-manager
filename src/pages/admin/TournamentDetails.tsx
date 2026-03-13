@@ -70,6 +70,7 @@ export default function TournamentDetails() {
     const [activeTab, setActiveTab] = useState("rules");
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [dynamicCategories, setDynamicCategories] = useState<string[]>([]);
+    const [openClassificationModal, setOpenClassificationModal] = useState(false);
 
     useEffect(() => {
         const unsubscribe = categoryService.subscribe((cats) => {
@@ -820,6 +821,17 @@ export default function TournamentDetails() {
                                                 <CardTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Mata-Mata</CardTitle>
                                                 <CardDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Chaves eliminatórias e finais.</CardDescription>
                                             </div>
+                                            <div className="flex justify-end">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setOpenClassificationModal(true)}
+                                                    className="h-10 md:h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-xl border-primary/20 hover:opacity-80 transition-opacity flex items-center gap-2"
+                                                >
+                                                    <ListFilter className="h-4 w-4" />
+                                                    Classificação
+                                                </Button>
+                                            </div>
                                         </CardHeader>
                                         <CardContent>
                                             {id && tournament && (
@@ -1280,6 +1292,40 @@ export default function TournamentDetails() {
                     </Link>
                 </div>
             </nav>
+            <Dialog open={openClassificationModal} onOpenChange={setOpenClassificationModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl md:text-2xl font-black uppercase tracking-tight">Classificação - {activeCategoryObj?.name || 'Categoria'}</DialogTitle>
+                        <DialogDescription className="text-[10px] uppercase font-bold tracking-widest opacity-60">Resultados e duplas classificadas para as eliminatórias.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-8 mt-6">
+                        {(() => {
+                            const groups = Array.from(new Set(filteredMatches.filter(m => m.group).map(m => m.group))).sort();
+                            if (groups.length === 0) return (
+                                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl italic">
+                                    Nenhum dado de classificação disponível para {activeCategoryObj?.name || activeSubTournament}.
+                                </div>
+                            );
+
+                            return (
+                                <div className="grid gap-6 md:grid-cols-2">
+                                    {groups.map(g => (
+                                        <GroupStandings
+                                            key={g}
+                                            tournamentId={id!}
+                                            category={activeCategoryObj?.name || ''}
+                                            categoryId={activeCategoryObj?.id}
+                                            groupName={g!}
+                                            matches={filteredMatches.filter(m => m.group === g)}
+                                            readOnly={true}
+                                        />
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }

@@ -47,12 +47,13 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
         return { etapa: foundEtapa, displayCategory: foundCat };
     }, [categoryProp, matches, tournamentName]);
 
-    const { groups, knockouts } = useMemo(() => {
+    const { groups, knockouts, winner } = useMemo(() => {
         const groupSections: MatchSection[] = [];
         const knockoutSections: MatchSection[] = [];
         const gMatches = matches.filter(m => m.group);
         const kMatches = matches.filter(m => !m.group);
         const gNames = Array.from(new Set(gMatches.map(m => m.group))).sort();
+
         gNames.forEach(gn => {
             groupSections.push({
                 name: `Grupo ${gn}`,
@@ -60,12 +61,14 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
                 matches: gMatches.filter(m => m.group === gn)
             });
         });
+
         const rOrder = ['oitavas', 'quartas', 'semi', 'final'];
         const rNames = Array.from(new Set(kMatches.map(m => m.round))).sort((a, b) => {
             const aIdx = rOrder.indexOf(a?.toLowerCase() || '');
             const bIdx = rOrder.indexOf(b?.toLowerCase() || '');
             return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
         });
+
         rNames.forEach(rn => {
             knockoutSections.push({
                 name: rn || 'Mata-Mata',
@@ -73,7 +76,13 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
                 matches: kMatches.filter(m => m.round === rn)
             });
         });
-        return { groups: groupSections, knockouts: knockoutSections };
+
+        const finalMatch = matches.find(m => m.round === 'final');
+        const catWinner = (finalMatch && finalMatch.status === 'finished')
+            ? (finalMatch.setsA > finalMatch.setsB ? finalMatch.teamA : finalMatch.teamB)
+            : null;
+
+        return { groups: groupSections, knockouts: knockoutSections, winner: catWinner };
     }, [matches]);
 
     // Create a stable dependency for the animation effect
@@ -153,6 +162,55 @@ export function ArenaGridColumn({ category: categoryProp, tournamentName, matche
                     style={{ position: 'relative' }}
                     className="p-6 flex flex-col gap-12"
                 >
+                    {winner && (
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative group mt-4 mb-2"
+                        >
+                            {/* Animated Background Glow */}
+                            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+
+                            <div className="relative bg-[#020617] border-2 border-yellow-500/50 rounded-2xl p-8 text-center space-y-4 shadow-2xl overflow-hidden">
+                                {/* Celebratory Background Element */}
+                                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl"></div>
+                                <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl"></div>
+
+                                <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-yellow-400 to-orange-600 rounded-full shadow-lg shadow-yellow-500/20 mb-2">
+                                    <Trophy className="h-10 w-10 text-white drop-shadow-md" />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <h2 className="text-sm font-black uppercase tracking-[0.4em] text-yellow-500/80 mb-1 italic">Grande Campeão</h2>
+                                    <div className="h-px w-24 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent mx-auto"></div>
+                                </div>
+
+                                <div className="space-y-2 py-2">
+                                    <p className="text-5xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-sm">
+                                        {winner.player1.name}
+                                    </p>
+                                    {winner.player2 && (
+                                        <>
+                                            <div className="flex items-center justify-center gap-3 py-1">
+                                                <div className="h-[2px] w-8 bg-yellow-500/30"></div>
+                                                <span className="text-yellow-500 font-black text-xl italic">&</span>
+                                                <div className="h-[2px] w-8 bg-yellow-500/30"></div>
+                                            </div>
+                                            <p className="text-5xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-sm">
+                                                {winner.player2.name}
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="pt-4">
+                                    <span className="inline-block px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                                        Parabéns pela Vitória!
+                                    </span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
                     {groups.length > 0 && (
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-[#0088cc] pl-4">
