@@ -41,7 +41,7 @@ Interface otimizada para o Admin, com atribuição rápida de quadras e finaliza
 Modo carrossel dinâmico para TVs e telões. Exibe placares "Ao Vivo", próximos jogos e, ao finalizar uma categoria, revela o **"Grande Campeão"** com visuais premium, troféus e animações de celebração.
 
 ### 4. Public View (O Engajamento)
-Visão simplificada e elegante para atletas e torcedores (Mobile-App style), acessível via QR Code, com abas dedicadas para resultados e chaves em tempo real.
+Visão simplificada e elegante para atletas e torcedores (Mobile-App style), acessível via QR Code, com abas dedicadas para resultados e chaves em tempo real. **Inclui novos filtros inteligentes por categoria (Dropdown) para navegação fluida em eventos de grande porte.**
 
 ---
 

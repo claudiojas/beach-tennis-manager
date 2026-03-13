@@ -66,17 +66,25 @@ Este documento resume as principais atualizações e melhorias implementadas no 
 - **Modal de Classificação**: Adição de um botão "Classificação" na aba de chaves do Admin que abre um modal detalhado com a pontuação de cada dupla, facilitando a conferência antes de gerar o mata-mata.
 - **Destaque de Classificados**: No modal de classificação, os times que estão na zona de passagem (Top 2) são destacados em verde.
 
-## 12. Próximos Passos
+## 13. Sincronia Ultra-Rápida e Filtros de Categoria (Public App)
+- **Assinatura Direta (Real-time)**: Refatoração da visualização pública para se conectar diretamente aos nós específicos de torneios e arenas no Firebase. Isso garante que qualquer alteração de placar ou status seja refletida instantaneamente na tela do público, sem dependência da lista global de torneios.
+- **Filtro de Categoria Escalável**:
+    - Substituição de botões por um componente de **Seleção (Dropdown)** premium.
+    - Suporte a múltiplas categorias (Masc B, Misto, etc.) sem comprometer o layout mobile.
+    - Filtragem reativa que isola automaticamente jogos, grupos e chaves da categoria escolhida.
+
+## 14. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
 - [x] Travas de segurança contra geração duplicada de chaves e grupos.
 - [x] Unificação de logística para evitar duplicidade de kits.
 - [x] Simplificação do fluxo de imagens para maior produtividade do admin.
 - [x] Refatoração completa do sistema de mata-mata automático.
-- [x] **Fluxo de Partida Automatizado**: A seleção de quadra agora é feita diretamente no card do jogo. Ao selecionar uma quadra, o jogo inicia automaticamente (status 'Em Jogo'). Ao inserir um placar final (seguindo as regras CBT), o sistema finaliza o jogo e libera a quadra automaticamente.
-- [x] **Interface Simplificada**: Remoção de botões manuais de "Iniciar" e simplificação das etiquetas de status para uma gestão visual mais rápida.
-- [x] **Lógica de Seeding Profissional**: Cruzamento inteligente de duplas classificadas seguindo mérito esportivo.
+- [x] **Fluxo de Partida Automatizado**: A seleção de quadra agora é feita diretamente no card do jogo.
+- [x] **Interface Simplificada**: Remoção de botões manuais de "Iniciar".
+- [x] **Lógica de Seeding Profissional**: Cruzamento inteligente de duplas classificadas.
+- [x] **Sincronia Pública**: Atualização em tempo real garantida para o espectador.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 13 de Março de 2026 - Ouro e Elite na Arena.*
+*Relatório atualizado em 13 de Março de 2026 - Sprint Mobile & Performance.*

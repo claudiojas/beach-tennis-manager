@@ -4,18 +4,19 @@ import { tournamentService } from "@/services/tournamentService";
 import { courtService } from "@/services/courtService";
 import { matchService } from "@/services/matchService";
 import { arenaService } from "@/services/arenaService";
+import { db } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
 import { Court, Match, Tournament, Arena } from "@/types/beach-tennis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Trophy, Users, Calendar, MapPin, Activity, Clock, ChevronDown, Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArenaCourtCard } from "@/components/ArenaCourtCard";
 import { GroupStandings } from "@/components/matches/GroupStandings";
 import { TournamentBrackets } from "@/components/matches/TournamentBrackets";
 import { PublicMatchCard } from "@/components/public/PublicMatchCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function PublicView() {
     const { id } = useParams();
@@ -25,32 +26,32 @@ export default function PublicView() {
     const [arena, setArena] = useState<Arena | null>(null);
     const [courts, setCourts] = useState<Court[]>([]);
     const [matches, setMatches] = useState<Match[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState("TODOS");
 
     useEffect(() => {
+        // 1. Subscribe to all tournaments (for the switcher)
         const unsubAll = tournamentService.subscribe((tournaments) => {
             const active = tournaments.filter(t => t.status === 'active' || t.status === 'planning');
             setAllTournaments(active);
-
-            if (id) {
-                const current = tournaments.find(t => t.id === id);
-                if (current) {
-                    setTournament(current);
-                    if (current.arenaId) {
-                        arenaService.getAllOnce().then(arenas => {
-                            const found = arenas.find(a => a.id === current.arenaId);
-                            if (found) setArena(found);
-                        });
-                    }
-                }
-            }
         });
 
         if (id) {
+            // 2. Direct subscription to current tournament
+            const tournamentRef = ref(db, `tournaments/${id}`);
+            const unsubTournament = onValue(tournamentRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    setTournament(data as Tournament);
+                }
+            });
+
+            // 3. Subscription to courts and matches
             const unsubCourts = courtService.subscribeByTournament(id, setCourts);
             const unsubMatches = matchService.subscribeByTournament(id, setMatches);
 
             return () => {
                 unsubAll();
+                unsubTournament();
                 unsubCourts();
                 unsubMatches();
             };
@@ -58,6 +59,24 @@ export default function PublicView() {
 
         return () => unsubAll();
     }, [id]);
+
+    // Separate effect for arena to avoid re-triggering tournament sub
+    useEffect(() => {
+        if (tournament?.arenaId) {
+            const arenaRef = ref(db, `arenas/${tournament.arenaId}`);
+            const unsubscribe = onValue(arenaRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) setArena(data);
+            });
+            return () => unsubscribe();
+        } else if (tournament?.location) {
+            // Fallback: search by name once if no arenaId
+            arenaService.getAllOnce().then(arenas => {
+                const found = arenas.find(a => a.name === tournament.location);
+                if (found) setArena(found);
+            });
+        }
+    }, [tournament?.arenaId, tournament?.location]);
 
     if (!tournament) {
         return (
@@ -70,14 +89,9 @@ export default function PublicView() {
         );
     }
 
-    const ongoingMatches = matches.filter(m => m.status === 'ongoing');
-    const finishedMatches = matches.filter(m => m.status === 'finished').sort((a, b) => (b.endTime || 0) - (a.endTime || 0));
-    const upcomingMatches = matches.filter(m => m.status === 'planned').sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
-
     const allCategories = Array.from(new Set([
         ...(tournament?.categories || []).map(cat => typeof cat === 'string' ? cat : cat.name),
         ...matches.map(m => {
-            // If the match has a category ID that matches an official category, use the official name
             if (m.categoryId && tournament?.categories) {
                 const official = tournament.categories.find(c => typeof c === 'object' && c.id === m.categoryId);
                 if (official && typeof official === 'object') return official.name;
@@ -85,6 +99,19 @@ export default function PublicView() {
             return m.category;
         })
     ])).filter(Boolean).sort();
+
+    const filteredMatches = selectedCategory === "TODOS"
+        ? matches
+        : matches.filter(m => {
+            const mCat = m.categoryId && tournament?.categories
+                ? (tournament.categories.find(c => typeof c === 'object' && c.id === m.categoryId) as any)?.name || m.category
+                : m.category;
+            return mCat === selectedCategory;
+        });
+
+    const ongoingMatches = filteredMatches.filter(m => m.status === 'ongoing');
+    const finishedMatches = filteredMatches.filter(m => m.status === 'finished').sort((a, b) => (b.endTime || 0) - (a.endTime || 0));
+    const upcomingMatches = filteredMatches.filter(m => m.status === 'planned').sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
 
     return (
         <div className="min-h-screen bg-slate-50 pb-20 font-inter">
@@ -159,6 +186,28 @@ export default function PublicView() {
                         </div>
                     </div>
                 </div>
+
+                {/* Categories Quick Filter */}
+                <div className="max-w-md mx-auto mt-6 px-2">
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-full bg-white/10 text-white border-white/10 backdrop-blur-md h-12 rounded-2xl font-bold uppercase tracking-widest text-[10px]">
+                            <div className="flex items-center gap-2">
+                                <Users className="h-3.5 w-3.5 text-primary" />
+                                <SelectValue placeholder="Selecione a Categoria" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                            <SelectItem value="TODOS" className="font-bold uppercase tracking-widest text-[10px] focus:bg-primary/20 focus:text-primary">
+                                TODAS AS CATEGORIAS
+                            </SelectItem>
+                            {allCategories.map(cat => (
+                                <SelectItem key={cat} value={cat} className="font-bold uppercase tracking-widest text-[10px] focus:bg-primary/20 focus:text-primary text-white">
+                                    {cat}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </header>
 
             <main className="max-w-md mx-auto px-4 -mt-8 relative z-20">
@@ -222,34 +271,41 @@ export default function PublicView() {
                     </TabsContent>
 
                     <TabsContent value="groups" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {allCategories.map(cat => {
-                            const catMatches = matches.filter(m => m.category === cat && m.group);
-                            if (catMatches.length === 0) return null;
-                            const groups = Array.from(new Set(catMatches.map(m => m.group))).sort();
+                        {allCategories
+                            .filter(cat => selectedCategory === "TODOS" || cat === selectedCategory)
+                            .map(cat => {
+                                const catMatches = matches.filter(m => {
+                                    const mCat = m.categoryId && tournament?.categories
+                                        ? (tournament.categories.find(c => typeof c === 'object' && c.id === m.categoryId) as any)?.name || m.category
+                                        : m.category;
+                                    return mCat === cat && m.group;
+                                });
+                                if (catMatches.length === 0) return null;
+                                const groups = Array.from(new Set(catMatches.map(m => m.group))).sort();
 
-                            return (
-                                <div key={cat} className="space-y-4">
-                                    <div className="flex items-center gap-3 px-2">
-                                        <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase">
-                                            {cat}
-                                        </Badge>
-                                        <div className="h-px bg-slate-200 flex-1" />
+                                return (
+                                    <div key={cat} className="space-y-4">
+                                        <div className="flex items-center gap-3 px-2">
+                                            <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase">
+                                                {cat}
+                                            </Badge>
+                                            <div className="h-px bg-slate-200 flex-1" />
+                                        </div>
+                                        <div className="space-y-6">
+                                            {groups.map(groupName => (
+                                                <GroupStandings
+                                                    key={`${cat}-${groupName}`}
+                                                    tournamentId={id!}
+                                                    category={cat}
+                                                    groupName={groupName!}
+                                                    matches={catMatches.filter(m => m.group === groupName)}
+                                                    readOnly={true}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="space-y-6">
-                                        {groups.map(groupName => (
-                                            <GroupStandings
-                                                key={`${cat}-${groupName}`}
-                                                tournamentId={id!}
-                                                category={cat}
-                                                groupName={groupName!}
-                                                matches={catMatches.filter(m => m.group === groupName)}
-                                                readOnly={true}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
 
                         {!matches.some(m => m.group) && (
                             <Card className="border-dashed border-2 bg-slate-50">
@@ -265,7 +321,7 @@ export default function PublicView() {
                             <TournamentBrackets
                                 tournamentId={id}
                                 tournamentType={tournament.type}
-                                matches={matches}
+                                matches={filteredMatches}
                                 courts={courts}
                                 onEdit={() => { }} // Read-only
                                 readOnly={true}
