@@ -1239,7 +1239,8 @@ export default function TournamentDetails() {
                         tournamentType={tournament.type as any}
                         open={openManualGroups}
                         onOpenChange={setOpenManualGroups}
-                        activeCategory={activeSubTournament}
+                        activeCategory={activeCategoryObj?.name || activeSubTournament}
+                        categoryId={activeCategoryObj?.id}
                         onSuccess={() => {
                             toast.success("Grupos manuais gerados!");
                         }}

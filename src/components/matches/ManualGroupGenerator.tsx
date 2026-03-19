@@ -21,6 +21,7 @@ interface ManualGroupGeneratorProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     activeCategory: string;
+    categoryId?: string;
     onSuccess?: () => void;
 }
 
@@ -31,6 +32,7 @@ export function ManualGroupGenerator({
     open,
     onOpenChange,
     activeCategory,
+    categoryId,
     onSuccess
 }: ManualGroupGeneratorProps) {
     const [formedTeams, setFormedTeams] = useState<Team[]>([]);
@@ -129,6 +131,7 @@ export function ManualGroupGenerator({
                         const matchData = {
                             tournamentId,
                             category: activeCategory,
+                            categoryId: categoryId || null,
                             teamA: groupTeams[i],
                             teamB: groupTeams[j],
                             group: group.name,

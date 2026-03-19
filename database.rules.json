@@ -1,36 +1,36 @@
 {
-    "rules": {
-        ".read": true,
-        "tournaments": {
-            ".indexOn": "createdAt",
-            ".write": "auth != null"
-        },
-        "matches": {
-            ".indexOn": "tournamentId",
-            ".write": true
-        },
-        "courts": {
-            ".indexOn": [
-                "tournamentId",
-                "pin"
-            ],
-            ".write": true
-        },
-        "results": {
-            ".indexOn": "tournamentId",
-            ".write": true
-        },
-        "athletes": {
-            ".write": "auth != null"
-        },
-        "arenas": {
-            ".write": "auth != null"
-        },
-        "sponsors": {
-            ".write": "auth != null"
-        },
-        "categories": {
-            ".write": "auth != null"
-        }
+  "rules": {
+    ".read": true,
+    "tournaments": {
+      ".indexOn": ["createdAt", "status"],
+      ".write": "auth != null"
+    },
+    "matches": {
+      ".indexOn": ["tournamentId", "categoryId", "category", "round", "status"],
+      ".write": true
+    },
+    "courts": {
+      ".indexOn": ["tournamentId", "pin"],
+      ".write": true
+    },
+    "results": {
+      ".indexOn": ["tournamentId", "categoryId", "matchId"],
+      ".write": true
+    },
+    "athletes": {
+      ".write": "auth != null"
+    },
+    "arenas": {
+      ".indexOn": "name",
+      ".write": "auth != null"
+    },
+    "sponsors": {
+      ".indexOn": "tournamentId",
+      ".write": "auth != null"
+    },
+    "categories": {
+      ".indexOn": "name",
+      ".write": "auth != null"
     }
+  }
 }

@@ -284,17 +284,26 @@ export const matchService = {
             if (!snapshot.exists()) throw new Error("Nenhuma partida encontrada para este torneio.");
 
             const matchesData = snapshot.val();
-            // CRITICAL: Filter strictly by category AND round = 'Grupos'
-            const allMatches = matchesData ? (Object.values(matchesData) as Match[]).filter(m =>
-                (categoryId ? m.categoryId === categoryId : m.category === category) && m.round === 'Grupos'
-            ) : [];
+            // Robust filtering: check for categoryId OR category name matches
+            const allMatches = matchesData ? (Object.values(matchesData) as Match[]).filter(m => {
+                const isGroupRound = m.round === 'Grupos';
+                const matchIdMatches = categoryId && m.categoryId === categoryId;
+                const mCatName = typeof m.category === 'string' ? m.category : (m.category as any)?.name;
+                const matchNameMatches = category && mCatName?.toUpperCase() === category?.toUpperCase();
+                
+                return isGroupRound && (matchIdMatches || matchNameMatches);
+            }) : [];
 
             // 1.5. CLEANUP: Remove any existing knockout matches for this category before generating new ones
             const knockoutUpdates: Record<string, any> = {};
             if (matchesData) {
                 Object.keys(matchesData).forEach(key => {
                     const m = matchesData[key] as Match;
-                    if ((categoryId ? m.categoryId === categoryId : m.category === category) && m.round && m.round !== 'Grupos') {
+                    const isKnockout = m.round && m.round !== 'Grupos';
+                    const matchIdMatches = categoryId && m.categoryId === categoryId;
+                    const matchNameMatches = category && m.category?.toUpperCase() === category?.toUpperCase();
+                    
+                    if (isKnockout && (matchIdMatches || matchNameMatches)) {
                         knockoutUpdates[key] = null;
                     }
                 });
@@ -306,7 +315,16 @@ export const matchService = {
             // 2. Identify Groups
             const groups = Array.from(new Set(allMatches.map(m => m.group).filter(Boolean))) as string[];
 
-            if (groups.length === 0) throw new Error("Não foram encontrados grupos para esta categoria.");
+            if (groups.length === 0) {
+                // Diagnostic log and better error
+                console.warn("Nenhum grupo encontrado. Diagnostic info:", { 
+                    tournamentId, 
+                    category, 
+                    categoryId, 
+                    foundMatchesCount: allMatches.length 
+                });
+                throw new Error(`Não foram encontrados grupos para a categoria "${category}". Verifique se as partidas de grupo já foram geradas.`);
+            }
 
             // 3. For each group, calculate standings and collect 1st and 2nd places
             const firstPlaces: any[] = [];
@@ -502,7 +520,11 @@ export const matchService = {
             const updates: Record<string, any> = {};
             Object.keys(matchesData).forEach(key => {
                 const match = matchesData[key] as Match;
-                if ((categoryId ? match.categoryId === categoryId : match.category === category) && match.group === groupName) {
+                const groupMatches = match.group === groupName;
+                const matchIdMatches = categoryId && match.categoryId === categoryId;
+                const matchNameMatches = category && match.category?.toUpperCase() === category?.toUpperCase();
+
+                if (groupMatches && (matchIdMatches || matchNameMatches)) {
                     updates[key] = null;
                 }
             });

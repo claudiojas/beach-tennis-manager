@@ -73,18 +73,20 @@ Este documento resume as principais atualizações e melhorias implementadas no 
     - Suporte a múltiplas categorias (Masc B, Misto, etc.) sem comprometer o layout mobile.
     - Filtragem reativa que isola automaticamente jogos, grupos e chaves da categoria escolhida.
 
-## 14. Próximos Passos
+## 15. Correções de Estabilidade (Admin & Database)
+- **Índices de Performance**: Atualização completa das regras do Firebase (`database.rules.json`) para incluir todos os índices necessários em `sponsors`, `matches` e `results`, eliminando erros de "Index not defined".
+- **Robustez na Geração de Chaves**: Refatoração da lógica de promoção de vencedores (`promoteGroupWinners`). O sistema agora é inteligente o suficiente para encontrar grupos mesmo com inconsistências de ID ou variações de maiúsculas/minúsculas no nome da categoria.
+- **Correção da Montagem Manual**: O gerador manual de grupos foi corrigido para incluir o `categoryId` em cada partida, garantindo total compatibilidade com o sistema de filtragem e promoção automática.
+- **Diagnóstico Aprimorado**: Adição de logs detalhados e mensagens de erro mais claras no Admin para facilitar a resolução de problemas de fluxo.
+
+## 16. Próximos Passos
 - [x] Correção do cálculo de SG/V nos grupos sem histórico de games.
 - [x] Filtro de fase de grupos vs mata-mata na aba de jogos do Admin.
-- [x] Travas de segurança contra geração duplicada de chaves e grupos.
-- [x] Unificação de logística para evitar duplicidade de kits.
-- [x] Simplificação do fluxo de imagens para maior produtividade do admin.
-- [x] Refatoração completa do sistema de mata-mata automático.
-- [x] **Fluxo de Partida Automatizado**: A seleção de quadra agora é feita diretamente no card do jogo.
-- [x] **Interface Simplificada**: Remoção de botões manuais de "Iniciar".
-- [x] **Lógica de Seeding Profissional**: Cruzamento inteligente de duplas classificadas.
+- [x] Trava contra geração duplicada.
 - [x] **Sincronia Pública**: Atualização em tempo real garantida para o espectador.
+- [x] **Correção de Índices**: Fim dos erros de performance e delete no Admin.
+- [x] **Promoção Robusta**: Estabilidade na transição de grupos para chaves.
 - [ ] Testes de performance em dispositivos de baixo custo (Smart TVs antigas).
 
 ---
-*Relatório atualizado em 13 de Março de 2026 - Sprint Mobile & Performance.*
+*Relatório atualizado em 19 de Março de 2026 - Sprint Estabilidade & Admin.*
