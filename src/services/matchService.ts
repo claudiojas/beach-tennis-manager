@@ -287,7 +287,7 @@ export const matchService = {
             // Robust filtering: check for categoryId OR category name matches
             const allMatches = matchesData ? (Object.values(matchesData) as Match[]).filter(m => {
                 const isGroupRound = m.round === 'Grupos';
-                const matchIdMatches = categoryId && m.categoryId === categoryId;
+                const matchIdMatches = (categoryId && m.categoryId === categoryId) || (categoryId && m.category === categoryId);
                 const mCatName = typeof m.category === 'string' ? m.category : (m.category as any)?.name;
                 const matchNameMatches = category && mCatName?.toUpperCase() === category?.toUpperCase();
                 
@@ -300,8 +300,9 @@ export const matchService = {
                 Object.keys(matchesData).forEach(key => {
                     const m = matchesData[key] as Match;
                     const isKnockout = m.round && m.round !== 'Grupos';
-                    const matchIdMatches = categoryId && m.categoryId === categoryId;
-                    const matchNameMatches = category && m.category?.toUpperCase() === category?.toUpperCase();
+                    const matchIdMatches = (categoryId && m.categoryId === categoryId) || (categoryId && m.category === categoryId);
+                    const mCatName = typeof m.category === 'string' ? m.category : (m.category as any)?.name;
+                    const matchNameMatches = category && mCatName?.toUpperCase() === category?.toUpperCase();
                     
                     if (isKnockout && (matchIdMatches || matchNameMatches)) {
                         knockoutUpdates[key] = null;
@@ -316,13 +317,6 @@ export const matchService = {
             const groups = Array.from(new Set(allMatches.map(m => m.group).filter(Boolean))) as string[];
 
             if (groups.length === 0) {
-                // Diagnostic log and better error
-                console.warn("Nenhum grupo encontrado. Diagnostic info:", { 
-                    tournamentId, 
-                    category, 
-                    categoryId, 
-                    foundMatchesCount: allMatches.length 
-                });
                 throw new Error(`Não foram encontrados grupos para a categoria "${category}". Verifique se as partidas de grupo já foram geradas.`);
             }
 
