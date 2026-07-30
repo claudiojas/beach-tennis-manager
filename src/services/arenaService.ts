@@ -13,7 +13,13 @@ export const arenaService = {
             id: newArenaRef.key!,
             createdAt: Date.now(),
         };
-        await set(newArenaRef, newArena);
+
+        // Firebase Realtime DB não aceita 'undefined', removemos essas chaves:
+        const safeArena = Object.fromEntries(
+            Object.entries(newArena).filter(([_, v]) => v !== undefined)
+        );
+
+        await set(newArenaRef, safeArena);
         return newArenaRef.key;
     },
 
